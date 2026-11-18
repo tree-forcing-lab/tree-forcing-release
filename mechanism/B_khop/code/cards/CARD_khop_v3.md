@@ -16,7 +16,7 @@ resubmission of the same node under its own id, Amendment 2). Code copy
 E/src_khop3/repo (untouched snapshot E/src_khop3/repo.base; both equal E/src_khop2/repo today), variant x1khop3, bundle
 cotd_code_data_x1khop3_4b.tgz. E = <path> (the old scratchpad path .../scratchpad/exp is a
 symlink to it; files may carry either form).
-One-pass rule (MILO_RULINGS_2026-10-23, tier ii): every arm is plain A2 training (letter CE after "Answer:"). The
+One-pass rule (RULINGS_2026-10-23, tier ii): every arm is plain A2 training (letter CE after "Answer:"). The
 curriculum is two ordinary A2 training jobs in sequence (chain rows, then the A2 GSM epoch on the saved weights). No new
 mechanism, no generated tokens (G0), no recurrence; executed layers 32 of 32, one forward per item, FLOPs and latency
 equal to A2 for the same prompt length. No trainer change: the A2 path is the parent's code byte for byte (D5).

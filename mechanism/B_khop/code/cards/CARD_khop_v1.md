@@ -8,7 +8,7 @@ Amendment 2 items 1 and 3 (shared skeleton, the "PASS (approximate)" reading) ha
 Owner's words: "可以那你这几个都做吧 自己写内容排任务" and "你安排好了自动排队就行 能跑的全部跑" (2026-10-25, HANDOFF section 14).
 Family khop, job ids 750-774 only. Code copy E/src_khop/repo (untouched snapshot E/src_khop/repo.base), variant x1khop,
 bundle cotd_code_data_x1khop_4b.tgz. E = <tmp>
-One-pass rule (MILO_RULINGS_2026-10-23, tier ii): every arm is plain A2 training (letter CE after "Answer:") on extra
+One-pass rule (RULINGS_2026-10-23, tier ii): every arm is plain A2 training (letter CE after "Answer:") on extra
 rows. No new mechanism, no generated tokens (G0), no recurrence; executed layers 32 of 32, one forward per item,
 FLOPs and latency equal to A2 for the same prompt length. Memory and wall time are read from the logs and reported.
 

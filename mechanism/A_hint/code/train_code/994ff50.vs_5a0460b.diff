@@ -53094,7 +53094,7 @@ diff -ruN -x __pycache__ -x *.pyc x_4b/repo/tests/test_latent_slots.py <tmp>
 +LINES_660 = ["4 + 2 = 6", "4 × 2 = 8", "4 ÷ 2 = 2", "4 + 6 = 10", "10 + 8 = 18", "18 + 2 = 20"]
 +TOK = "§"          # GPT-2: one token (16273), absent from the fixture prompts
 +SWAP = "¶"         # GPT-2: one token (26604)
-+QWEN = glob.glob(os.path.expanduser("~/.cache/huggingface/hub/models--sora42y--Sev-2B-preview/snapshots/*/"))
++QWEN = glob.glob(os.path.expanduser("~/.cache/huggingface/hub/models--anonymous--model-preview/snapshots/*/"))
 +
 +try:
 +    import torch
@@ -53147,7 +53147,7 @@ diff -ruN -x __pycache__ -x *.pyc x_4b/repo/tests/test_latent_slots.py <tmp>
 +            with self.assertRaises(ValueError):
 +                slot_token_id(self.tok, bad)
 +
-+    @unittest.skipUnless(QWEN, "no local Qwen3.5 tokenizer (Sev-2B-preview snapshot)")
++    @unittest.skipUnless(QWEN, "no local Qwen3.5 tokenizer (model-preview snapshot)")
 +    def test_qwen_tokens_and_660(self):
 +        """Qwen3.5: <|box_start|> (248049) is the slot, <|quad_start|> (248051) the swap token; the 660 final
 +        question keeps the problem, option and cue tokens of A2 around the K x c slot ids."""
@@ -53743,7 +53743,7 @@ diff -ruN -x __pycache__ -x *.pyc x_4b/repo/tests/test_latent_slots.py <tmp>
 +        long = self.tok.encode("25044.75")
 +        self.assertEqual(lens_target_ids(self.tok, "25044.75", 2), (long[:2], len(long) <= 2))
 +
-+    @unittest.skipUnless(QWEN, "no local Qwen3.5 tokenizer (Sev-2B-preview snapshot)")
++    @unittest.skipUnless(QWEN, "no local Qwen3.5 tokenizer (model-preview snapshot)")
 +    def test_qwen_distinct_tokens(self):
 +        """Qwen3.5: the six grounding tokens (no vision / audio / chat id), swap <|fim_pad|>; the 660 slot line of 6 x 4
 +        tokens adds 25 tokens to the A2 prompt; one token per digit, so "10" fits 4 positions as 1, 0, \\n, \\n."""
@@ -55989,7 +55989,7 @@ diff -ruN -x __pycache__ -x *.pyc x_4b/repo/tests/test_tsf.py <tmp>
 +            got = [[q.decode([qi[a]]) for a in pp] for pp in teacher_mark_positions(q, t, mk, 640)]
 +            self.assertEqual(got, [[" ", "6"], [" ", "8"], [" ", "2"], [" ", "0"], [" ", "8"], [" ", "0"]])
 +
-+    @unittest.skipUnless(HAVE and QWEN, "no local Qwen3.5 tokenizer (Sev-2B-preview snapshot)")
++    @unittest.skipUnless(HAVE and QWEN, "no local Qwen3.5 tokenizer (model-preview snapshot)")
 +    def test_qwen35_positions(self):
 +        """Qwen3.5 writes '= 6' as ' =', ' ', '6': slot token 1 <- the bare space, 2 <- the value's last digit."""
 +        from cotdistill.student import FINAL_TEMPLATE, encode_tail, teacher_mark_positions, teacher_plan, teacher_text_marks

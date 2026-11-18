@@ -13,7 +13,7 @@ Family khop4, job ids 1025-1049 only (4 digits). Code copy E/src_khop4/repo (unt
 both equal E/src_khop3/repo today, checked with `diff -rq -x __pycache__`), variant x1khop4, bundle
 cotd_code_data_x1khop4_4b.tgz. E = <path> (the old scratchpad path .../scratchpad/exp is a symlink
 to it; files may carry either form).
-One-pass rule (MILO_RULINGS_2026-10-23, tier ii): every arm is plain A2 training (letter CE after "Answer:"). The
+One-pass rule (RULINGS_2026-10-23, tier ii): every arm is plain A2 training (letter CE after "Answer:"). The
 curriculum is two ordinary A2 training jobs in sequence (chain rows, then a GSM stage on the saved weights). No new
 mechanism, no generated tokens (G0), no recurrence; executed layers 32 of 32, one forward per item, FLOPs and latency
 equal to A2 for the same prompt length. No trainer change (D5).

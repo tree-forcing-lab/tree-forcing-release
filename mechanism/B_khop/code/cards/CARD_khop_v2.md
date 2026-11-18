@@ -8,7 +8,7 @@ Owner's words (2026-10-26 about 09:55 CDT, RESULTS_LOG "Follow-up round F"): "ä½
 Family khop2, job ids 875-899 only. Code copy E/src_khop2/repo (untouched snapshot E/src_khop2/repo.base, a copy of
 E/src_khop/repo), variant x1khop2, bundle cotd_code_data_x1khop2_4b.tgz.
 E = <tmp>
-One-pass rule (MILO_RULINGS_2026-10-23, tier ii): every arm is plain A2 training (letter CE after "Answer:") on extra
+One-pass rule (RULINGS_2026-10-23, tier ii): every arm is plain A2 training (letter CE after "Answer:") on extra
 chain rows, as in CARD_khop_v1. No new mechanism, no generated tokens (G0), no recurrence; executed layers 32 of 32,
 one forward per item, FLOPs and latency equal to A2 for the same prompt length. Memory and wall time are read from the
 logs and reported. No trainer change: the A2 path is the parent's code byte for byte (section 2.5, D5).
