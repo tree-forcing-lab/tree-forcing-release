@@ -1,0 +1,137 @@
+arm,setting,hops,trained_hop,n_items,n_seeds,mean,ci_lo,ci_hi,chance
+BASE0,"Qwen3.5-4B, no training",1,1,150,1,29.33,,,20.00
+BASE0,"Qwen3.5-4B, no training",2,1,150,1,18.67,,,20.00
+BASE0,"Qwen3.5-4B, no training",3,1,150,1,18.00,,,20.00
+BASE0,"Qwen3.5-4B, no training",4,1,150,1,20.67,,,20.00
+BASE0,"Qwen3.5-4B, no training",5,1,150,1,14.67,,,20.00
+BASE0,"Qwen3.5-4B, no training",6,1,150,1,16.00,,,20.00
+BASE0,"Qwen3.5-4B, no training",7,0,100,1,18.00,,,20.00
+BASE0,"Qwen3.5-4B, no training",8,0,100,1,24.00,,,20.00
+A2Z,"A2-6k answer-only GSM epoch (j663-666, j540 weights), zero chain rows",1,1,150,5,93.60,90.70,96.50,20.00
+A2Z,"A2-6k answer-only GSM epoch (j663-666, j540 weights), zero chain rows",2,1,150,5,42.00,37.28,46.72,20.00
+A2Z,"A2-6k answer-only GSM epoch (j663-666, j540 weights), zero chain rows",3,1,150,5,27.87,23.13,32.60,20.00
+A2Z,"A2-6k answer-only GSM epoch (j663-666, j540 weights), zero chain rows",4,1,150,5,23.07,21.45,24.68,20.00
+A2Z,"A2-6k answer-only GSM epoch (j663-666, j540 weights), zero chain rows",5,1,150,5,22.67,20.05,25.28,20.00
+A2Z,"A2-6k answer-only GSM epoch (j663-666, j540 weights), zero chain rows",6,1,150,5,21.07,16.29,25.84,20.00
+A2Z,"A2-6k answer-only GSM epoch (j663-666, j540 weights), zero chain rows",7,0,100,5,23.80,17.51,30.09,20.00
+A2Z,"A2-6k answer-only GSM epoch (j663-666, j540 weights), zero chain rows",8,0,100,5,25.00,19.88,30.12,20.00
+A2Z96,"A2-96k answer-only GSM, zero chain rows (one seed)",1,1,150,1,66.67,,,20.00
+A2Z96,"A2-96k answer-only GSM, zero chain rows (one seed)",2,1,150,1,32.00,,,20.00
+A2Z96,"A2-96k answer-only GSM, zero chain rows (one seed)",3,1,150,1,27.33,,,20.00
+A2Z96,"A2-96k answer-only GSM, zero chain rows (one seed)",4,1,150,1,28.00,,,20.00
+A2Z96,"A2-96k answer-only GSM, zero chain rows (one seed)",5,1,150,1,24.00,,,20.00
+A2Z96,"A2-96k answer-only GSM, zero chain rows (one seed)",6,1,150,1,20.67,,,20.00
+A2Z96,"A2-96k answer-only GSM, zero chain rows (one seed)",7,0,100,1,27.00,,,20.00
+A2Z96,"A2-96k answer-only GSM, zero chain rows (one seed)",8,0,100,1,24.00,,,20.00
+K1,"A2 epoch + 3,000 one-hop chain rows (KH statements, hop-1 query)",1,1,150,5,100.00,100.00,100.00,20.00
+K1,"A2 epoch + 3,000 one-hop chain rows (KH statements, hop-1 query)",2,1,150,5,42.80,30.54,55.06,20.00
+K1,"A2 epoch + 3,000 one-hop chain rows (KH statements, hop-1 query)",3,1,150,5,22.27,18.27,26.26,20.00
+K1,"A2 epoch + 3,000 one-hop chain rows (KH statements, hop-1 query)",4,1,150,5,28.40,25.38,31.42,20.00
+K1,"A2 epoch + 3,000 one-hop chain rows (KH statements, hop-1 query)",5,1,150,5,21.60,20.86,22.34,20.00
+K1,"A2 epoch + 3,000 one-hop chain rows (KH statements, hop-1 query)",6,1,150,5,22.00,17.50,26.50,20.00
+K1,"A2 epoch + 3,000 one-hop chain rows (KH statements, hop-1 query)",7,0,100,5,17.20,13.99,20.41,20.00
+K1,"A2 epoch + 3,000 one-hop chain rows (KH statements, hop-1 query)",8,0,100,5,24.20,18.69,29.71,20.00
+KH,"A2 epoch + 3,000 chain rows, k 1-6",1,1,150,5,99.87,99.50,100.24,20.00
+KH,"A2 epoch + 3,000 chain rows, k 1-6",2,1,150,5,91.07,86.82,95.31,20.00
+KH,"A2 epoch + 3,000 chain rows, k 1-6",3,1,150,5,42.13,31.40,52.87,20.00
+KH,"A2 epoch + 3,000 chain rows, k 1-6",4,1,150,5,30.40,25.15,35.65,20.00
+KH,"A2 epoch + 3,000 chain rows, k 1-6",5,1,150,5,22.80,17.55,28.05,20.00
+KH,"A2 epoch + 3,000 chain rows, k 1-6",6,1,150,5,26.00,19.95,32.05,20.00
+KH,"A2 epoch + 3,000 chain rows, k 1-6",7,0,100,5,21.80,18.14,25.46,20.00
+KH,"A2 epoch + 3,000 chain rows, k 1-6",8,0,100,5,23.60,18.90,28.30,20.00
+H3,"A2 epoch + the 3,000 KH rows x 3",1,1,150,5,100.00,100.00,100.00,20.00
+H3,"A2 epoch + the 3,000 KH rows x 3",2,1,150,5,95.33,92.29,98.37,20.00
+H3,"A2 epoch + the 3,000 KH rows x 3",3,1,150,5,53.07,39.79,66.34,20.00
+H3,"A2 epoch + the 3,000 KH rows x 3",4,1,150,5,41.33,33.61,49.05,20.00
+H3,"A2 epoch + the 3,000 KH rows x 3",5,1,150,5,34.27,25.77,42.76,20.00
+H3,"A2 epoch + the 3,000 KH rows x 3",6,1,150,5,31.07,27.03,35.10,20.00
+H3,"A2 epoch + the 3,000 KH rows x 3",7,0,100,5,31.60,23.57,39.63,20.00
+H3,"A2 epoch + the 3,000 KH rows x 3",8,0,100,5,27.40,24.54,30.26,20.00
+KD,"A2 epoch + 9,000 chain rows",1,1,150,5,99.87,99.50,100.24,20.00
+KD,"A2 epoch + 9,000 chain rows",2,1,150,5,96.93,94.77,99.09,20.00
+KD,"A2 epoch + 9,000 chain rows",3,1,150,5,67.87,61.06,74.68,20.00
+KD,"A2 epoch + 9,000 chain rows",4,1,150,5,57.20,48.81,65.59,20.00
+KD,"A2 epoch + 9,000 chain rows",5,1,150,5,41.73,34.97,48.50,20.00
+KD,"A2 epoch + 9,000 chain rows",6,1,150,5,37.47,31.93,43.00,20.00
+KD,"A2 epoch + 9,000 chain rows",7,0,100,5,32.40,27.96,36.84,20.00
+KD,"A2 epoch + 9,000 chain rows",8,0,100,5,32.20,28.54,35.86,20.00
+R3,"A2 epoch + the 9,000 KD rows x 3",1,1,150,5,100.00,100.00,100.00,20.00
+R3,"A2 epoch + the 9,000 KD rows x 3",2,1,150,5,99.33,98.51,100.16,20.00
+R3,"A2 epoch + the 9,000 KD rows x 3",3,1,150,5,84.40,82.16,86.64,20.00
+R3,"A2 epoch + the 9,000 KD rows x 3",4,1,150,5,79.87,75.10,84.64,20.00
+R3,"A2 epoch + the 9,000 KD rows x 3",5,1,150,5,64.53,57.80,71.27,20.00
+R3,"A2 epoch + the 9,000 KD rows x 3",6,1,150,5,59.47,56.70,62.24,20.00
+R3,"A2 epoch + the 9,000 KD rows x 3",7,0,100,5,46.40,41.70,51.10,20.00
+R3,"A2 epoch + the 9,000 KD rows x 3",8,0,100,5,37.80,33.64,41.96,20.00
+D27,"A2 epoch + 27,000 chain rows",1,1,150,5,100.00,100.00,100.00,20.00
+D27,"A2 epoch + 27,000 chain rows",2,1,150,5,99.87,99.50,100.24,20.00
+D27,"A2 epoch + 27,000 chain rows",3,1,150,5,90.67,88.91,92.42,20.00
+D27,"A2 epoch + 27,000 chain rows",4,1,150,5,87.33,84.92,89.75,20.00
+D27,"A2 epoch + 27,000 chain rows",5,1,150,5,76.27,69.50,83.03,20.00
+D27,"A2 epoch + 27,000 chain rows",6,1,150,5,67.20,61.28,73.12,20.00
+D27,"A2 epoch + 27,000 chain rows",7,0,100,5,55.00,49.96,60.04,20.00
+D27,"A2 epoch + 27,000 chain rows",8,0,100,5,47.40,41.60,53.20,20.00
+CUR1,"stage 1 only: 27,000 chain rows, no GSM rows",1,1,150,5,100.00,100.00,100.00,20.00
+CUR1,"stage 1 only: 27,000 chain rows, no GSM rows",2,1,150,5,99.60,98.86,100.34,20.00
+CUR1,"stage 1 only: 27,000 chain rows, no GSM rows",3,1,150,5,89.60,86.16,93.04,20.00
+CUR1,"stage 1 only: 27,000 chain rows, no GSM rows",4,1,150,5,84.27,79.98,88.55,20.00
+CUR1,"stage 1 only: 27,000 chain rows, no GSM rows",5,1,150,5,70.00,65.99,74.01,20.00
+CUR1,"stage 1 only: 27,000 chain rows, no GSM rows",6,1,150,5,66.67,60.12,73.21,20.00
+CUR1,"stage 1 only: 27,000 chain rows, no GSM rows",7,0,100,5,53.40,48.70,58.10,20.00
+CUR1,"stage 1 only: 27,000 chain rows, no GSM rows",8,0,100,5,44.40,40.42,48.38,20.00
+K1X1,"stage 1 only: the same 27,000 statements, hop-1 query",1,1,150,5,100.00,100.00,100.00,20.00
+K1X1,"stage 1 only: the same 27,000 statements, hop-1 query",2,1,150,5,17.87,14.06,21.68,20.00
+K1X1,"stage 1 only: the same 27,000 statements, hop-1 query",3,1,150,5,18.93,14.65,23.22,20.00
+K1X1,"stage 1 only: the same 27,000 statements, hop-1 query",4,1,150,5,21.87,18.69,25.04,20.00
+K1X1,"stage 1 only: the same 27,000 statements, hop-1 query",5,1,150,5,22.93,20.28,25.59,20.00
+K1X1,"stage 1 only: the same 27,000 statements, hop-1 query",6,1,150,5,22.27,17.90,26.63,20.00
+K1X1,"stage 1 only: the same 27,000 statements, hop-1 query",7,0,100,5,16.80,12.38,21.22,20.00
+K1X1,"stage 1 only: the same 27,000 statements, hop-1 query",8,0,100,5,21.20,17.43,24.97,20.00
+CUR-R,"CUR1 weights, then A2 epoch + 3,000 KH replay rows",1,1,150,5,100.00,100.00,100.00,20.00
+CUR-R,"CUR1 weights, then A2 epoch + 3,000 KH replay rows",2,1,150,5,98.67,97.65,99.68,20.00
+CUR-R,"CUR1 weights, then A2 epoch + 3,000 KH replay rows",3,1,150,5,85.33,80.76,89.90,20.00
+CUR-R,"CUR1 weights, then A2 epoch + 3,000 KH replay rows",4,1,150,5,79.47,75.39,83.54,20.00
+CUR-R,"CUR1 weights, then A2 epoch + 3,000 KH replay rows",5,1,150,5,63.33,54.71,71.96,20.00
+CUR-R,"CUR1 weights, then A2 epoch + 3,000 KH replay rows",6,1,150,5,59.20,52.78,65.62,20.00
+CUR-R,"CUR1 weights, then A2 epoch + 3,000 KH replay rows",7,0,100,5,53.60,50.36,56.84,20.00
+CUR-R,"CUR1 weights, then A2 epoch + 3,000 KH replay rows",8,0,100,5,40.80,35.88,45.72,20.00
+K1X-R,"K1X1 weights, then A2 epoch + 3,000 K1 replay rows",1,1,150,5,99.87,99.50,100.24,20.00
+K1X-R,"K1X1 weights, then A2 epoch + 3,000 K1 replay rows",2,1,150,5,41.33,23.82,58.84,20.00
+K1X-R,"K1X1 weights, then A2 epoch + 3,000 K1 replay rows",3,1,150,5,24.93,22.55,27.32,20.00
+K1X-R,"K1X1 weights, then A2 epoch + 3,000 K1 replay rows",4,1,150,5,22.67,20.56,24.78,20.00
+K1X-R,"K1X1 weights, then A2 epoch + 3,000 K1 replay rows",5,1,150,5,22.67,18.61,26.72,20.00
+K1X-R,"K1X1 weights, then A2 epoch + 3,000 K1 replay rows",6,1,150,5,22.67,18.96,26.37,20.00
+K1X-R,"K1X1 weights, then A2 epoch + 3,000 K1 replay rows",7,0,100,5,16.00,12.71,19.29,20.00
+K1X-R,"K1X1 weights, then A2 epoch + 3,000 K1 replay rows",8,0,100,5,29.20,23.83,34.57,20.00
+CUR-A2,"CUR1 weights (s16), then plain A2 epoch (khop3 j980)",1,1,150,1,100.00,,,20.00
+CUR-A2,"CUR1 weights (s16), then plain A2 epoch (khop3 j980)",2,1,150,1,92.00,,,20.00
+CUR-A2,"CUR1 weights (s16), then plain A2 epoch (khop3 j980)",3,1,150,1,64.00,,,20.00
+CUR-A2,"CUR1 weights (s16), then plain A2 epoch (khop3 j980)",4,1,150,1,64.67,,,20.00
+CUR-A2,"CUR1 weights (s16), then plain A2 epoch (khop3 j980)",5,1,150,1,57.33,,,20.00
+CUR-A2,"CUR1 weights (s16), then plain A2 epoch (khop3 j980)",6,1,150,1,45.33,,,20.00
+CUR-A2,"CUR1 weights (s16), then plain A2 epoch (khop3 j980)",7,0,100,1,53.00,,,20.00
+CUR-A2,"CUR1 weights (s16), then plain A2 epoch (khop3 j980)",8,0,100,1,37.00,,,20.00
+K1X-A2,"K1X1 weights (s16), then plain A2 epoch (khop3 j990)",1,1,150,1,99.33,,,20.00
+K1X-A2,"K1X1 weights (s16), then plain A2 epoch (khop3 j990)",2,1,150,1,54.67,,,20.00
+K1X-A2,"K1X1 weights (s16), then plain A2 epoch (khop3 j990)",3,1,150,1,23.33,,,20.00
+K1X-A2,"K1X1 weights (s16), then plain A2 epoch (khop3 j990)",4,1,150,1,24.00,,,20.00
+K1X-A2,"K1X1 weights (s16), then plain A2 epoch (khop3 j990)",5,1,150,1,18.67,,,20.00
+K1X-A2,"K1X1 weights (s16), then plain A2 epoch (khop3 j990)",6,1,150,1,22.00,,,20.00
+K1X-A2,"K1X1 weights (s16), then plain A2 epoch (khop3 j990)",7,0,100,1,17.00,,,20.00
+K1X-A2,"K1X1 weights (s16), then plain A2 epoch (khop3 j990)",8,0,100,1,28.00,,,20.00
+CUR-L,"CUR1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",1,1,150,1,100.00,,,20.00
+CUR-L,"CUR1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",2,1,150,1,98.67,,,20.00
+CUR-L,"CUR1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",3,1,150,1,87.33,,,20.00
+CUR-L,"CUR1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",4,1,150,1,71.33,,,20.00
+CUR-L,"CUR1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",5,1,150,1,60.67,,,20.00
+CUR-L,"CUR1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",6,1,150,1,60.67,,,20.00
+CUR-L,"CUR1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",7,0,100,1,53.00,,,20.00
+CUR-L,"CUR1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",8,0,100,1,41.00,,,20.00
+K1X-L,"K1X1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",1,1,150,1,100.00,,,20.00
+K1X-L,"K1X1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",2,1,150,1,20.67,,,20.00
+K1X-L,"K1X1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",3,1,150,1,18.00,,,20.00
+K1X-L,"K1X1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",4,1,150,1,18.67,,,20.00
+K1X-L,"K1X1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",5,1,150,1,22.00,,,20.00
+K1X-L,"K1X1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",6,1,150,1,26.67,,,20.00
+K1X-L,"K1X1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",7,0,100,1,16.00,,,20.00
+K1X-L,"K1X1 weights (s16), then A2 epoch at LR 7.5e-7 (khop4 arm L)",8,0,100,1,22.00,,,20.00

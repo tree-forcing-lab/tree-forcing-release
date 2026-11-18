@@ -1,0 +1,2 @@
+216 (run, set) pairs checked: item ids = hint file, gold labels = hint file, recomputed accuracy = metrics.json eval acc and n (to 1e-12); valx recomputed = metrics.json valx
+ALL SELF-TESTS PASSED

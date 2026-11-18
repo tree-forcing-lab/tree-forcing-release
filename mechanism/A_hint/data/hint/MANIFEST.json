@@ -1,0 +1,97 @@
+{
+ "items_n_ge_2": 1129,
+ "seed": 20261021,
+ "sets": {
+  "hint_full": {
+   "md5": "6601180fb5326c7c87e9cefa41528cb4",
+   "n": 1129,
+   "shown_equals_option": 1129
+  },
+  "hint_other_r1": {
+   "md5": "9b3aed78a612a714992de9a419a33ed1",
+   "n": 1129,
+   "shown_equals_option": 168
+  },
+  "hint_other_r2": {
+   "md5": "cef154a98a863509b863d9bc2336f5c7",
+   "n": 877,
+   "shown_equals_option": 108
+  },
+  "hint_placebo_r1": {
+   "md5": "1a377f933cf566296a4ecad67583e28e",
+   "n": 1129,
+   "shown_equals_option": 0
+  },
+  "hint_placebo_r2": {
+   "md5": "2ef10bde68e2a0be438b9bf5352fdcb6",
+   "n": 877,
+   "shown_equals_option": 0
+  },
+  "hint_placebo_r3": {
+   "md5": "e7740df7db9ced1feae6701ea721f5de",
+   "n": 576,
+   "shown_equals_option": 0
+  },
+  "hint_placebo_r4": {
+   "md5": "d71622bf79b76ccd77d4b0b5b53aebd0",
+   "n": 332,
+   "shown_equals_option": 0
+  },
+  "hint_plain": {
+   "md5": "f3e5fe7d85be290218c01f2f671fcc8f",
+   "n": 1129,
+   "shown_equals_option": 0
+  },
+  "hint_true_r1": {
+   "md5": "47873974e3b019e8e241c00daf93eb9a",
+   "n": 1129,
+   "shown_equals_option": 211
+  },
+  "hint_true_r2": {
+   "md5": "30debd9bd6a489deadff2ecc429c8eca",
+   "n": 877,
+   "shown_equals_option": 123
+  },
+  "hint_true_r3": {
+   "md5": "4565d5d12e17389fe341c6e1f0d4d1b8",
+   "n": 576,
+   "shown_equals_option": 61
+  },
+  "hint_true_r4": {
+   "md5": "3775c165eeb687aeb4125429f17924d5",
+   "n": 332,
+   "shown_equals_option": 28
+  },
+  "hint_true_r5": {
+   "md5": "12f8abcdd2d8438cef578be920a623cd",
+   "n": 158,
+   "shown_equals_option": 8
+  },
+  "hint_true_r6": {
+   "md5": "c7185465772f717bb04eab8731d6933b",
+   "n": 75,
+   "shown_equals_option": 5
+  },
+  "hint_wrongres_near_r1": {
+   "md5": "28149339852a741814dd65fddf12ee4c",
+   "n": 1129,
+   "shown_equals_option": 0
+  },
+  "hint_wrongres_near_r2": {
+   "md5": "c083f8b7053db5e1237329044c0c769d",
+   "n": 877,
+   "shown_equals_option": 0
+  },
+  "hint_wrongres_r1": {
+   "md5": "eb33d6b1afde9d3e144e77116ccc0b97",
+   "n": 1111,
+   "shown_equals_option": 0
+  },
+  "hint_wrongres_r2": {
+   "md5": "522a1063d830566c9d41baecd6b8916b",
+   "n": 861,
+   "shown_equals_option": 0
+  }
+ },
+ "skipped_wrongres": 34
+}

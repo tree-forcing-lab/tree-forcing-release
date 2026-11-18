@@ -1,0 +1,85 @@
+# OPC Stage 1 (card CARD_opc_sev6e_v4, 2026-10-21): 14 eval-only jobs (base, A2-c4 x3, A2-c12, GFPQ-c4 x3, GFPQM-c4 x3, GFPQMR-c4 x3), 18 hint sets each; ids 500-513
+JOB j500 train_hint_4b.sub
+VARS j500 envfile="condor/jobs_hint/500_4b_hint_base.env" name="500_4b_hint_base" prio="160" smoke="" ngpu="1" cpus="8" mem="60GB" gpumem="40000"
+SCRIPT POST j500 post_push.sh 500_4b_hint_base $RETURN
+RETRY j500 1
+PRIORITY j500 160
+
+JOB j501 train_hint_4b.sub
+VARS j501 envfile="condor/jobs_hint/501_4b_hint_a2c4s12.env" name="501_4b_hint_a2c4s12" prio="160" smoke="" ngpu="1" cpus="8" mem="60GB" gpumem="40000"
+SCRIPT POST j501 post_push.sh 501_4b_hint_a2c4s12 $RETURN
+RETRY j501 1
+PRIORITY j501 160
+
+JOB j502 train_hint_4b.sub
+VARS j502 envfile="condor/jobs_hint/502_4b_hint_a2c4s13.env" name="502_4b_hint_a2c4s13" prio="160" smoke="" ngpu="1" cpus="8" mem="60GB" gpumem="40000"
+SCRIPT POST j502 post_push.sh 502_4b_hint_a2c4s13 $RETURN
+RETRY j502 1
+PRIORITY j502 160
+
+JOB j503 train_hint_4b.sub
+VARS j503 envfile="condor/jobs_hint/503_4b_hint_a2c4s14.env" name="503_4b_hint_a2c4s14" prio="160" smoke="" ngpu="1" cpus="8" mem="60GB" gpumem="40000"
+SCRIPT POST j503 post_push.sh 503_4b_hint_a2c4s14 $RETURN
+RETRY j503 1
+PRIORITY j503 160
+
+JOB j504 train_hint_4b.sub
+VARS j504 envfile="condor/jobs_hint/504_4b_hint_a2c12s12.env" name="504_4b_hint_a2c12s12" prio="160" smoke="" ngpu="1" cpus="8" mem="60GB" gpumem="40000"
+SCRIPT POST j504 post_push.sh 504_4b_hint_a2c12s12 $RETURN
+RETRY j504 1
+PRIORITY j504 160
+
+JOB j505 train_hint_4b.sub
+VARS j505 envfile="condor/jobs_hint/505_4b_hint_gfpqc4s12.env" name="505_4b_hint_gfpqc4s12" prio="160" smoke="" ngpu="1" cpus="8" mem="60GB" gpumem="40000"
+SCRIPT POST j505 post_push.sh 505_4b_hint_gfpqc4s12 $RETURN
+RETRY j505 1
+PRIORITY j505 160
+
+JOB j506 train_hint_4b.sub
+VARS j506 envfile="condor/jobs_hint/506_4b_hint_gfpqc4s13.env" name="506_4b_hint_gfpqc4s13" prio="160" smoke="" ngpu="1" cpus="8" mem="60GB" gpumem="40000"
+SCRIPT POST j506 post_push.sh 506_4b_hint_gfpqc4s13 $RETURN
+RETRY j506 1
+PRIORITY j506 160
+
+JOB j507 train_hint_4b.sub
+VARS j507 envfile="condor/jobs_hint/507_4b_hint_gfpqc4s14.env" name="507_4b_hint_gfpqc4s14" prio="160" smoke="" ngpu="1" cpus="8" mem="60GB" gpumem="40000"
+SCRIPT POST j507 post_push.sh 507_4b_hint_gfpqc4s14 $RETURN
+RETRY j507 1
+PRIORITY j507 160
+
+JOB j508 train_hint_4b.sub
+VARS j508 envfile="condor/jobs_hint/508_4b_hint_gfpqmc4s12.env" name="508_4b_hint_gfpqmc4s12" prio="160" smoke="" ngpu="1" cpus="8" mem="60GB" gpumem="40000"
+SCRIPT POST j508 post_push.sh 508_4b_hint_gfpqmc4s12 $RETURN
+RETRY j508 1
+PRIORITY j508 160
+
+JOB j509 train_hint_4b.sub
+VARS j509 envfile="condor/jobs_hint/509_4b_hint_gfpqmc4s13.env" name="509_4b_hint_gfpqmc4s13" prio="160" smoke="" ngpu="1" cpus="8" mem="60GB" gpumem="40000"
+SCRIPT POST j509 post_push.sh 509_4b_hint_gfpqmc4s13 $RETURN
+RETRY j509 1
+PRIORITY j509 160
+
+JOB j510 train_hint_4b.sub
+VARS j510 envfile="condor/jobs_hint/510_4b_hint_gfpqmc4s14.env" name="510_4b_hint_gfpqmc4s14" prio="160" smoke="" ngpu="1" cpus="8" mem="60GB" gpumem="40000"
+SCRIPT POST j510 post_push.sh 510_4b_hint_gfpqmc4s14 $RETURN
+RETRY j510 1
+PRIORITY j510 160
+
+JOB j511 train_hint_4b.sub
+VARS j511 envfile="condor/jobs_hint/511_4b_hint_gfpqmrc4s12.env" name="511_4b_hint_gfpqmrc4s12" prio="160" smoke="" ngpu="1" cpus="8" mem="60GB" gpumem="40000"
+SCRIPT POST j511 post_push.sh 511_4b_hint_gfpqmrc4s12 $RETURN
+RETRY j511 1
+PRIORITY j511 160
+
+JOB j512 train_hint_4b.sub
+VARS j512 envfile="condor/jobs_hint/512_4b_hint_gfpqmrc4s13.env" name="512_4b_hint_gfpqmrc4s13" prio="160" smoke="" ngpu="1" cpus="8" mem="60GB" gpumem="40000"
+SCRIPT POST j512 post_push.sh 512_4b_hint_gfpqmrc4s13 $RETURN
+RETRY j512 1
+PRIORITY j512 160
+
+JOB j513 train_hint_4b.sub
+VARS j513 envfile="condor/jobs_hint/513_4b_hint_gfpqmrc4s14.env" name="513_4b_hint_gfpqmrc4s14" prio="160" smoke="" ngpu="1" cpus="8" mem="60GB" gpumem="40000"
+SCRIPT POST j513 post_push.sh 513_4b_hint_gfpqmrc4s14 $RETURN
+RETRY j513 1
+PRIORITY j513 160
+

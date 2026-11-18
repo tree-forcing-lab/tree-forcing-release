@@ -1,0 +1,37 @@
+Code and weights of the 13 fine-tuned models that jobs 500-513 evaluated.
+All facts below were read on 2026-11-17 from CHTC (read-only) and from the job logs and metrics.json files.
+
+Training job                       code pin (printed in the job log)                     bundle on CHTC (~/cotd_chtc/)        bundle md5
+41_4b_gsm_A2-c12lr3_s12_fsdp1      5a0460b63fe0c30a92b7a738ed1974cd57aec86c-fsdp1           cotd_code_data_4b_1g.tgz         0c727b49ed0ecd56cbe700cae336b83a
+42_4b_gsm_GFPQ-c4lr3_s12_fsdp1     5a0460b63fe0c30a92b7a738ed1974cd57aec86c-fsdp1           cotd_code_data_4b_1g.tgz         0c727b49ed0ecd56cbe700cae336b83a
+70_4b_gsm_GFPQ-c4lr3_s13_fsdp1     5a0460b63fe0c30a92b7a738ed1974cd57aec86c-fsdp1-seeds     cotd_code_data_4b_1g_s.tgz       531c217f265ac10d868708337451f46f
+73_4b_gsm_GFPQ-c4lr3_s14_fsdp1     5a0460b63fe0c30a92b7a738ed1974cd57aec86c-fsdp1-seeds     cotd_code_data_4b_1g_s.tgz       531c217f265ac10d868708337451f46f
+83_4b_gsm_A2-c4lr3_s12_fsdp1       5a0460b63fe0c30a92b7a738ed1974cd57aec86c-fsdp1-seeds-a2c4 cotd_code_data_4b_1g_a2c4.tgz   d43912c71c483c27ee39ea2401f76f90
+84_4b_gsm_A2-c4lr3_s13_fsdp1       (same)                                                   cotd_code_data_4b_1g_a2c4.tgz    d43912c71c483c27ee39ea2401f76f90
+85_4b_gsm_A2-c4lr3_s14_fsdp1       (same)                                                   cotd_code_data_4b_1g_a2c4.tgz    d43912c71c483c27ee39ea2401f76f90
+164_4b_gsm_GFPQM-c4lr3_s12_fsdp1   5a0460b63fe0c30a92b7a738ed1974cd57aec86c-fsdp1-v5        cotd_code_data_4b_1g_v5.tgz      c66d8e3ae58b0e51f1c92b07a0e98d78
+165_4b_gsm_GFPQMR-c4lr3_s12_fsdp1  5a0460b63fe0c30a92b7a738ed1974cd57aec86c-fsdp1-v5        cotd_code_data_4b_1g_v5.tgz      c66d8e3ae58b0e51f1c92b07a0e98d78
+172_4b_gsm_GFPQM-c4lr3_s13_fsdp1   5a0460b63fe0c30a92b7a738ed1974cd57aec86c-fsdp1-v5-s      cotd_code_data_4b_1g_v5s.tgz     97c0ce042adf9b1b0bb97c7f6604c622
+173_4b_gsm_GFPQM-c4lr3_s14_fsdp1   (same)                                                   cotd_code_data_4b_1g_v5s.tgz     97c0ce042adf9b1b0bb97c7f6604c622
+174_4b_gsm_GFPQMR-c4lr3_s13_fsdp1  (same)                                                   cotd_code_data_4b_1g_v5s.tgz     97c0ce042adf9b1b0bb97c7f6604c622
+186_4b_gsm_GFPQMR-c4lr3_s14_fsdp1  5a0460b63fe0c30a92b7a738ed1974cd57aec86c-fsdp1-v5-s-r14  cotd_code_data_4b_1g_v5r.tgz     d61884f3deb22379a399393d4e1720b4
+Reference: cotd_code_data_4b.tgz (pin 5a0460b63fe0c30a92b7a738ed1974cd57aec86c, no suffix), md5 f315bd651a32c7ca646972bdd50631e3.
+
+Code diffs (repo/ of each bundle against repo/ of cotd_code_data_4b.tgz, pycache excluded):
+  5a0460b-fsdp1*.vs_5a0460b.diff       one file: hpc/train_arm.sbatch, the one-GPU FSDP path (the same added lines as opc_fsdp1.patch).
+                                       The -seeds and -seeds-a2c4 suffixes change no code (identical hunk); they name env sets.
+  5a0460b-fsdp1-v5*.vs_5a0460b.diff    four files: train_arm.sbatch, train_student.py, student.py, tests/test_mc_value.py
+                                       (the mc node format used by GFPQM / GFPQMR). -s and -s-r14 change no code.
+  994ff50.vs_5a0460b.diff              the eval tree (994ff50) against 5a0460b: 317 files. 994ff50 is a later commit.
+The git commit 5a0460b itself was not reachable (the code repo the code repository is not visible to this
+account), so "the 5a0460b bundle is a clean checkout" is taken from its pin and is not verified against git.
+
+Env files: envs/<job>.env, taken from condor/jobs4b/ of the bundle whose pin the job printed.
+Training arguments as run: ../train_args/<job>.json (metrics.json "args" of each training job).
+Training data: data/student_gsm8k_tf/train.jsonl, 5,923 rows, md5 5b949004a42c3baa5a50e699287e00f8 in all six bundles.
+Training logs: ../../data/weight_train_logs/. Jobs 70 and 73 first failed the smoke stage on host gpu2008 (log
+  *.failed_smoke_attempt.out, from results_repo/logs); the retry on another host ran to exit 0 and saved the weights
+  (log *.out, from the job's results tgz).
+Weights: /staging/<netid>/weights/<training job>.tar on CHTC, 9,702,973,440 bytes each (listed 2026-11-17).
+  The tar holds model/ (model.safetensors, config.json, tokenizer files, chat_template.jinja): the final weights after
+  all epochs (4, or 12 for job 41). No intermediate checkpoint was saved.

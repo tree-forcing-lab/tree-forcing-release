@@ -1,0 +1,32 @@
+{
+ "script": "scripts/build_kk_verify.py",
+ "args": {
+  "src": "data/student_kk_tf",
+  "out": "data/student_kk_tf_vrf",
+  "seed": 0
+ },
+ "source_md5": {
+  "data/student_kk_tf/train.jsonl": "e53d7f6d8e36351da60d34c3288c132b",
+  "data/student_kk_tf/val.jsonl": "8d352af42e529c20af16e145165bfcc5"
+ },
+ "md5": {
+  "data/student_kk_tf_vrf/train.jsonl": "adfb3b51abca144929952d2a5e20fdba",
+  "data/student_kk_tf_vrf/val.jsonl": "8d352af42e529c20af16e145165bfcc5"
+ },
+ "items": 1792,
+ "statements_parsed": 12544,
+ "parse_failures": 0,
+ "nodes_source": 78249,
+ "nodes": 78247,
+ "wording_x_answer": {
+  "false/no": 19609,
+  "false/yes": 19525,
+  "true/no": 19547,
+  "true/yes": 19566
+ },
+ "p_yes_given_true_wording": 0.5002,
+ "p_yes_given_false_wording": 0.4989,
+ "unbalanced_items": 20,
+ "short_items": 1,
+ "val": "byte-identical copy of the source val (full trees)"
+}

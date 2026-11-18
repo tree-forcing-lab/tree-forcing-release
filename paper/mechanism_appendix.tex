@@ -1,0 +1,115 @@
+% Appendix: designs and full tables of the mechanism experiments. Numbers recomputed from the prediction files in
+% notes/paper/mechanism_check.md; materials, code and cards in the results repository (notes/2026-11-17-mechanism).
+
+\section{Mechanism Experiments}
+\label{app:mechanism}
+
+\paragraph{Arithmetic chains.} Each question lists five chains of variable assignments, interleaved in random order.
+The chains share a root value and a sequence of operation types and differ only in their constants: the first hop
+adds or subtracts a constant, later hops add, subtract, double or triple, with constants from 2 to 9 and values kept
+between 1 and 99. The question asks for the variable $k$ hops from the root, and the five options are the five chains'
+values at that depth; an item is redrawn when two options coincide, an option appears in the text, or one option is
+twice or three times another. The test set has 150 items for each $k$ from 1 to 6 and 100 for $k = 7, 8$; chance is
+20\%. Training examples come from the same generator with another seed and cover $k = 1$ to 6, so seven and eight hops
+are extrapolation. The answer-only weights of \cref{fig:mechanism}a are one-epoch GSM8K runs (seeds 16--20) evaluated
+on the chain sets without any chain training; the chain-trained runs add 27,000 chain examples (26,941 distinct value
+sets) to the 5,923 GSM8K problems in one epoch (1,029 updates instead of 186). At four hops and more, a reader that
+gets every constant but one right still scores high on this option design, and few items require the full chain; we
+therefore regard three hops as the cleanest test of composition. Smaller data budgets (3,000 and 9,000 chain examples,
+with and without repetition) give intermediate curves, and a two-stage variant that keeps the chain capacity pays a
+similar GSM8K cost as a one-hop control trained the same way, so the cost comes with the extra training rather than
+with composition.
+
+\paragraph{The GSM8K transfer test of chain training.} For the GSM8K test problems whose critical path has at least
+four serial steps, the test shows the true steps up to the point where two serial steps remain (the registered cell
+``rc2''), on the 249 problems where no shown value equals an option. Compared with one-epoch answer-only training at
+the same five seeds, the chain-trained models are $7.6$ points less accurate (per seed $-4.4$, $-2.4$, $-7.6$, $-12.9$,
+$-10.4$; seed-level interval $[-12.8, -2.3]$, two-level $[-13.3, -2.0]$). Against a second set of answer-only runs of
+the same configuration, the difference is $-6.2$ (two-level $[-11.6, -1.0]$), and against that second set on the
+plain GSM8K test with the original options it is $-1.6$ (two-level $[-3.5, +0.2]$).
+
+\paragraph{Hint test: items and conditions.} The 1,129 items are the GSM8K test problems whose worked solution has at
+least two steps, where a step is one binary operation taken from the calculator notes of the Socratic solution; the
+options are the cue-free ones (the four wrong options are answers of other problems). A ``Worked steps:'' block
+between the question and the options shows the first $n - r$ true steps, so that $r$ steps are left to compute; the
+sets shrink with $r$ (1,129, 877, 576, 332, 158 and 75 items for $r = 1$ to 6). The controls use the same number of
+shown lines as the true condition at the same $r$: the problem's own sentences (length control), the first steps of
+another problem's solution, a consistently wrong chain in which every result is off by at least 1.5 and later
+operands follow the wrong values, and the true operands with results changed by a small amount without propagation.
+A ``full'' set shows every step, including the answer, as a ceiling check.
+
+\paragraph{Hint test: models and registration.} A pilot on saved four-epoch weights (seeds 12--14) was used only to
+decide whether to run the test. The registered test trained fresh runs at seeds 16--18 (answer-only for one and two
+epochs, \tf{} and the permuted-nodes control for two epochs, data and settings of \cref{sec:gsm8k}) and evaluated the
+hint sets at the end of training. Its primary statistic is the gain from the last-step-left condition over no steps
+on the 440 problems with at least four steps where no shown value equals an option, for the answer-only model selected
+on validation (one epoch); the criterion (mean at least 15 points, every seed at least 10, seed-level $t$ above the
+critical value) is met with $+36.4$ (per seed $+38.2$, $+34.1$, $+37.0$). The \tf{} runs narrowly fail the registered
+length control, which bounds the drop caused by the problem's own text at 3 points: with two lines of their own text
+shown, they are 4.1 points less accurate than with none (both intervals below zero), against at most 1.4 points for
+the other methods.
+
+\begin{table}[h]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\caption{Hint test accuracy (\%) by condition, seed mean over seeds 16--18, each set on its own items. True $r$: the
+first $n-r$ steps shown. Own text, other problem, wrong chain and near-miss results: controls with the same number of
+shown lines as true $r$.}
+\label{tab:hintfull}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lcccccccccccccc}
+\toprule
+ & None & All & \multicolumn{4}{c}{True $r$} & \multicolumn{2}{c}{Own text $r$} & \multicolumn{2}{c}{Other problem $r$} & \multicolumn{2}{c}{Wrong chain $r$} & \multicolumn{2}{c}{Near-miss $r$} \\
+\cmidrule(lr){4-7}\cmidrule(lr){8-9}\cmidrule(lr){10-11}\cmidrule(lr){12-13}\cmidrule(lr){14-15}
+Method & & & 1 & 2 & 3 & 4 & 1 & 2 & 1 & 2 & 1 & 2 & 1 & 2 \\
+\midrule
+Answer-only, 1 epoch & 60.6 & 95.6 & 85.9 & 67.0 & 53.0 & 45.8 & 60.8 & 52.3 & 53.2 & 46.4 & 51.3 & 48.0 & 62.0 & 53.0 \\
+Answer-only, 2 epochs & 59.0 & 97.6 & 83.4 & 66.0 & 51.2 & 45.8 & 58.8 & 50.5 & 52.0 & 46.5 & 53.3 & 47.7 & 60.4 & 50.8 \\
+\tf{}, 2 epochs & 60.8 & 96.1 & 87.9 & 65.8 & 51.2 & 43.8 & 58.4 & 49.4 & 50.3 & 43.6 & 50.5 & 46.3 & 61.0 & 51.9 \\
+Permuted nodes, 2 epochs & 58.6 & 96.9 & 83.9 & 64.7 & 50.5 & 42.8 & 57.9 & 50.2 & 48.9 & 43.5 & 51.7 & 47.0 & 59.8 & 51.0 \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{table}[h]
+\centering
+\small
+\caption{Hint test on the 332 problems with at least five steps (fixed items): accuracy (\%) by the number of steps
+left, and $D$ = one step left minus four steps left (points, two-level 95\% interval).}
+\label{tab:hintcurve}
+\begin{tabular}{lccccccc}
+\toprule
+Method & None & 4 left & 3 left & 2 left & 1 left & All shown & $D$ \\
+\midrule
+Answer-only, 1 epoch & 45.7 & 45.8 & 54.2 & 62.9 & 81.7 & 95.7 & $+35.9$ [$+30.3$, $+41.6$] \\
+Answer-only, 2 epochs & 44.7 & 45.8 & 49.1 & 61.2 & 76.9 & 97.3 & $+31.1$ [$+25.3$, $+36.7$] \\
+\tf{}, 2 epochs & 43.8 & 43.8 & 50.4 & 60.4 & 82.0 & 96.1 & $+38.3$ [$+32.1$, $+44.3$] \\
+Permuted nodes, 2 epochs & 41.7 & 42.8 & 49.1 & 58.3 & 77.7 & 97.8 & $+34.9$ [$+28.5$, $+41.3$] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Tree Forcing against answer-only training in the hint test.} Paired by seed, the gain of the \tf{} runs
+from the last-step-left condition over no steps is $+1.8$ points larger than that of one-epoch answer-only training
+(per seed $+3.2$, $+1.7$, $+0.6$; seed-level interval $[-1.4, +5.0]$, two-level $[-1.0, +4.7]$) and $+1.9$ larger than
+that of the permuted-nodes control (two-level $[-1.5, +5.5]$); neither is significant. In the last-step-left condition
+itself, the \tf{} runs are 4.5 and 4.1 points more accurate than the two-epoch answer-only and permuted-nodes runs
+(both significant), but not than one-epoch answer-only training ($+2.0$, seed-level interval $[-0.5, +4.5]$).
+
+\begin{table}[h]
+\centering
+\small
+\caption{One-pass accuracy (\%) on the arithmetic chains by hop count (seed mean; five seeds except the untrained
+model). Chance is 20\%; seven and eight hops were not trained.}
+\label{tab:khop}
+\begin{tabular}{lcccccccc}
+\toprule
+Model & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 \\
+\midrule
+Untrained & 29.3 & 18.7 & 18.0 & 20.7 & 14.7 & 16.0 & 18.0 & 24.0 \\
+Answer-only (GSM8K, 1 epoch) & 93.6 & 42.0 & 27.9 & 23.1 & 22.7 & 21.1 & 23.8 & 25.0 \\
++ 27,000 chain examples & 100.0 & 99.9 & 90.7 & 87.3 & 76.3 & 67.2 & 55.0 & 47.4 \\
+\bottomrule
+\end{tabular}
+\end{table}

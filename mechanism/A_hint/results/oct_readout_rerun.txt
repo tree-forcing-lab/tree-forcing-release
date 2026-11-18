@@ -1,0 +1,423 @@
+=== base:s0 ===
+set            acc   n    | drop shown=option: acc   n
+hint_plain      33.4  1129 |  33.4  1129
+hint_full       99.0  1129 |   -       0
+hint_true_r1    45.9  1129 |  48.8   918
+hint_true_r2    34.1   877 |  36.3   754
+hint_true_r3    31.9   576 |  32.8   515
+hint_true_r4    28.3   332 |  29.3   304
+hint_true_r5    22.8   158 |  22.0   150
+hint_true_r6    26.7    75 |  27.1    70
+hint_other_r1   26.0  1129 |  27.4   961
+hint_wrongres_r1  27.5  1111 |  27.5  1111
+hint_wrongres_near_r1  30.6  1129 |  30.6  1129
+hint_other_r2   25.4   877 |  26.0   769
+hint_wrongres_r2  26.4   861 |  26.4   861
+hint_wrongres_near_r2  26.3   877 |  26.3   877
+hint_placebo_r1  31.5  1129 |  31.5  1129
+hint_placebo_r2  31.4   877 |  31.4   877
+hint_placebo_r3  29.0   576 |  29.0   576
+hint_placebo_r4  25.6   332 |  25.6   332
+P1 capacity (items n >= 5, 332): plain  28.3 | r=1  43.4 r=2  34.3 r=3  32.5 r=4  28.3 | D = acc(r1) - acc(r4)  +15.1
+   shift r=1: acc(r=1 | n>=4)  43.1 vs plain acc(n=1)   -  
+   shift r=2: acc(r=2 | n>=5)  34.3 vs plain acc(n=2)  43.7
+   shift r=3: acc(r=3 | n>=6)  35.4 vs plain acc(n=3)  32.2
+P2 headroom, clean variants (items n >= 4 with no shown value = option, 440): plain  30.2 true r=1  46.6 -> H  +16.4 | all 576 items: H  +13.5; true - wrongres at r=1  +19.1
+M1 full  99.0 (bar 90) -> True | M2 placebo-plain pooled   -0.9 (bar +-3), at r1..r4   -1.9   +0.9   -0.5   -2.7 (bar +-5 each) -> True
+M3 true-wrongres(far chain) at r1  +18.4 on 1111 shared items (bar 10) -> True | M3b true-wrongres_near (plausible chain)  +15.3 (bar 10) -> True | M4 true-other at r1  +19.8 on 1129 shared items (bar 10) -> True
+copy rate (predictions = the last shown value where it is an option): hint_true_r1 60.2% (n 113); hint_true_r2 46.8% (n 77); hint_other_r1 73.3% (n 75)
+read check (n = 2 items, 252): true r=1  53.6 vs plain  43.7 ->   +9.9 -> reads (>= +5)
+=== A2-c4:s12 ===
+set            acc   n    | drop shown=option: acc   n
+hint_plain      57.0  1129 |  57.0  1129
+hint_full       98.0  1129 |   -       0
+hint_true_r1    76.7  1129 |  78.3   918
+hint_true_r2    60.7   877 |  61.5   754
+hint_true_r3    47.4   576 |  48.2   515
+hint_true_r4    41.3   332 |  40.5   304
+hint_true_r5    40.5   158 |  40.0   150
+hint_true_r6    34.7    75 |  32.9    70
+hint_other_r1   47.4  1129 |  48.9   961
+hint_wrongres_r1  51.3  1111 |  51.3  1111
+hint_wrongres_near_r1  57.1  1129 |  57.1  1129
+hint_other_r2   42.3   877 |  43.7   769
+hint_wrongres_r2  45.6   861 |  45.6   861
+hint_wrongres_near_r2  49.6   877 |  49.6   877
+hint_placebo_r1  55.9  1129 |  55.9  1129
+hint_placebo_r2  48.7   877 |  48.7   877
+hint_placebo_r3  41.8   576 |  41.8   576
+hint_placebo_r4  37.7   332 |  37.7   332
+P1 capacity (items n >= 5, 332): plain  40.1 | r=1  66.3 r=2  54.8 r=3  44.3 r=4  41.3 | D = acc(r1) - acc(r4)  +25.0
+   shift r=1: acc(r=1 | n>=4)  68.1 vs plain acc(n=1)   -  
+   shift r=2: acc(r=2 | n>=5)  54.8 vs plain acc(n=2)  79.8
+   shift r=3: acc(r=3 | n>=6)  50.0 vs plain acc(n=3)  64.1
+P2 headroom, clean variants (items n >= 4 with no shown value = option, 440): plain  46.1 true r=1  70.0 -> H  +23.9 | all 576 items: H  +24.8; true - wrongres at r=1  +29.3
+M1 full  98.0 (bar 90) -> True | M2 placebo-plain pooled   -1.5 (bar +-3), at r1..r4   -1.1   -1.7   -1.4   -2.4 (bar +-5 each) -> True
+M3 true-wrongres(far chain) at r1  +25.7 on 1111 shared items (bar 10) -> True | M3b true-wrongres_near (plausible chain)  +19.6 (bar 10) -> True | M4 true-other at r1  +29.3 on 1129 shared items (bar 10) -> True
+copy rate (predictions = the last shown value where it is an option): hint_true_r1 31.0% (n 113); hint_true_r2 20.8% (n 77); hint_other_r1 38.7% (n 75)
+read check (n = 2 items, 252): true r=1  88.1 vs plain  79.8 ->   +8.3 -> reads (>= +5)
+=== A2-c4:s13 ===
+set            acc   n    | drop shown=option: acc   n
+hint_plain      53.3  1129 |  53.3  1129
+hint_full       96.6  1129 |   -       0
+hint_true_r1    78.7  1129 |  79.7   918
+hint_true_r2    58.0   877 |  58.4   754
+hint_true_r3    47.0   576 |  47.2   515
+hint_true_r4    40.4   332 |  40.5   304
+hint_true_r5    38.0   158 |  38.0   150
+hint_true_r6    33.3    75 |  32.9    70
+hint_other_r1   49.2  1129 |  50.6   961
+hint_wrongres_r1  50.5  1111 |  50.5  1111
+hint_wrongres_near_r1  56.9  1129 |  56.9  1129
+hint_other_r2   43.6   877 |  44.0   769
+hint_wrongres_r2  46.0   861 |  46.0   861
+hint_wrongres_near_r2  49.0   877 |  49.0   877
+hint_placebo_r1  55.7  1129 |  55.7  1129
+hint_placebo_r2  47.9   877 |  47.9   877
+hint_placebo_r3  41.1   576 |  41.1   576
+hint_placebo_r4  33.4   332 |  33.4   332
+P1 capacity (items n >= 5, 332): plain  36.7 | r=1  72.0 r=2  53.3 r=3  44.6 r=4  40.4 | D = acc(r1) - acc(r4)  +31.6
+   shift r=1: acc(r=1 | n>=4)  73.4 vs plain acc(n=1)   -  
+   shift r=2: acc(r=2 | n>=5)  53.3 vs plain acc(n=2)  78.6
+   shift r=3: acc(r=3 | n>=6)  45.6 vs plain acc(n=3)  58.1
+P2 headroom, clean variants (items n >= 4 with no shown value = option, 440): plain  40.0 true r=1  74.3 -> H  +34.3 | all 576 items: H  +33.7; true - wrongres at r=1  +34.7
+M1 full  96.6 (bar 90) -> True | M2 placebo-plain pooled   +1.4 (bar +-3), at r1..r4   +2.4   +1.8   +1.4   -3.3 (bar +-5 each) -> True
+M3 true-wrongres(far chain) at r1  +28.4 on 1111 shared items (bar 10) -> True | M3b true-wrongres_near (plausible chain)  +21.8 (bar 10) -> True | M4 true-other at r1  +29.4 on 1129 shared items (bar 10) -> True
+copy rate (predictions = the last shown value where it is an option): hint_true_r1 31.0% (n 113); hint_true_r2 22.1% (n 77); hint_other_r1 28.0% (n 75)
+read check (n = 2 items, 252): true r=1  85.3 vs plain  78.6 ->   +6.7 -> reads (>= +5)
+=== A2-c4:s14 ===
+set            acc   n    | drop shown=option: acc   n
+hint_plain      56.1  1129 |  56.1  1129
+hint_full       95.0  1129 |   -       0
+hint_true_r1    78.5  1129 |  81.0   918
+hint_true_r2    61.3   877 |  62.6   754
+hint_true_r3    48.4   576 |  48.5   515
+hint_true_r4    41.3   332 |  39.8   304
+hint_true_r5    43.0   158 |  42.0   150
+hint_true_r6    36.0    75 |  35.7    70
+hint_other_r1   50.0  1129 |  52.2   961
+hint_wrongres_r1  53.6  1111 |  53.6  1111
+hint_wrongres_near_r1  58.5  1129 |  58.5  1129
+hint_other_r2   44.6   877 |  45.4   769
+hint_wrongres_r2  45.6   861 |  45.6   861
+hint_wrongres_near_r2  48.7   877 |  48.7   877
+hint_placebo_r1  57.7  1129 |  57.7  1129
+hint_placebo_r2  49.8   877 |  49.8   877
+hint_placebo_r3  43.4   576 |  43.4   576
+hint_placebo_r4  41.0   332 |  41.0   332
+P1 capacity (items n >= 5, 332): plain  40.4 | r=1  70.2 r=2  51.2 r=3  44.9 r=4  41.3 | D = acc(r1) - acc(r4)  +28.9
+   shift r=1: acc(r=1 | n>=4)  71.4 vs plain acc(n=1)   -  
+   shift r=2: acc(r=2 | n>=5)  51.2 vs plain acc(n=2)  79.0
+   shift r=3: acc(r=3 | n>=6)  47.5 vs plain acc(n=3)  62.5
+P2 headroom, clean variants (items n >= 4 with no shown value = option, 440): plain  43.2 true r=1  74.8 -> H  +31.6 | all 576 items: H  +28.6; true - wrongres at r=1  +30.6
+M1 full  95.0 (bar 90) -> True | M2 placebo-plain pooled   +0.9 (bar +-3), at r1..r4   +1.6   +0.3   +0.7   +0.6 (bar +-5 each) -> True
+M3 true-wrongres(far chain) at r1  +25.2 on 1111 shared items (bar 10) -> True | M3b true-wrongres_near (plausible chain)  +20.0 (bar 10) -> True | M4 true-other at r1  +28.4 on 1129 shared items (bar 10) -> True
+copy rate (predictions = the last shown value where it is an option): hint_true_r1 30.1% (n 113); hint_true_r2 18.2% (n 77); hint_other_r1 32.0% (n 75)
+read check (n = 2 items, 252): true r=1  88.1 vs plain  79.0 ->   +9.1 -> reads (>= +5)
+=== A2-c12:s12 ===
+set            acc   n    | drop shown=option: acc   n
+hint_plain      54.7  1129 |  54.7  1129
+hint_full       93.0  1129 |   -       0
+hint_true_r1    73.1  1129 |  74.8   918
+hint_true_r2    56.9   877 |  57.4   754
+hint_true_r3    46.5   576 |  46.2   515
+hint_true_r4    40.7   332 |  39.8   304
+hint_true_r5    44.9   158 |  44.7   150
+hint_true_r6    41.3    75 |  40.0    70
+hint_other_r1   47.5  1129 |  50.3   961
+hint_wrongres_r1  49.9  1111 |  49.9  1111
+hint_wrongres_near_r1  57.6  1129 |  57.6  1129
+hint_other_r2   42.6   877 |  44.3   769
+hint_wrongres_r2  45.4   861 |  45.4   861
+hint_wrongres_near_r2  49.3   877 |  49.3   877
+hint_placebo_r1  55.1  1129 |  55.1  1129
+hint_placebo_r2  47.0   877 |  47.0   877
+hint_placebo_r3  42.5   576 |  42.5   576
+hint_placebo_r4  41.0   332 |  41.0   332
+P1 capacity (items n >= 5, 332): plain  41.9 | r=1  62.3 r=2  51.8 r=3  44.3 r=4  40.7 | D = acc(r1) - acc(r4)  +21.7
+   shift r=1: acc(r=1 | n>=4)  66.3 vs plain acc(n=1)   -  
+   shift r=2: acc(r=2 | n>=5)  51.8 vs plain acc(n=2)  77.4
+   shift r=3: acc(r=3 | n>=6)  46.8 vs plain acc(n=3)  56.8
+P2 headroom, clean variants (items n >= 4 with no shown value = option, 440): plain  44.3 true r=1  67.7 -> H  +23.4 | all 576 items: H  +22.7; true - wrongres at r=1  +26.7
+M1 full  93.0 (bar 90) -> True | M2 placebo-plain pooled   -0.5 (bar +-3), at r1..r4   +0.4   -1.1   -1.0   -0.9 (bar +-5 each) -> True
+M3 true-wrongres(far chain) at r1  +23.6 on 1111 shared items (bar 10) -> True | M3b true-wrongres_near (plausible chain)  +15.5 (bar 10) -> True | M4 true-other at r1  +25.6 on 1129 shared items (bar 10) -> True
+copy rate (predictions = the last shown value where it is an option): hint_true_r1 24.8% (n 113); hint_true_r2 15.6% (n 77); hint_other_r1 24.0% (n 75)
+read check (n = 2 items, 252): true r=1  84.1 vs plain  77.4 ->   +6.7 -> reads (>= +5)
+=== GFPQ-c4:s12 ===
+set            acc   n    | drop shown=option: acc   n
+hint_plain      59.5  1129 |  59.5  1129
+hint_full       96.3  1129 |   -       0
+hint_true_r1    84.1  1129 |  84.7   918
+hint_true_r2    65.5   877 |  66.7   754
+hint_true_r3    49.0   576 |  49.5   515
+hint_true_r4    44.3   332 |  44.1   304
+hint_true_r5    45.6   158 |  45.3   150
+hint_true_r6    42.7    75 |  41.4    70
+hint_other_r1   53.8  1129 |  56.5   961
+hint_wrongres_r1  55.4  1111 |  55.4  1111
+hint_wrongres_near_r1  61.5  1129 |  61.5  1129
+hint_other_r2   45.6   877 |  47.3   769
+hint_wrongres_r2  49.5   861 |  49.5   861
+hint_wrongres_near_r2  52.2   877 |  52.2   877
+hint_placebo_r1  58.9  1129 |  58.9  1129
+hint_placebo_r2  49.9   877 |  49.9   877
+hint_placebo_r3  43.4   576 |  43.4   576
+hint_placebo_r4  41.9   332 |  41.9   332
+P1 capacity (items n >= 5, 332): plain  41.9 | r=1  76.8 r=2  60.5 r=3  47.9 r=4  44.3 | D = acc(r1) - acc(r4)  +32.5
+   shift r=1: acc(r=1 | n>=4)  79.9 vs plain acc(n=1)   -  
+   shift r=2: acc(r=2 | n>=5)  60.5 vs plain acc(n=2)  87.7
+   shift r=3: acc(r=3 | n>=6)  50.6 vs plain acc(n=3)  63.8
+P2 headroom, clean variants (items n >= 4 with no shown value = option, 440): plain  45.9 true r=1  81.4 -> H  +35.5 | all 576 items: H  +34.9; true - wrongres at r=1  +37.0
+M1 full  96.3 (bar 90) -> True | M2 placebo-plain pooled   -1.0 (bar +-3), at r1..r4   -0.6   -1.5   -1.6   +0.0 (bar +-5 each) -> True
+M3 true-wrongres(far chain) at r1  +28.8 on 1111 shared items (bar 10) -> True | M3b true-wrongres_near (plausible chain)  +22.6 (bar 10) -> True | M4 true-other at r1  +30.3 on 1129 shared items (bar 10) -> True
+copy rate (predictions = the last shown value where it is an option): hint_true_r1 25.7% (n 113); hint_true_r2 16.9% (n 77); hint_other_r1 28.0% (n 75)
+read check (n = 2 items, 252): true r=1  88.9 vs plain  87.7 ->   +1.2 -> does not read (< +2)
+=== GFPQ-c4:s13 ===
+set            acc   n    | drop shown=option: acc   n
+hint_plain      58.6  1129 |  58.6  1129
+hint_full       93.3  1129 |   -       0
+hint_true_r1    81.7  1129 |  83.0   918
+hint_true_r2    63.9   877 |  65.3   754
+hint_true_r3    49.0   576 |  48.5   515
+hint_true_r4    44.3   332 |  43.1   304
+hint_true_r5    44.9   158 |  44.7   150
+hint_true_r6    42.7    75 |  42.9    70
+hint_other_r1   51.7  1129 |  53.8   961
+hint_wrongres_r1  50.8  1111 |  50.8  1111
+hint_wrongres_near_r1  59.3  1129 |  59.3  1129
+hint_other_r2   43.2   877 |  44.3   769
+hint_wrongres_r2  48.7   861 |  48.7   861
+hint_wrongres_near_r2  51.8   877 |  51.8   877
+hint_placebo_r1  57.3  1129 |  57.3  1129
+hint_placebo_r2  48.1   877 |  48.1   877
+hint_placebo_r3  42.2   576 |  42.2   576
+hint_placebo_r4  37.3   332 |  37.3   332
+P1 capacity (items n >= 5, 332): plain  41.9 | r=1  72.9 r=2  57.5 r=3  49.4 r=4  44.3 | D = acc(r1) - acc(r4)  +28.6
+   shift r=1: acc(r=1 | n>=4)  75.2 vs plain acc(n=1)   -  
+   shift r=2: acc(r=2 | n>=5)  57.5 vs plain acc(n=2)  86.5
+   shift r=3: acc(r=3 | n>=6)  49.4 vs plain acc(n=3)  60.8
+P2 headroom, clean variants (items n >= 4 with no shown value = option, 440): plain  45.9 true r=1  76.8 -> H  +30.9 | all 576 items: H  +29.9; true - wrongres at r=1  +35.5
+M1 full  93.3 (bar 90) -> True | M2 placebo-plain pooled   -2.4 (bar +-3), at r1..r4   -1.3   -2.5   -3.1   -4.5 (bar +-5 each) -> True
+M3 true-wrongres(far chain) at r1  +31.0 on 1111 shared items (bar 10) -> True | M3b true-wrongres_near (plausible chain)  +22.4 (bar 10) -> True | M4 true-other at r1  +29.9 on 1129 shared items (bar 10) -> True
+copy rate (predictions = the last shown value where it is an option): hint_true_r1 21.2% (n 113); hint_true_r2 20.8% (n 77); hint_other_r1 29.3% (n 75)
+read check (n = 2 items, 252): true r=1  89.3 vs plain  86.5 ->   +2.8 -> weak (+2 .. +5)
+=== GFPQ-c4:s14 ===
+set            acc   n    | drop shown=option: acc   n
+hint_plain      58.6  1129 |  58.6  1129
+hint_full       97.1  1129 |   -       0
+hint_true_r1    83.1  1129 |  83.7   918
+hint_true_r2    63.5   877 |  64.6   754
+hint_true_r3    49.3   576 |  49.3   515
+hint_true_r4    44.0   332 |  43.8   304
+hint_true_r5    48.7   158 |  47.3   150
+hint_true_r6    45.3    75 |  45.7    70
+hint_other_r1   50.1  1129 |  51.9   961
+hint_wrongres_r1  52.1  1111 |  52.1  1111
+hint_wrongres_near_r1  59.7  1129 |  59.7  1129
+hint_other_r2   43.3   877 |  43.6   769
+hint_wrongres_r2  47.6   861 |  47.6   861
+hint_wrongres_near_r2  49.3   877 |  49.3   877
+hint_placebo_r1  56.6  1129 |  56.6  1129
+hint_placebo_r2  50.3   877 |  50.3   877
+hint_placebo_r3  44.4   576 |  44.4   576
+hint_placebo_r4  42.8   332 |  42.8   332
+P1 capacity (items n >= 5, 332): plain  45.5 | r=1  75.9 r=2  58.1 r=3  48.8 r=4  44.0 | D = acc(r1) - acc(r4)  +31.9
+   shift r=1: acc(r=1 | n>=4)  78.5 vs plain acc(n=1)   -  
+   shift r=2: acc(r=2 | n>=5)  58.1 vs plain acc(n=2)  80.6
+   shift r=3: acc(r=3 | n>=6)  50.0 vs plain acc(n=3)  63.8
+P2 headroom, clean variants (items n >= 4 with no shown value = option, 440): plain  48.4 true r=1  78.9 -> H  +30.5 | all 576 items: H  +32.1; true - wrongres at r=1  +38.7
+M1 full  97.1 (bar 90) -> True | M2 placebo-plain pooled   -2.1 (bar +-3), at r1..r4   -2.0   -2.1   -1.9   -2.7 (bar +-5 each) -> True
+M3 true-wrongres(far chain) at r1  +31.1 on 1111 shared items (bar 10) -> True | M3b true-wrongres_near (plausible chain)  +23.4 (bar 10) -> True | M4 true-other at r1  +32.9 on 1129 shared items (bar 10) -> True
+copy rate (predictions = the last shown value where it is an option): hint_true_r1 25.7% (n 113); hint_true_r2 19.5% (n 77); hint_other_r1 30.7% (n 75)
+read check (n = 2 items, 252): true r=1  88.9 vs plain  80.6 ->   +8.3 -> reads (>= +5)
+=== GFPQM-c4:s12 ===
+set            acc   n    | drop shown=option: acc   n
+hint_plain      60.3  1129 |  60.3  1129
+hint_full       98.1  1129 |   -       0
+hint_true_r1    82.4  1129 |  83.1   918
+hint_true_r2    56.4   877 |  58.0   754
+hint_true_r3    39.8   576 |  40.8   515
+hint_true_r4    34.9   332 |  34.2   304
+hint_true_r5    29.1   158 |  28.7   150
+hint_true_r6    33.3    75 |  34.3    70
+hint_other_r1   41.2  1129 |  43.2   961
+hint_wrongres_r1  45.1  1111 |  45.1  1111
+hint_wrongres_near_r1  53.6  1129 |  53.6  1129
+hint_other_r2   35.5   877 |  36.3   769
+hint_wrongres_r2  40.3   861 |  40.3   861
+hint_wrongres_near_r2  43.8   877 |  43.8   877
+hint_placebo_r1  51.3  1129 |  51.3  1129
+hint_placebo_r2  43.6   877 |  43.6   877
+hint_placebo_r3  37.3   576 |  37.3   576
+hint_placebo_r4  34.6   332 |  34.6   332
+P1 capacity (items n >= 5, 332): plain  43.1 | r=1  80.7 r=2  59.9 r=3  43.7 r=4  34.9 | D = acc(r1) - acc(r4)  +45.8
+   shift r=1: acc(r=1 | n>=4)  83.3 vs plain acc(n=1)   -  
+   shift r=2: acc(r=2 | n>=5)  59.9 vs plain acc(n=2)  86.9
+   shift r=3: acc(r=3 | n>=6)  43.0 vs plain acc(n=3)  65.1
+P2 headroom, clean variants (items n >= 4 with no shown value = option, 440): plain  48.0 true r=1  83.6 -> H  +35.7 | all 576 items: H  +37.2; true - wrongres at r=1  +46.7
+M1 full  98.1 (bar 90) -> True | M2 placebo-plain pooled   -9.0 (bar +-3), at r1..r4   -9.0   -9.1   -8.9   -8.4 (bar +-5 each) -> False
+M3 true-wrongres(far chain) at r1  +37.4 on 1111 shared items (bar 10) -> True | M3b true-wrongres_near (plausible chain)  +28.8 (bar 10) -> True | M4 true-other at r1  +41.2 on 1129 shared items (bar 10) -> True
+copy rate (predictions = the last shown value where it is an option): hint_true_r1 33.6% (n 113); hint_true_r2 48.1% (n 77); hint_other_r1 53.3% (n 75)
+read check (n = 2 items, 252): true r=1  67.5 vs plain  86.9 ->  -19.4 -> does not read (< +2)
+=== GFPQM-c4:s13 ===
+set            acc   n    | drop shown=option: acc   n
+hint_plain      60.1  1129 |  60.1  1129
+hint_full       96.3  1129 |   -       0
+hint_true_r1    80.2  1129 |  81.0   918
+hint_true_r2    50.6   877 |  52.3   754
+hint_true_r3    38.4   576 |  38.4   515
+hint_true_r4    34.9   332 |  34.5   304
+hint_true_r5    33.5   158 |  34.0   150
+hint_true_r6    28.0    75 |  28.6    70
+hint_other_r1   48.8  1129 |  50.4   961
+hint_wrongres_r1  48.0  1111 |  48.0  1111
+hint_wrongres_near_r1  56.5  1129 |  56.5  1129
+hint_other_r2   40.4   877 |  40.6   769
+hint_wrongres_r2  41.7   861 |  41.7   861
+hint_wrongres_near_r2  44.4   877 |  44.4   877
+hint_placebo_r1  50.3  1129 |  50.3  1129
+hint_placebo_r2  43.3   877 |  43.3   877
+hint_placebo_r3  38.4   576 |  38.4   576
+hint_placebo_r4  39.5   332 |  39.5   332
+P1 capacity (items n >= 5, 332): plain  43.7 | r=1  81.3 r=2  55.4 r=3  42.2 r=4  34.9 | D = acc(r1) - acc(r4)  +46.4
+   shift r=1: acc(r=1 | n>=4)  82.1 vs plain acc(n=1)   -  
+   shift r=2: acc(r=2 | n>=5)  55.4 vs plain acc(n=2)  85.3
+   shift r=3: acc(r=3 | n>=6)  46.2 vs plain acc(n=3)  64.5
+P2 headroom, clean variants (items n >= 4 with no shown value = option, 440): plain  48.6 true r=1  82.7 -> H  +34.1 | all 576 items: H  +35.2; true - wrongres at r=1  +41.2
+M1 full  96.3 (bar 90) -> True | M2 placebo-plain pooled   -8.9 (bar +-3), at r1..r4   -9.8   -9.6   -8.5   -4.2 (bar +-5 each) -> False
+M3 true-wrongres(far chain) at r1  +32.2 on 1111 shared items (bar 10) -> True | M3b true-wrongres_near (plausible chain)  +23.6 (bar 10) -> True | M4 true-other at r1  +31.4 on 1129 shared items (bar 10) -> True
+copy rate (predictions = the last shown value where it is an option): hint_true_r1 34.5% (n 113); hint_true_r2 53.2% (n 77); hint_other_r1 36.0% (n 75)
+read check (n = 2 items, 252): true r=1  62.7 vs plain  85.3 ->  -22.6 -> does not read (< +2)
+=== GFPQM-c4:s14 ===
+set            acc   n    | drop shown=option: acc   n
+hint_plain      61.7  1129 |  61.7  1129
+hint_full       97.1  1129 |   -       0
+hint_true_r1    81.5  1129 |  83.0   918
+hint_true_r2    52.9   877 |  55.2   754
+hint_true_r3    42.9   576 |  43.1   515
+hint_true_r4    37.7   332 |  36.5   304
+hint_true_r5    36.1   158 |  36.7   150
+hint_true_r6    33.3    75 |  34.3    70
+hint_other_r1   43.4  1129 |  45.3   961
+hint_wrongres_r1  46.8  1111 |  46.8  1111
+hint_wrongres_near_r1  57.4  1129 |  57.4  1129
+hint_other_r2   34.8   877 |  34.6   769
+hint_wrongres_r2  39.8   861 |  39.8   861
+hint_wrongres_near_r2  43.7   877 |  43.7   877
+hint_placebo_r1  52.4  1129 |  52.4  1129
+hint_placebo_r2  42.6   877 |  42.6   877
+hint_placebo_r3  39.6   576 |  39.6   576
+hint_placebo_r4  38.9   332 |  38.9   332
+P1 capacity (items n >= 5, 332): plain  45.5 | r=1  81.6 r=2  59.9 r=3  46.7 r=4  37.7 | D = acc(r1) - acc(r4)  +44.0
+   shift r=1: acc(r=1 | n>=4)  83.9 vs plain acc(n=1)   -  
+   shift r=2: acc(r=2 | n>=5)  59.9 vs plain acc(n=2)  88.1
+   shift r=3: acc(r=3 | n>=6)  51.3 vs plain acc(n=3)  67.1
+P2 headroom, clean variants (items n >= 4 with no shown value = option, 440): plain  49.1 true r=1  85.2 -> H  +36.1 | all 576 items: H  +36.5; true - wrongres at r=1  +45.8
+M1 full  97.1 (bar 90) -> True | M2 placebo-plain pooled   -9.4 (bar +-3), at r1..r4   -9.3  -11.5   -7.8   -6.6 (bar +-5 each) -> False
+M3 true-wrongres(far chain) at r1  +34.7 on 1111 shared items (bar 10) -> True | M3b true-wrongres_near (plausible chain)  +24.1 (bar 10) -> True | M4 true-other at r1  +38.1 on 1129 shared items (bar 10) -> True
+copy rate (predictions = the last shown value where it is an option): hint_true_r1 36.3% (n 113); hint_true_r2 55.8% (n 77); hint_other_r1 53.3% (n 75)
+read check (n = 2 items, 252): true r=1  62.7 vs plain  88.1 ->  -25.4 -> does not read (< +2)
+=== GFPQMR-c4:s12 ===
+set            acc   n    | drop shown=option: acc   n
+hint_plain      57.8  1129 |  57.8  1129
+hint_full       96.2  1129 |   -       0
+hint_true_r1    72.8  1129 |  75.7   918
+hint_true_r2    59.3   877 |  59.5   754
+hint_true_r3    46.7   576 |  47.4   515
+hint_true_r4    42.5   332 |  41.8   304
+hint_true_r5    44.3   158 |  45.3   150
+hint_true_r6    34.7    75 |  35.7    70
+hint_other_r1   46.2  1129 |  48.2   961
+hint_wrongres_r1  52.6  1111 |  52.6  1111
+hint_wrongres_near_r1  56.3  1129 |  56.3  1129
+hint_other_r2   43.1   877 |  44.0   769
+hint_wrongres_r2  46.8   861 |  46.8   861
+hint_wrongres_near_r2  47.1   877 |  47.1   877
+hint_placebo_r1  57.4  1129 |  57.4  1129
+hint_placebo_r2  49.5   877 |  49.5   877
+hint_placebo_r3  43.9   576 |  43.9   576
+hint_placebo_r4  39.8   332 |  39.8   332
+P1 capacity (items n >= 5, 332): plain  41.6 | r=1  65.1 r=2  51.8 r=3  44.0 r=4  42.5 | D = acc(r1) - acc(r4)  +22.6
+   shift r=1: acc(r=1 | n>=4)  64.8 vs plain acc(n=1)   -  
+   shift r=2: acc(r=2 | n>=5)  51.8 vs plain acc(n=2)  82.5
+   shift r=3: acc(r=3 | n>=6)  44.9 vs plain acc(n=3)  60.1
+P2 headroom, clean variants (items n >= 4 with no shown value = option, 440): plain  47.7 true r=1  68.4 -> H  +20.7 | all 576 items: H  +18.9; true - wrongres at r=1  +26.2
+M1 full  96.2 (bar 90) -> True | M2 placebo-plain pooled   -1.1 (bar +-3), at r1..r4   -0.4   -1.3   -1.9   -1.8 (bar +-5 each) -> True
+M3 true-wrongres(far chain) at r1  +20.4 on 1111 shared items (bar 10) -> True | M3b true-wrongres_near (plausible chain)  +16.5 (bar 10) -> True | M4 true-other at r1  +26.6 on 1129 shared items (bar 10) -> True
+copy rate (predictions = the last shown value where it is an option): hint_true_r1 32.7% (n 113); hint_true_r2 19.5% (n 77); hint_other_r1 46.7% (n 75)
+read check (n = 2 items, 252): true r=1  84.5 vs plain  82.5 ->   +2.0 -> does not read (< +2)
+=== GFPQMR-c4:s13 ===
+set            acc   n    | drop shown=option: acc   n
+hint_plain      56.1  1129 |  56.1  1129
+hint_full       94.2  1129 |   -       0
+hint_true_r1    72.7  1129 |  74.7   918
+hint_true_r2    61.0   877 |  62.5   754
+hint_true_r3    48.3   576 |  48.7   515
+hint_true_r4    43.7   332 |  43.4   304
+hint_true_r5    43.7   158 |  44.7   150
+hint_true_r6    37.3    75 |  40.0    70
+hint_other_r1   51.6  1129 |  52.9   961
+hint_wrongres_r1  53.1  1111 |  53.1  1111
+hint_wrongres_near_r1  57.7  1129 |  57.7  1129
+hint_other_r2   44.6   877 |  45.6   769
+hint_wrongres_r2  48.5   861 |  48.5   861
+hint_wrongres_near_r2  49.0   877 |  49.0   877
+hint_placebo_r1  57.0  1129 |  57.0  1129
+hint_placebo_r2  51.5   877 |  51.5   877
+hint_placebo_r3  45.7   576 |  45.7   576
+hint_placebo_r4  42.2   332 |  42.2   332
+P1 capacity (items n >= 5, 332): plain  40.4 | r=1  62.0 r=2  54.8 r=3  47.3 r=4  43.7 | D = acc(r1) - acc(r4)  +18.4
+   shift r=1: acc(r=1 | n>=4)  64.6 vs plain acc(n=1)   -  
+   shift r=2: acc(r=2 | n>=5)  54.8 vs plain acc(n=2)  80.6
+   shift r=3: acc(r=3 | n>=6)  47.5 vs plain acc(n=3)  60.8
+P2 headroom, clean variants (items n >= 4 with no shown value = option, 440): plain  44.3 true r=1  66.8 -> H  +22.5 | all 576 items: H  +21.7; true - wrongres at r=1  +23.9
+M1 full  94.2 (bar 90) -> True | M2 placebo-plain pooled   +1.9 (bar +-3), at r1..r4   +0.9   +2.5   +2.8   +1.8 (bar +-5 each) -> True
+M3 true-wrongres(far chain) at r1  +19.5 on 1111 shared items (bar 10) -> True | M3b true-wrongres_near (plausible chain)  +15.1 (bar 10) -> True | M4 true-other at r1  +21.1 on 1129 shared items (bar 10) -> True
+copy rate (predictions = the last shown value where it is an option): hint_true_r1 28.3% (n 113); hint_true_r2 11.7% (n 77); hint_other_r1 21.3% (n 75)
+read check (n = 2 items, 252): true r=1  83.7 vs plain  80.6 ->   +3.2 -> weak (+2 .. +5)
+=== GFPQMR-c4:s14 ===
+set            acc   n    | drop shown=option: acc   n
+hint_plain      55.2  1129 |  55.2  1129
+hint_full       97.3  1129 |   -       0
+hint_true_r1    77.9  1129 |  80.1   918
+hint_true_r2    60.3   877 |  61.4   754
+hint_true_r3    45.5   576 |  46.0   515
+hint_true_r4    40.1   332 |  38.5   304
+hint_true_r5    39.9   158 |  38.0   150
+hint_true_r6    41.3    75 |  40.0    70
+hint_other_r1   42.9  1129 |  45.8   961
+hint_wrongres_r1  49.1  1111 |  49.1  1111
+hint_wrongres_near_r1  56.7  1129 |  56.7  1129
+hint_other_r2   37.5   877 |  38.9   769
+hint_wrongres_r2  44.1   861 |  44.1   861
+hint_wrongres_near_r2  46.6   877 |  46.6   877
+hint_placebo_r1  54.2  1129 |  54.2  1129
+hint_placebo_r2  49.5   877 |  49.5   877
+hint_placebo_r3  41.0   576 |  41.0   576
+hint_placebo_r4  37.0   332 |  37.0   332
+P1 capacity (items n >= 5, 332): plain  38.6 | r=1  67.8 r=2  54.5 r=3  44.3 r=4  40.1 | D = acc(r1) - acc(r4)  +27.7
+   shift r=1: acc(r=1 | n>=4)  71.0 vs plain acc(n=1)   -  
+   shift r=2: acc(r=2 | n>=5)  54.5 vs plain acc(n=2)  82.1
+   shift r=3: acc(r=3 | n>=6)  42.4 vs plain acc(n=3)  58.1
+P2 headroom, clean variants (items n >= 4 with no shown value = option, 440): plain  43.9 true r=1  73.6 -> H  +29.8 | all 576 items: H  +29.2; true - wrongres at r=1  +33.3
+M1 full  97.3 (bar 90) -> True | M2 placebo-plain pooled   -0.1 (bar +-3), at r1..r4   -1.0   +2.1   -0.9   -1.5 (bar +-5 each) -> True
+M3 true-wrongres(far chain) at r1  +29.1 on 1111 shared items (bar 10) -> True | M3b true-wrongres_near (plausible chain)  +21.3 (bar 10) -> True | M4 true-other at r1  +35.1 on 1129 shared items (bar 10) -> True
+copy rate (predictions = the last shown value where it is an option): hint_true_r1 32.7% (n 113); hint_true_r2 20.8% (n 77); hint_other_r1 54.7% (n 75)
+read check (n = 2 items, 252): true r=1  88.5 vs plain  82.1 ->   +6.3 -> reads (>= +5)
+=== P2 (primary) and P1 by arm. P2 PASS: seed mean H >= 15, every seed >= 10, paired t of H >= t_crit (df n-1); NONE: mean < 5. P1: D >= 15 capacity-limited, < 5 not ===
+base       seeds s0: H  +16.4 [+16.4] t nan (crit 2.00, n 1) -> limited / undetermined; D  +15.1 (capacity-limited); per-run all: M1 True M2 True M3 True M3b True M4 True
+base       seed-mean gate (n 1): full  99.0 M1 True | placebo-plain pooled   -0.9 per-r   -1.9   +0.9   -0.5   -2.7 M2 True | true-wrongres  +18.4 M3 True | true-near  +15.3 M3b True | true-other  +19.8 M4 True | read   +9.9 (reads) -> gate PASS
+A2-c4      seeds s12,s13,s14: H  +29.9 [+23.9 +34.3 +31.6] t 9.56 (crit 4.30, n 3) -> PASS (big headroom); D  +28.5 (capacity-limited); per-run all: M1 True M2 True M3 True M3b True M4 True
+A2-c4      seed-mean gate (n 3): full  96.5 M1 True | placebo-plain pooled   +0.3 per-r   +1.0   +0.2   +0.2   -1.7 M2 True | true-wrongres  +26.4 M3 True | true-near  +20.5 M3b True | true-other  +29.1 M4 True | read   +8.1 (reads) -> gate PASS
+A2-c12     seeds s12: H  +23.4 [+23.4] t nan (crit 2.00, n 1) -> limited / undetermined; D  +21.7 (capacity-limited); per-run all: M1 True M2 True M3 True M3b True M4 True
+A2-c12     seed-mean gate (n 1): full  93.0 M1 True | placebo-plain pooled   -0.5 per-r   +0.4   -1.1   -1.0   -0.9 M2 True | true-wrongres  +23.6 M3 True | true-near  +15.5 M3b True | true-other  +25.6 M4 True | read   +6.7 (reads) -> gate PASS
+GFPQ-c4    seeds s12,s13,s14: H  +32.3 [+35.5 +30.9 +30.5] t 20.22 (crit 4.30, n 3) -> PASS (big headroom); D  +31.0 (capacity-limited); per-run all: M1 True M2 True M3 True M3b True M4 True
+GFPQ-c4    seed-mean gate (n 3): full  95.5 M1 True | placebo-plain pooled   -1.8 per-r   -1.3   -2.0   -2.2   -2.4 M2 True | true-wrongres  +30.3 M3 True | true-near  +22.8 M3b True | true-other  +31.1 M4 True | read   +4.1 (weak) -> gate PASS
+GFPQM-c4   seeds s12,s13,s14: H  +35.3 [+35.7 +34.1 +36.1] t 56.93 (crit 4.30, n 3) -> PASS (big headroom); D  +45.4 (capacity-limited); per-run all: M1 True M2 False M3 True M3b True M4 True
+GFPQM-c4   seed-mean gate (n 3): full  97.1 M1 True | placebo-plain pooled   -9.1 per-r   -9.4  -10.1   -8.4   -6.4 M2 False | true-wrongres  +34.8 M3 True | true-near  +25.5 M3b True | true-other  +36.9 M4 True | read  -22.5 (does not read) -> gate FAIL
+GFPQMR-c4  seeds s12,s13,s14: H  +24.3 [+20.7 +22.5 +29.8] t 8.76 (crit 4.30, n 3) -> PASS (big headroom); D  +22.9 (capacity-limited); per-run all: M1 True M2 True M3 True M3b True M4 True
+GFPQMR-c4  seed-mean gate (n 3): full  95.9 M1 True | placebo-plain pooled   +0.2 per-r   -0.2   +1.1   +0.0   -0.5 M2 True | true-wrongres  +23.0 M3 True | true-near  +17.6 M3b True | true-other  +27.6 M4 True | read   +3.8 (weak) -> gate PASS
+P3 GFPQM-c4 - GFPQMR-c4 on r in {1,2} (secondary; exploratory if any seed is 12): +4.1 -0.3 -1.2 | mean   +0.8 | t 0.51 (crit 4.30, n 3) -> between
+P3 GFPQM-c4 - GFPQMR-c4 [drop shown=option] on r in {1,2} (secondary; exploratory if any seed is 12): +3.3 -1.1 -1.2 | mean   +0.3 | t 0.23 (crit 4.30, n 3) -> FAIL (closed)
+P3 GFPQ-c4 - A2-c4 on r in {1,2} (secondary; exploratory if any seed is 12): +6.2 +4.2 +3.5 | mean   +4.7 | t 5.79 (crit 4.30, n 3) -> PASS
+P3 GFPQ-c4 - A2-c4 [drop shown=option] on r in {1,2} (secondary; exploratory if any seed is 12): +5.9 +4.9 +2.3 | mean   +4.4 | t 4.14 (crit 4.30, n 3) -> between

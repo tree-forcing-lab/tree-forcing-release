@@ -1,0 +1,50 @@
+{
+ "script": "scripts/build_kk_subsample.py",
+ "args": {
+  "src": "data/student_kk_tf",
+  "k": 3,
+  "seed": 0,
+  "out": null
+ },
+ "source": "data/student_kk_tf",
+ "source_md5": {
+  "data/student_kk_tf/train.jsonl": "e53d7f6d8e36351da60d34c3288c132b",
+  "data/student_kk_tf/val.jsonl": "8d352af42e529c20af16e145165bfcc5"
+ },
+ "md5": {
+  "data/student_kk_tf_n3/train.jsonl": "0c9ec08157bf4fbac053f8012ca291e9",
+  "data/student_kk_tf_n3/val.jsonl": "8d352af42e529c20af16e145165bfcc5"
+ },
+ "train_before": {
+  "items": 1792,
+  "nodes": 78249,
+  "nodes_per_item": [
+   43.67,
+   17,
+   117
+  ],
+  "types": {
+   "case": 40617,
+   "derive": 25088,
+   "parse": 12544
+  },
+  "yes_rate": 0.5005
+ },
+ "train_after": {
+  "items": 1792,
+  "nodes": 5376,
+  "nodes_per_item": [
+   3,
+   3,
+   3
+  ],
+  "types": {
+   "case": 2675,
+   "derive": 1801,
+   "parse": 900
+  },
+  "yes_rate": 0.5073
+ },
+ "puzzles_with_at_most_k_nodes": 0,
+ "val": "byte-identical copy of the source val (full trees)"
+}

@@ -1,0 +1,61 @@
+{
+ "card": "CARD_khop_v4",
+ "d_fail": [],
+ "d_pass": true,
+ "file_sets": {
+  "student_khop4_c27": [
+   "train.jsonl",
+   "val.jsonl"
+  ],
+  "student_khop4_k1x": [
+   "train.jsonl",
+   "val.jsonl"
+  ]
+ },
+ "generator": "scripts/build_khop4.py",
+ "inputs": {
+  "eval/khop/train_k1.jsonl": {
+   "md5": "4bb15f66c8d8843013eb0410c6a87e48",
+   "rows": 3000
+  },
+  "eval/khop/train_kh.jsonl": {
+   "md5": "a16b1520f0fb8b24ffd8fa57ef696de0",
+   "rows": 3000
+  },
+  "student_khop3_c27/train.jsonl": {
+   "md5": "92545dd42ca451c39e0e7c104aa78d1e",
+   "rows": 27000
+  },
+  "student_khop3_c27/val.jsonl": {
+   "md5": "9f55fec541246e41401a7b5fa6c5510a",
+   "rows": 393
+  },
+  "student_khop3_k1x/train.jsonl": {
+   "md5": "d7cc9716e5785461d16ec92156104261",
+   "rows": 27000
+  },
+  "student_khop3_k1x/val.jsonl": {
+   "md5": "9f55fec541246e41401a7b5fa6c5510a",
+   "rows": 393
+  }
+ },
+ "inputs_unchanged": true,
+ "md5": {
+  "student_khop4_c27/train.jsonl": "92545dd42ca451c39e0e7c104aa78d1e",
+  "student_khop4_c27/val.jsonl": "9f55fec541246e41401a7b5fa6c5510a",
+  "student_khop4_k1x/train.jsonl": "d7cc9716e5785461d16ec92156104261",
+  "student_khop4_k1x/val.jsonl": "9f55fec541246e41401a7b5fa6c5510a"
+ },
+ "replay": {
+  "train_k1_equals_rows_0_2999_of_student_khop3_k1x": true,
+  "train_k1_equals_rows_0_2999_of_student_khop4_k1x": true,
+  "train_kh_equals_rows_0_2999_of_student_khop3_c27": true,
+  "train_kh_equals_rows_0_2999_of_student_khop4_c27": true
+ },
+ "rows": {
+  "student_khop4_c27/train.jsonl": 27000,
+  "student_khop4_c27/val.jsonl": 393,
+  "student_khop4_k1x/train.jsonl": 27000,
+  "student_khop4_k1x/val.jsonl": 393
+ }
+}

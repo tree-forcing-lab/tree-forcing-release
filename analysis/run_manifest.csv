@@ -1,0 +1,28 @@
+paper_element,quantity,script,runs_A,runs_B,seeds,notes
+Table 1 row 1,K&K-Deep: Tree Forcing vs answer-only (4B),analysis/ledger.py,GFPS-c6lr3ch-Qwen3.5-4B-student_kk_tf-s{13-15} + GFPS-c6lr3chv-...-s{16-18},A2-c12lr3ch-Qwen3.5-4B-student_kk_tf-s{13-15} + A2-c12lr3chv-...-s{16-18},13-18,epoch per method by best seed-mean val
+Table 1 row 2,K&K-Deep: half learning rate,analysis/ledger.py,GFPS-c6lr1p5chv-Qwen3.5-4B-student_kk_tf-s{13-18},A2-c12lr1p5chv-Qwen3.5-4B-student_kk_tf-s{13-18},13-18,
+Table 1 row 3,K&K-Deep: KL penalty,analysis/ledger.py,GFPS-c6lr3chkl-Qwen3.5-4B-student_kk_tf-s{13-18},A2-c12lr3chkl-Qwen3.5-4B-student_kk_tf-s{13-18},13-18,
+Table 1 row 4,K&K-Deep: 9B,analysis/b25_readout.py,GFPS-c6lr3ch-Qwen3.5-9B-student_kk_tf-s{13-15},A2-c12lr3ch-Qwen3.5-9B-student_kk_tf-s{13-15},13-15,two GPUs per job
+Sec 4.1 text,re-runs and pooled nine pairs,analysis/ledger.py,GFPS-c6lr3cht-Qwen3.5-4B-student_kk_tf-s{13-15},A2-c12lr3cht-Qwen3.5-4B-student_kk_tf-s{13-15},13-15,
+Sec 4.1 text,training-length study,analysis/checks_1115.py,GFPS-c{3;4;6;8}lr3ch-Qwen3.5-4B-student_kk_tf-s{13-15},A2-c{2;4;8;12}lr3ch(t)-Qwen3.5-4B-student_kk_tf-s{13-15},13-15,
+Sec 4.1 text,K&K-External pooled,analysis/checks_1117.py,GFPS-c6lr3chv s{16-18} + GFPS-c6lr3cht s{13-15},A2-c12lr3chv s{16-18} + A2-c12lr3cht s{13-15},13-18,
+Sec 4.1 text,written-reasoning reference (86.4),configs/run_args (gen_eval),A7-c12lr3ch-Qwen3.5-4B-student_kk_tf_rat-s{13-18},,13-18,generation evaluation in metrics.json gen_eval
+Figure 2,gain of each variant over answer-only,analysis/fig_content_data.py + fig_content.py,see analysis/fig_content_data.py ROWS,A2 as in Table 1,13-18,
+Sec 4.2 text,permuted nodes (6 seeds),analysis/b28_readout.py,GFPSR-c6lr3ch s{13-15} + GFPSR-c6lr3chv s{16-18},Tree / A2 as in Table 1,13-18,
+Sec 4.2 text,three / eight nodes,analysis/b28_readout.py,GFPS-c6lr3chn3-Qwen3.5-4B-student_kk_tf_n3-s{13-18} / ...chn8-..._n8-s{13-18},Tree / A2 as in Table 1,13-18,
+Sec 4.2 text,verification control,analysis/b28_readout.py,GFPS-c6lr3chvf-Qwen3.5-4B-student_kk_tf_vrf-s{13-18},Tree / A2 as in Table 1,13-18,
+Sec 4.2 text,read nodes only,analysis/b28_readout.py,GFPS-c6lr3chrd-Qwen3.5-4B-student_kk_tf-s{13-15},Tree / A2 as in Table 1,13-15,
+Sec 4.2 text,proof generation,analysis/b23_readout.py,A7-c12lr3ch-Qwen3.5-4B-student_kk_tf_rat-s{13-18},Tree / A2 as in Table 1,13-18,
+Sec 4.2 text,proof generation with tree batching,analysis/b23_readout.py,GFPS-c12lr3chrn-Qwen3.5-4B-student_kk_tf_rat_nonodes-s{13-18},Tree / A2 as in Table 1,13-18,
+Sec 4.2 text,DAIS-style,analysis/b26_b27_readout.py,GFPS-c6lr3chds-Qwen3.5-4B-student_kk_tf-s{13-18},Tree / A2 as in Table 1,13-18,
+Table 2,held-out accuracy,analysis/ledger.py + checks_1117.py,Tree as in Table 1 (end of training),A2 as in Table 1 (end of training),13-18,untrained model: base-Qwen3.5-4B
+Sec 4.3 text,BBH by task type / Web of Lies / temperature scaling,analysis/analysis_1117.py,as in Table 2,as in Table 2,13-18,needs data/eval/bbh.jsonl (built by scripts/build_items.py)
+Sec 4.3 text,transfer of controls,analysis/b28_readout.py,n3 / n8 / verification / permuted (end of training),A2 as in Table 1,13-18,
+Sec 4.4,FOLIO,analysis/b26_b27_readout.py,GFPS-c6lr3chfo-Qwen3.5-4B-student_folio_tf-s{13-18},A2-c12lr3chfo-Qwen3.5-4B-student_folio_tf-s{13-18},13-18,
+Sec 4.4,logic grid puzzles,analysis/ledger.py (compare on zcin / zcex / kkdeep),GFPS-c6lr3chzt-Qwen3.5-4B-student_zebra_cell_tf-s{13-18},A2-c12lr3chzt-Qwen3.5-4B-student_zebra_cell_tf-s{13-18},13-18,
+Sec 4.5,GSM8K,analysis/b28_readout.py,GFPQ-c1lr3ch-Qwen3.5-4B-student_gsm8k_tf_vt-s{13-18},A2-c1lr3ch-Qwen3.5-4B-student_gsm8k_tf_vt-s{13-18},13-18,A2 s15-s18 read from restored_runs (first completed runs)
+Sec 4.5,GSM8K controls,analysis/b28_readout.py,GFPQR-c2lr3ch s{13-15} + GFPQR-c2lr3 s{16-18}; GFPQX-c2lr3 s{16-18},TF 1 epoch as above,13-18,
+Sec 4.5,written-reasoning reference (about 88),configs/run_args (gen_eval),A7-c3lr3ch-Qwen3.5-4B-student_gsm8k_tf_vt_rat-s{13-15},,13-15,
+Sec 5,node coupling,analysis/node_coupling.py + checks_1115.py,K&K: Tree / A2 as in Table 1; GSM8K: GFPQ-c1lr3ch-...-student_gsm8k_tf_vt_rat-s{13-15},A2-c1lr3ch-...-student_gsm8k_tf_vt_rat-s{13-15},13-18 / 13-15,
+Figure 3 and Sec 5,serial budget and hint test,analysis/mechanism_check.py + mechanism_figure.py,A2-khop*/A2-khopd27* runs; hint test: mechanism/A_hint/data/stage2_preds.tgz,,16-20,inputs: analysis/prepare_mechanism_inputs.sh
+Appendix,per-seed table and all appendix tables,analysis/ledger.py and the scripts above,,,,

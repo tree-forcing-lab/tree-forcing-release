@@ -1,0 +1,24 @@
+x items: 1317; worked-steps length over them: null: 165, 1: 23, 2: 252, 3: 301, 4: 244, 5: 174, 6: 83, 7+: 75
+items with n >= 2 (the hint item set): 1129
+hint_plain             rows  1129  r 2..11  k 0..0  checks ok
+hint_full              rows  1129  r [0]  k 2..11  checks ok
+hint_true_r1           rows  1129  r [1]  k 1..10  checks ok
+hint_true_r2           rows   877  r [2]  k 1..9  checks ok
+hint_true_r3           rows   576  r [3]  k 1..8  checks ok
+hint_true_r4           rows   332  r [4]  k 1..7  checks ok
+hint_true_r5           rows   158  r [5]  k 1..6  checks ok
+hint_true_r6           rows    75  r [6]  k 1..5  checks ok
+hint_other_r1          rows  1129  r [1]  k 1..10  checks ok
+hint_other_r2          rows   877  r [2]  k 1..9  checks ok
+hint_wrongres_r1       rows  1111  r [1]  k 1..10  checks ok
+hint_wrongres_r2       rows   861  r [2]  k 1..9  checks ok
+hint_wrongres_near_r1  rows  1129  r [1]  k 1..10  checks ok
+hint_wrongres_near_r2  rows   877  r [2]  k 1..9  checks ok
+hint_placebo_r1        rows  1129  r [1]  k 1..10  checks ok
+hint_placebo_r2        rows   877  r [2]  k 1..9  checks ok
+hint_placebo_r3        rows   576  r [3]  k 1..8  checks ok
+hint_placebo_r4        rows   332  r [4]  k 1..7  checks ok
+near-miss line changes (first of +1, -1, +2, -2, x2, /2, +10 that is no option and no true value): +1 4808, -1 298, +2 62, -2 44, x2 33, +10 8
+plain rows whose depth field != n: 331 of 1129 (depth is the socratic step count, n counts atomic operations)
+example: gsm8k_v2-test-0 n 3 depth 2 -> hint_true_r2 shows k = 1 step(s): ['16 − 3 = 13']
+ALL CHECKS PASSED

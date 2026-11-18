@@ -1,0 +1,30 @@
+# One batch-28 training job (README_28.md), Qwen3.5-4B on K&K and GSM8K (review ablations): = train5_4b.sub with the code
+# tarball cotd_code_data_28_4b.tgz, the executable run_train16.sh and the log logs/train28_4b.log.
+include : chtc_settings.inc
+universe = vanilla
+container_image = file://$(STAGING)/cotd_4b.sif
+executable = run_train16.sh
+arguments = $(envfile) $(name)
+environment = "STAGING=$(STAGING) CODE_TGZ=cotd_code_data_28_4b.tgz SMOKE_ONLY=$(smoke) NGPU_REQ=$(ngpu)"
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_input_files = cotd_code_data_28_4b.tgz
+transfer_output_files = results_$(name).tgz
+transfer_output_remaps = "results_$(name).tgz = results/results_$(name).tgz"
+job_machine_attrs = Machine
+job_machine_attrs_history_length = 4
+requirements = (HasCHTCStaging == true) && (TARGET.Machine =!= "gpu2008") && (regexp("^gpu2008[.]", TARGET.Machine) =!= true) && (TARGET.Machine =!= MY.MachineAttrMachine1) && (TARGET.Machine =!= MY.MachineAttrMachine2) && (TARGET.Machine =!= MY.MachineAttrMachine3)
+max_retries = 3
+retry_until = (ExitCode =!= 86)
+request_gpus = $(ngpu)
+require_gpus = (GlobalMemoryMb >= $(gpumem)) && (DriverVersion >= 12.8)
++WantGPULab = true
++GPUJobLength = "medium"
+request_cpus = $(cpus)
+request_memory = $(mem)
+request_disk = 40GB
+priority = $(prio)
+log = logs/train28_4b.log
+output = logs/$(name).condor.out
+error = logs/$(name).condor.err
+queue

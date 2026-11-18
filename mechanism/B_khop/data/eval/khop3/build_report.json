@@ -1,0 +1,389 @@
+{
+ "card": "CARD_khop_v3",
+ "generator": "scripts/build_khop3.py",
+ "stream_params": {
+  "train_seed": 1,
+  "n_kh": 1000,
+  "n_kd_extra": 2000,
+  "khop2_seed": 3,
+  "new_per_task": 6000
+ },
+ "inputs": {
+  "train_kd27.jsonl": {
+   "md5": "92545dd42ca451c39e0e7c104aa78d1e",
+   "rows": 27000
+  },
+  "train_k1.jsonl": {
+   "md5": "4bb15f66c8d8843013eb0410c6a87e48",
+   "rows": 3000
+  },
+  "val.jsonl": {
+   "md5": "9f55fec541246e41401a7b5fa6c5510a",
+   "rows": 393
+  }
+ },
+ "parent_report_md5": {
+  "khop": "33e94aff1632e69f929b89533c49e35e",
+  "khop2": "048941d3a848f2cd9ba6e28c764a7c3a"
+ },
+ "parent_md5": {
+  "khop_ca_fwd.jsonl": "171f097c2f0f55ae4505d37365d95491",
+  "khop_ca_rev.jsonl": "2f2bc7b6fc1cfd45f24451741f0e4105",
+  "khop_wp_fwd.jsonl": "c58c93ffa4d3912cfdbfd848f6eb9fb9",
+  "khop_wp_rev.jsonl": "bdad8780cc64e94e3fcdd0148833a4d7",
+  "khop_vb_fwd.jsonl": "046c6ad382d66c02f1315ce7f8c7577d",
+  "khop_vb_rev.jsonl": "2279c09f4adb666196bdbbe636b53646",
+  "khop_cag_fwd.jsonl": "3e79c1b5233e3db7dc23927e3066eba5",
+  "khop_ca_fwd_qs.jsonl": "38cf266ea1490f0c42f6378baa85f4e4",
+  "khop_blind.jsonl": "b58f7284e1b1d88197a44d0b54eba2ae",
+  "train_kh.jsonl": "a16b1520f0fb8b24ffd8fa57ef696de0",
+  "train_k1.jsonl": "4bb15f66c8d8843013eb0410c6a87e48",
+  "train_kd.jsonl": "2ed4ecc377e4638e35b12e8b22e37461"
+ },
+ "md5": {
+  "student_khop3_c27/train.jsonl": "92545dd42ca451c39e0e7c104aa78d1e",
+  "student_khop3_c27/val.jsonl": "9f55fec541246e41401a7b5fa6c5510a",
+  "student_khop3_k1x/train.jsonl": "d7cc9716e5785461d16ec92156104261",
+  "student_khop3_k1x/val.jsonl": "9f55fec541246e41401a7b5fa6c5510a"
+ },
+ "rows": {
+  "student_khop3_c27/train.jsonl": 27000,
+  "student_khop3_c27/val.jsonl": 393,
+  "student_khop3_k1x/train.jsonl": 27000,
+  "student_khop3_k1x/val.jsonl": 393
+ },
+ "file_sets": {
+  "student_khop3_c27": [
+   "train.jsonl",
+   "val.jsonl"
+  ],
+  "student_khop3_k1x": [
+   "train.jsonl",
+   "val.jsonl"
+  ]
+ },
+ "replay": {
+  "kd27_rows_equal": 27000,
+  "kd27_rows": 27000,
+  "kd27_replayed": 27000,
+  "k1_rows_equal": 3000,
+  "k1_rows": 3000,
+  "k1_replayed": 3000,
+  "ids_rendered_more_than_once": 0
+ },
+ "k1x_rows_0_2999_equal_train_k1": true,
+ "k1x_checks": {
+  "statement_mismatch": 0,
+  "query_not_hop1": 0,
+  "gold_not_hop1_value": 0,
+  "option_rule_fail": 0,
+  "vb_options_not_roots": 0,
+  "row_rule_errors": 0,
+  "teacher_not_onehot": 0,
+  "keyset_differs": 0,
+  "id_group_depth_differs": 0,
+  "gold_shares": {
+   "all": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "ca/k1": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "ca/k2": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "ca/k3": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "ca/k4": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "ca/k5": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "ca/k6": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "vb/k1": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "vb/k2": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "vb/k3": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "vb/k4": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "vb/k5": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "vb/k6": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "wp/k1": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "wp/k2": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "wp/k3": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "wp/k4": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "wp/k5": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   },
+   "wp/k6": {
+    "A": 0.2,
+    "B": 0.2,
+    "C": 0.2,
+    "D": 0.2,
+    "E": 0.2
+   }
+  },
+  "gold_counts": {
+   "all": {
+    "A": 5400,
+    "B": 5400,
+    "C": 5400,
+    "D": 5400,
+    "E": 5400
+   },
+   "ca/k1": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "ca/k2": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "ca/k3": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "ca/k4": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "ca/k5": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "ca/k6": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "vb/k1": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "vb/k2": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "vb/k3": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "vb/k4": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "vb/k5": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "vb/k6": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "wp/k1": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "wp/k2": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "wp/k3": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "wp/k4": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "wp/k5": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   },
+   "wp/k6": {
+    "A": 300,
+    "B": 300,
+    "C": 300,
+    "D": 300,
+    "E": 300
+   }
+  }
+ },
+ "item_ids_distinct": true,
+ "eval_hash_overlap": {
+  "k1x": 0,
+  "c27": 0
+ },
+ "kd27_hash_overlap": {
+  "k1x_rows": 730,
+  "by_k": {
+   "k1": 730
+  }
+ },
+ "token_totals": {
+  "kd27": 5361925,
+  "k1x": 5361776,
+  "rel_k1x_minus_kd27": -2.8e-05,
+  "unit": "tokens",
+  "tokenizer": "<path>"
+ },
+ "updates": {
+  "train_rows": 27000,
+  "updates_mbs2_ga16": 844
+ },
+ "bars": {
+  "gold_share": [
+   0.18,
+   0.22
+  ],
+  "token_rel": 0.01
+ },
+ "inputs_unchanged": true,
+ "d_fail": [],
+ "d_pass": true,
+ "seconds": 30.4
+}

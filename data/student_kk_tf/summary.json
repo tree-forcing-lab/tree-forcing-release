@@ -1,0 +1,778 @@
+{
+ "script": "scripts/build_kk_tf.py",
+ "args": {
+  "out": "data/student_kk_tf",
+  "n": 1792,
+  "val_n": 300,
+  "seed": 0,
+  "grid": "1000,2000,4000,8000",
+  "no_tokens": false,
+  "tokenizer": "results/weights/T1-Qwen3.5-2B-Base-student_v3-s2/model/tokenizer.json",
+  "numgen": "data/student_numgen_tf/train.jsonl",
+  "max_len": 1536,
+  "dedup": "data/bench/train_kk.jsonl,data/student_v3sl/train.jsonl,data/student_v3sl/val.jsonl,data/eval/*kk*.jsonl,data/eval/diag*.jsonl",
+  "solver": "teacher_cache/solver_kk_v3f/build_reasoning_trees.py",
+  "v3sl": "data/student_v3sl"
+ },
+ "seeds": {
+  "train": "60000 + k",
+  "val": "61000 + k",
+  "k": [
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ]
+ },
+ "md5": {
+  "student_kk_tf/val.jsonl": "8d352af42e529c20af16e145165bfcc5",
+  "student_kk_tf/train.jsonl": "e53d7f6d8e36351da60d34c3288c132b"
+ },
+ "files": {
+  "student_kk_tf/val.jsonl": {
+   "items": 300,
+   "people": {
+    "4": 43,
+    "5": 43,
+    "6": 43,
+    "7": 43,
+    "8": 43,
+    "9": 43,
+    "10": 42
+   },
+   "gold_label": {
+    "A": 39,
+    "B": 53,
+    "C": 54,
+    "D": 48,
+    "E": 52,
+    "F": 54
+   },
+   "gold_label_unaugmented": {
+    "A": 36,
+    "B": 50,
+    "C": 48,
+    "D": 42,
+    "E": 47,
+    "F": 47
+   },
+   "augment": {
+    "None": 270,
+    "none_right": 6,
+    "none_wrong": 24
+   },
+   "n_options": {
+    "6": 276,
+    "7": 24
+   },
+   "nodes": 12999,
+   "nodes_per_item": [
+    43.33,
+    17,
+    97
+   ],
+   "nodes_per_item_by_people": {
+    "4": 23.47,
+    "5": 31.56,
+    "6": 37.79,
+    "7": 44.84,
+    "8": 48.14,
+    "9": 56.05,
+    "10": 61.9
+   },
+   "node_types": {
+    "case": 6708,
+    "derive": 4194,
+    "parse": 2097
+   },
+   "node_depth": {
+    "0": 2097,
+    "1": 1147,
+    "2": 803,
+    "3": 894,
+    "4": 795,
+    "5": 635,
+    "6": 696,
+    "7": 609,
+    "8": 647,
+    "9": 583,
+    "10": 583,
+    "11": 536,
+    "12": 483,
+    "13": 436,
+    "14": 379,
+    "15": 320,
+    "16": 246,
+    "17": 211,
+    "18": 183,
+    "19": 148,
+    "20": 114,
+    "21": 96,
+    "22": 80,
+    "23": 69,
+    "24": 58,
+    "25": 43,
+    "26": 36,
+    "27": 28,
+    "28": 17,
+    "29": 12,
+    "30": 8,
+    "31": 4,
+    "32": 2,
+    "33": 1
+   },
+   "max_depth": [
+    17.15,
+    9,
+    33
+   ],
+   "share_with_parents": 0.83,
+   "yes_share": 0.4973
+  },
+  "student_kk_tf/train.jsonl": {
+   "items": 1792,
+   "people": {
+    "4": 256,
+    "5": 256,
+    "6": 256,
+    "7": 256,
+    "8": 256,
+    "9": 256,
+    "10": 256
+   },
+   "gold_label": {
+    "A": 295,
+    "B": 298,
+    "C": 284,
+    "D": 303,
+    "E": 279,
+    "F": 333
+   },
+   "gold_label_unaugmented": {
+    "A": 275,
+    "B": 270,
+    "C": 262,
+    "D": 278,
+    "E": 259,
+    "F": 269
+   },
+   "augment": {
+    "None": 1613,
+    "none_right": 36,
+    "none_wrong": 143
+   },
+   "n_options": {
+    "6": 1649,
+    "7": 143
+   },
+   "nodes": 78249,
+   "nodes_per_item": [
+    43.67,
+    17,
+    117
+   ],
+   "nodes_per_item_by_people": {
+    "4": 24.39,
+    "5": 30.71,
+    "6": 37.44,
+    "7": 42.72,
+    "8": 50.4,
+    "9": 56.43,
+    "10": 63.57
+   },
+   "node_types": {
+    "case": 40617,
+    "derive": 25088,
+    "parse": 12544
+   },
+   "node_depth": {
+    "0": 12544,
+    "1": 7103,
+    "2": 4995,
+    "3": 5375,
+    "4": 4707,
+    "5": 4014,
+    "6": 4265,
+    "7": 3605,
+    "8": 3807,
+    "9": 3370,
+    "10": 3390,
+    "11": 3156,
+    "12": 2872,
+    "13": 2579,
+    "14": 2255,
+    "15": 1936,
+    "16": 1577,
+    "17": 1301,
+    "18": 1107,
+    "19": 939,
+    "20": 714,
+    "21": 581,
+    "22": 484,
+    "23": 367,
+    "24": 277,
+    "25": 218,
+    "26": 160,
+    "27": 131,
+    "28": 95,
+    "29": 77,
+    "30": 63,
+    "31": 57,
+    "32": 39,
+    "33": 21,
+    "34": 17,
+    "35": 10,
+    "36": 7,
+    "37": 4,
+    "38": 3,
+    "39": 3,
+    "40": 3,
+    "41": 7,
+    "42": 4,
+    "43": 2,
+    "44": 2,
+    "45": 1,
+    "46": 1,
+    "47": 1,
+    "48": 1,
+    "49": 1,
+    "50": 1
+   },
+   "max_depth": [
+    17.05,
+    7,
+    50
+   ],
+   "share_with_parents": 0.83,
+   "yes_share": 0.5005
+  }
+ },
+ "skipped": {},
+ "sufficiency": {
+  "derived_nodes": 302142,
+  "entailed": 302142,
+  "kk_items": 8300,
+  "lost_parent_still_entailed": 10741,
+  "nodes_lost_a_parent": 10741,
+  "nodes_with_parent_generic": 10741,
+  "parents_generic": 10741,
+  "parse_flipped": 28991,
+  "parse_nodes": 58094,
+  "raw_entailed": 302142,
+  "trivial": 35982,
+  "not_entailed": 0
+ },
+ "sufficiency_scope": "every generated puzzle (val 300 + train 8000), written or not",
+ "not_entailed_examples": [],
+ "cleaning": {
+  "flipped": 180075,
+  "generic": 24900,
+  "kept": 360236,
+  "verify": 116188,
+  "raw_nodes": 501324
+ },
+ "dedup": {
+  "files": {
+   "data/bench/train_kk.jsonl": {
+    "records": 1106,
+    "prompts": 1106
+   },
+   "data/eval/diag_A_mid.jsonl": {
+    "records": 450,
+    "prompts": 450
+   },
+   "data/eval/diag_kk.jsonl": {
+    "records": 1600,
+    "prompts": 1600
+   },
+   "data/eval/kk_audit_pairs.jsonl": {
+    "records": 8313,
+    "prompts": 16626
+   },
+   "data/eval/kk_deep.jsonl": {
+    "records": 2000,
+    "prompts": 2000
+   },
+   "data/eval/kk_heldout.jsonl": {
+    "records": 450,
+    "prompts": 450
+   },
+   "data/eval/val_kk.jsonl": {
+    "records": 111,
+    "prompts": 111
+   },
+   "data/eval/xkk.jsonl": {
+    "records": 612,
+    "prompts": 612
+   },
+   "data/student_v3sl/train.jsonl": {
+    "records": 7207,
+    "prompts": 7207
+   },
+   "data/student_v3sl/val.jsonl": {
+    "records": 799,
+    "prompts": 799
+   }
+  },
+  "keys": 64593,
+  "key_kinds": "prompt (before and after augmentation), statement block, sorted statement lines"
+ },
+ "v3sl_kk": {
+  "train": {
+   "items": 995,
+   "people": {
+    "4": 146,
+    "5": 138,
+    "6": 133,
+    "7": 147,
+    "8": 141,
+    "9": 145,
+    "10": 145
+   },
+   "gold_label": {
+    "A": 151,
+    "B": 165,
+    "C": 183,
+    "D": 166,
+    "E": 134,
+    "F": 196
+   },
+   "gold_label_unaugmented": {
+    "A": 134,
+    "B": 154,
+    "C": 171,
+    "D": 155,
+    "E": 125,
+    "F": 150
+   },
+   "augment": {
+    "None": 889,
+    "none_right": 21,
+    "none_wrong": 85
+   },
+   "n_options": {
+    "6": 910,
+    "7": 85
+   },
+   "nodes": 43608,
+   "nodes_per_item": [
+    43.83,
+    17,
+    130
+   ],
+   "nodes_per_item_by_people": {
+    "4": 24.52,
+    "5": 30.57,
+    "6": 36.57,
+    "7": 43.16,
+    "8": 50.8,
+    "9": 55.86,
+    "10": 64.4
+   },
+   "node_types": {
+    "case": 22656,
+    "derive": 13968,
+    "parse": 6984
+   },
+   "node_depth": {
+    "0": 6984,
+    "1": 3989,
+    "2": 2849,
+    "3": 3012,
+    "4": 2677,
+    "5": 2251,
+    "6": 2379,
+    "7": 2042,
+    "8": 2114,
+    "9": 1915,
+    "10": 1945,
+    "11": 1804,
+    "12": 1638,
+    "13": 1425,
+    "14": 1218,
+    "15": 1059,
+    "16": 872,
+    "17": 729,
+    "18": 617,
+    "19": 494,
+    "20": 392,
+    "21": 287,
+    "22": 211,
+    "23": 174,
+    "24": 133,
+    "25": 104,
+    "26": 78,
+    "27": 58,
+    "28": 50,
+    "29": 39,
+    "30": 21,
+    "31": 15,
+    "32": 14,
+    "33": 9,
+    "34": 4,
+    "35": 4,
+    "36": 2
+   },
+   "max_depth": [
+    16.86,
+    8,
+    36
+   ],
+   "share_with_parents": 0.83,
+   "yes_share": 0.496
+  },
+  "val": {
+   "items": 111,
+   "people": {
+    "4": 12,
+    "5": 20,
+    "6": 25,
+    "7": 11,
+    "8": 17,
+    "9": 13,
+    "10": 13
+   },
+   "gold_label": {
+    "A": 15,
+    "B": 18,
+    "C": 16,
+    "D": 19,
+    "E": 20,
+    "F": 23
+   },
+   "gold_label_unaugmented": {
+    "A": 14,
+    "B": 15,
+    "C": 14,
+    "D": 18,
+    "E": 19,
+    "F": 18
+   },
+   "augment": {
+    "None": 98,
+    "none_right": 2,
+    "none_wrong": 11
+   },
+   "n_options": {
+    "6": 100,
+    "7": 11
+   },
+   "nodes": 4620,
+   "nodes_per_item": [
+    41.62,
+    21,
+    103
+   ],
+   "nodes_per_item_by_people": {
+    "4": 25.5,
+    "5": 29.35,
+    "6": 34,
+    "7": 42.82,
+    "8": 48.29,
+    "9": 57.92,
+    "10": 64
+   },
+   "node_types": {
+    "case": 2346,
+    "derive": 1516,
+    "parse": 758
+   },
+   "node_depth": {
+    "0": 758,
+    "1": 412,
+    "2": 299,
+    "3": 331,
+    "4": 294,
+    "5": 248,
+    "6": 253,
+    "7": 224,
+    "8": 246,
+    "9": 224,
+    "10": 209,
+    "11": 181,
+    "12": 172,
+    "13": 156,
+    "14": 130,
+    "15": 101,
+    "16": 76,
+    "17": 67,
+    "18": 57,
+    "19": 55,
+    "20": 36,
+    "21": 24,
+    "22": 16,
+    "23": 11,
+    "24": 10,
+    "25": 10,
+    "26": 8,
+    "27": 6,
+    "28": 3,
+    "29": 2,
+    "30": 1
+   },
+   "max_depth": [
+    15.93,
+    7,
+    30
+   ],
+   "share_with_parents": 0.83,
+   "yes_share": 0.492
+  }
+ },
+ "format": {
+  "equal": true,
+  "diffs": []
+ },
+ "layout": {
+  "item_keys": [
+   [
+    "item_id",
+    "source",
+    "prompt",
+    "labels",
+    "gold_label",
+    "teacher",
+    "depth",
+    "subqs",
+    "random_subqs",
+    "rationale",
+    "n_inconsistent_dropped",
+    "tree_fix",
+    "n_leak_dropped",
+    "augment",
+    "has_tree",
+    "tree_source",
+    "local_preamble"
+   ]
+  ],
+  "item_types": {
+   "augment": [
+    "NoneType",
+    "str"
+   ],
+   "depth": [
+    "int"
+   ],
+   "gold_label": [
+    "str"
+   ],
+   "has_tree": [
+    "bool"
+   ],
+   "item_id": [
+    "str"
+   ],
+   "labels": [
+    "list"
+   ],
+   "local_preamble": [
+    "str"
+   ],
+   "n_inconsistent_dropped": [
+    "int"
+   ],
+   "n_leak_dropped": [
+    "int"
+   ],
+   "prompt": [
+    "str"
+   ],
+   "random_subqs": [
+    "list"
+   ],
+   "rationale": [
+    "str"
+   ],
+   "source": [
+    "str"
+   ],
+   "subqs": [
+    "list"
+   ],
+   "teacher": [
+    "dict"
+   ],
+   "tree_fix": [
+    "bool"
+   ],
+   "tree_source": [
+    "str"
+   ]
+  },
+  "node_keys": {
+   "case": [
+    [
+     "question",
+     "opposite",
+     "p_cot",
+     "p_fresh",
+     "truth",
+     "type",
+     "depends_on",
+     "id",
+     "initial",
+     "status",
+     "node_depth",
+     "source_tree",
+     "local_trivial"
+    ]
+   ],
+   "derive": [
+    [
+     "question",
+     "opposite",
+     "p_cot",
+     "p_fresh",
+     "truth",
+     "type",
+     "depends_on",
+     "id",
+     "initial",
+     "status",
+     "node_depth",
+     "source_tree",
+     "local_trivial"
+    ]
+   ],
+   "parse": [
+    [
+     "question",
+     "opposite",
+     "p_cot",
+     "p_fresh",
+     "truth",
+     "type",
+     "depends_on",
+     "id",
+     "initial",
+     "status",
+     "node_depth",
+     "source_tree",
+     "local_lines"
+    ]
+   ]
+  },
+  "node_types": {
+   "case.depends_on": [
+    "list"
+   ],
+   "case.id": [
+    "str"
+   ],
+   "case.initial": [
+    "NoneType"
+   ],
+   "case.local_trivial": [
+    "bool"
+   ],
+   "case.node_depth": [
+    "int"
+   ],
+   "case.opposite": [
+    "str"
+   ],
+   "case.p_cot": [
+    "float"
+   ],
+   "case.p_fresh": [
+    "NoneType"
+   ],
+   "case.question": [
+    "str"
+   ],
+   "case.source_tree": [
+    "str"
+   ],
+   "case.status": [
+    "str"
+   ],
+   "case.truth": [
+    "bool"
+   ],
+   "case.type": [
+    "str"
+   ],
+   "derive.depends_on": [
+    "list"
+   ],
+   "derive.id": [
+    "str"
+   ],
+   "derive.initial": [
+    "NoneType"
+   ],
+   "derive.local_trivial": [
+    "bool"
+   ],
+   "derive.node_depth": [
+    "int"
+   ],
+   "derive.opposite": [
+    "str"
+   ],
+   "derive.p_cot": [
+    "float"
+   ],
+   "derive.p_fresh": [
+    "NoneType"
+   ],
+   "derive.question": [
+    "str"
+   ],
+   "derive.source_tree": [
+    "str"
+   ],
+   "derive.status": [
+    "str"
+   ],
+   "derive.truth": [
+    "bool"
+   ],
+   "derive.type": [
+    "str"
+   ],
+   "parse.depends_on": [
+    "list"
+   ],
+   "parse.id": [
+    "str"
+   ],
+   "parse.initial": [
+    "NoneType"
+   ],
+   "parse.local_lines": [
+    "list"
+   ],
+   "parse.node_depth": [
+    "int"
+   ],
+   "parse.opposite": [
+    "str"
+   ],
+   "parse.p_cot": [
+    "float"
+   ],
+   "parse.p_fresh": [
+    "NoneType"
+   ],
+   "parse.question": [
+    "str"
+   ],
+   "parse.source_tree": [
+    "str"
+   ],
+   "parse.status": [
+    "str"
+   ],
+   "parse.truth": [
+    "bool"
+   ],
+   "parse.type": [
+    "str"
+   ]
+  }
+ }
+}
