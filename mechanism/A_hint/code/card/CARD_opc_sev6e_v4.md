@@ -7,7 +7,6 @@ read check (-22.5) in Stage 1, so a GFPQM pair could not be read. P3 bar and see
 A2-c4 (seed mean) and A2-c12, so Stage 2 runs without SIB (SIB env files kept, jobs_opc2_sib_4b.dag, conditional).
 Stage 1 readout: opc/stage1_readout_20261021.txt; log entry: opc/results_log_entry_j500_513.md.
 
-Blind rounds: v1 Claude 8 / agy 5, v2 agy 7 / Claude 9, v3 agy 9 / Claude 10 (of 14). Every named gap is answered here.
 
 ## 0. Hypothesis (one sentence, one primary)
 
