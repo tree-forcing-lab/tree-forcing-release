@@ -14,5 +14,4 @@ evaluation data with md5 lists, design notes and result tables recomputed from t
 - Large `.jsonl` files are gzip-compressed (`*.jsonl.gz`); `analysis/prepare_mechanism_inputs.sh` unpacks what the
   paper's scripts read (`analysis/mechanism_check.py`, `analysis/mechanism_figure.py`).
 - A third group of October experiments (editing values in the prompt) is not used by the paper and not included.
-- Release status: the second author's consent to publish these materials is pending; until then this folder is part
-  of a private repository.
+- License: code under Apache 2.0, generated data and results under CC BY 4.0, like the rest of this repository.

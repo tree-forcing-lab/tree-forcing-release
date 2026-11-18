@@ -106,7 +106,7 @@ of `runs/`.
 ## Licenses
 
 - Code (`src/`, `scripts/`, `hpc/`, `analysis/`, `configs/`, `teacher_cache/`, `tests/`): Apache License 2.0
-  (`LICENSE`). Pending confirmation by both authors.
+  (`LICENSE`).
 - Data we generated (Knights-and-Knaves, logic grid puzzles, their trees and derived sets): CC BY 4.0.
 - Data derived from third-party datasets keeps the source license: GSM8K (MIT), K&K-External from
   `K-and-K/knights-and-knaves` (CC BY-NC-SA 4.0), BIG-Bench Extra Hard (Apache 2.0), MuSR (CC BY 4.0). The license of
