@@ -81,7 +81,7 @@ DAG from a job list. A 4B Tree Forcing run on Knights-and-Knaves takes about 12 
 ## Reproducing the paper's numbers
 
 One command reproduces every number and data figure of the paper from the released run outputs (CPU only, Python 3
-with numpy and matplotlib; about an hour on two cores):
+with numpy and matplotlib; about 15 minutes on two CPU cores):
 
 ```bash
 bash reproduce.sh                                   # downloads the run outputs from Zenodo (DOI 10.5281/zenodo.24381352)

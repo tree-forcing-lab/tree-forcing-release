@@ -3,7 +3,7 @@
 #   bash reproduce.sh [path-or-URL-of-tree-forcing-runs.tar.gz]
 # The archive defaults to $RUNS_ARCHIVE (a local file), else is downloaded from Zenodo (ZENODO_URL below). Outputs go to ./reproduced/; the last step checks
 # the reproduced numbers against the paper (analysis/expected_numbers.json) and fails on any mismatch.
-# Needs Python 3 with numpy and matplotlib ($PYTHON, default python3). CPU only; about an hour on two cores.
+# Needs Python 3 with numpy and matplotlib ($PYTHON, default python3). CPU only; about 15 minutes on two cores.
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")" && pwd); cd "$ROOT"
 PY=${PYTHON:-python3}
