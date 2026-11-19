@@ -12,3 +12,5 @@ __pycache__/
 *.fls
 *.fdb_latexmk
 paper/main.pdf
+/reproduced/
+/tree-forcing-runs.tar.gz

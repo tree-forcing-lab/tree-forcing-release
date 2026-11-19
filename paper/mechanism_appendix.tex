@@ -11,7 +11,7 @@ between 1 and 99. The question asks for the variable $k$ hops from the root, and
 values at that depth; an item is redrawn when two options coincide, an option appears in the text, or one option is
 twice or three times another. The test set has 150 items for each $k$ from 1 to 6 and 100 for $k = 7, 8$; chance is
 20\%. Training examples come from the same generator with another seed and cover $k = 1$ to 6, so seven and eight hops
-are extrapolation. The answer-only weights of \cref{fig:mechanism}a are one-epoch GSM8K runs (seeds 16--20) evaluated
+are extrapolation. The answer-only weights of Figure~\ref{fig:mechanism}a are one-epoch GSM8K runs (seeds 16--20) evaluated
 on the chain sets without any chain training; the chain-trained runs add 27,000 chain examples (26,941 distinct value
 sets) to the 5,923 GSM8K problems in one epoch (1,029 updates instead of 186). At four hops and more, a reader that
 gets every constant but one right still scores high on this option design, and few items require the full chain; we
@@ -40,7 +40,7 @@ A ``full'' set shows every step, including the answer, as a ceiling check.
 
 \paragraph{Hint test: models and registration.} A pilot on saved four-epoch weights (seeds 12--14) was used only to
 decide whether to run the test. The registered test trained fresh runs at seeds 16--18 (answer-only for one and two
-epochs, \tf{} and the permuted-nodes control for two epochs, data and settings of \cref{sec:gsm8k}) and evaluated the
+epochs, \tf{} and the permuted-nodes control for two epochs, data and settings of Section~\ref{sec:gsm8k}) and evaluated the
 hint sets at the end of training. Its primary statistic is the gain from the last-step-left condition over no steps
 on the 440 problems with at least four steps where no shown value equals an option, for the answer-only model selected
 on validation (one epoch); the criterion (mean at least 15 points, every seed at least 10, seed-level $t$ above the

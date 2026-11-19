@@ -159,17 +159,6 @@ HEAD = ("| comparison (A − B) | test set | seeds | epochs A/B | acc A / B | me
 
 def main():
     print("# Paper ledger (recomputed " + "2026-11-15" + "; analysis/ledger.py)\n")
-    print("""## Registered gates (verdicts as read by the registered readout scripts; the "sig." column below is the stricter
-## ledger rule, both intervals excluding 0, and is reported alongside)
-| batch | registered comparison | gate | registered readout | verdict | ledger sig. |
-|---|---|---|---|---|---|
-| 23 (README_23 §2) | Tree − rn, kkdeep, 6 seeds | mean ≥ +1.5, ≥ 5/6 > 0, 2L > 0 | +2.73, 5/6, 2L [+0.18, +5.20] (b23_readout.py, B = 4000) | PASS | no: seed-t [−0.24, +5.69] |
-| 22 (README_22 §4) | GSM8K rl − rn, cue-free, generation | registered in README_22 §4 | +1.07 (b22_readout.py) | PASS (matched-epoch n.s.) | — |
-| 24 / 24b (README_24 §4, 24b) | Zebra cells, Tree − A2, zcin | ≥ +2, ≥ 5/6 > 0, 2L > 0 | 6 seeds +1.47, 2L [−1.44, +4.53] | not met | — |
-| 26 (README_26 §2) | Tree − DAIS-style, kkdeep, 6 seeds | ≥ +1.5, ≥ 5/6 > 0, 2L > 0 | pending | pending | — |
-| FA addendum 6 | GFPS − A2 cross-framework, 3 seeds | registered in amend_lofo | +3.29 [+1.19, +5.31] | PASS | — |
-| FA addenda 7, 8 | capped mixture; synnat pools | registered in amend_lofo | see fa_add78.py | not met | — |
-""")
     print("## K&K (Qwen3.5-4B), one-pass readout, epochs selected on val\n" + HEAD)
     for a, b in (("Tree", "A2"), ("Tree lr1.5", "A2 lr1.5"), ("Tree KL", "A2 KL"), ("Tree s13-15", "Shuffled"),
                  ("Tree", "A7 (writes proof)"), ("A7 (writes proof)", "A2"), ("Tree", "Proof, tree path (rn)"),

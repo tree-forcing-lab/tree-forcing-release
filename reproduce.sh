@@ -41,6 +41,7 @@ run zebra_readout       analysis/zebra_readout.py     # logic grid puzzles
 run analysis_1117       analysis/analysis_1117.py     # K&K-Deep splits, BIG-Bench Hard by task, temperature scaling
 run checks_1115         analysis/checks_1115.py       # matched-length transfer, coupling within puzzle size
 run checks_1117         analysis/checks_1117.py       # held-out sets, pooled K&K-External
+run extras              analysis/extras.py            # permuted control at six seeds on BBH, GSM8K placebo, written-reasoning references
 run node_coupling       analysis/node_coupling.py     # node answers vs final answers
 step "Figure 2 (content controls)"; nice "$PY" analysis/fig_content_data.py; nice "$PY" analysis/fig_content.py; done_
 step "mechanism inputs"; bash analysis/prepare_mechanism_inputs.sh "$OUT/mechanism_inputs" > /dev/null; done_

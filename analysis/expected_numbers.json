@@ -1,0 +1,249 @@
+[
+ {
+  "name": "K&K-Deep, Tree Forcing - answer-only (main, selected epochs)",
+  "paper": 3.72,
+  "file": "ledger.md",
+  "row": [
+   "Tree − A2",
+   "kkdeep"
+  ]
+ },
+ {
+  "name": "K&K-Deep, half learning rate",
+  "paper": 2.99,
+  "file": "ledger.md",
+  "row": [
+   "Tree lr1.5 − A2 lr1.5",
+   "kkdeep"
+  ]
+ },
+ {
+  "name": "K&K-Deep, KL penalty",
+  "paper": 4.06,
+  "file": "ledger.md",
+  "row": [
+   "Tree KL − A2 KL",
+   "kkdeep"
+  ]
+ },
+ {
+  "name": "K&K-Deep, end of training (all 2,000)",
+  "paper": 3.66,
+  "file": "ledger.md",
+  "row": [
+   "Tree − A2",
+   "kkdeep (end, 2,000)"
+  ]
+ },
+ {
+  "name": "K&K-Deep, nine paired runs incl. re-runs",
+  "paper": 2.57,
+  "file": "ledger.md",
+  "row": [
+   "Tree +b19 − A2 +b19",
+   "kkdeep"
+  ]
+ },
+ {
+  "name": "K&K-Deep, Tree Forcing - proof generation",
+  "paper": 4.05,
+  "file": "ledger.md",
+  "row": [
+   "Tree − A7 (writes proof)",
+   "kkdeep"
+  ]
+ },
+ {
+  "name": "K&K-Deep, Tree Forcing - proof generation with tree batching",
+  "paper": 2.73,
+  "file": "ledger.md",
+  "row": [
+   "Tree − Proof, tree path (rn)",
+   "kkdeep"
+  ]
+ },
+ {
+  "name": "BIG-Bench Hard, Tree Forcing - answer-only (end)",
+  "paper": 4.91,
+  "file": "ledger.md",
+  "row": [
+   "Tree − A2",
+   "bbh (end)"
+  ]
+ },
+ {
+  "name": "K&K-External, six paired runs",
+  "paper": 5.64,
+  "file": "checks_1117.md",
+  "row": [
+   "Tree xkk6 − A2 xkk6",
+   "xkk"
+  ]
+ },
+ {
+  "name": "K&K-Deep, Tree Forcing - permuted nodes (6 seeds)",
+  "paper": 4.71,
+  "file": "b28_readout.md",
+  "row": [
+   "Tree − Permuted 6",
+   "kkdeep"
+  ]
+ },
+ {
+  "name": "K&K-Deep, Tree Forcing - verification control",
+  "paper": 3.05,
+  "file": "b28_readout.md",
+  "row": [
+   "Tree − Verification",
+   "kkdeep"
+  ]
+ },
+ {
+  "name": "K&K-Deep, Tree Forcing - three nodes per puzzle",
+  "paper": 3.17,
+  "file": "b28_readout.md",
+  "row": [
+   "Tree − n3",
+   "kkdeep"
+  ]
+ },
+ {
+  "name": "K&K-Deep, Tree Forcing - eight nodes per puzzle",
+  "paper": 2.56,
+  "file": "b28_readout.md",
+  "row": [
+   "Tree − n8",
+   "kkdeep"
+  ]
+ },
+ {
+  "name": "GSM8K + GSM1K original, Tree Forcing 1 epoch - answer-only",
+  "paper": 1.16,
+  "file": "b28_readout.md",
+  "row": [
+   "GSM Tree 1ep − GSM A2 1ep",
+   "gsm8kv2+gsm1k (original)"
+  ]
+ },
+ {
+  "name": "GSM8K + GSM1K cue-free, Tree Forcing 1 epoch - answer-only",
+  "paper": 0.61,
+  "file": "b28_readout.md",
+  "row": [
+   "GSM Tree 1ep − GSM A2 1ep",
+   "gsm8kx+gsm1kx (cue-free)"
+  ]
+ },
+ {
+  "name": "K&K-Deep, Tree Forcing - DAIS-style",
+  "paper": 2.26,
+  "file": "b26_b27_readout.md",
+  "row": [
+   "Tree − DAIS-style",
+   "kkdeep"
+  ]
+ },
+ {
+  "name": "FOLIO (132 filtered test problems), Tree Forcing - answer-only",
+  "paper": 4.42,
+  "file": "b26_b27_readout.md",
+  "row": [
+   "FOLIO Tree − FOLIO A2",
+   "ftest"
+  ]
+ },
+ {
+  "name": "FOLIO (all 203), Tree Forcing - answer-only",
+  "paper": 5.09,
+  "file": "b26_b27_readout.md",
+  "row": [
+   "FOLIO Tree − FOLIO A2",
+   "ftall"
+  ]
+ },
+ {
+  "name": "Logic grids in range, Tree Forcing - answer-only",
+  "paper": 1.47,
+  "file": "zebra_readout.md",
+  "row": [
+   "Z Tree − Z A2",
+   "zcin"
+  ]
+ },
+ {
+  "name": "K&K-Deep at 9B, Tree Forcing - answer-only",
+  "paper": 4.5,
+  "file": "b25_readout.md",
+  "regex": "== 9B[\\s\\S]*?kkdeep\\s+GFPS [\\d.]+ A2 [\\d.]+\\s+diff ([+-][\\d.]+)"
+ },
+ {
+  "name": "Node coupling, K&K Tree Forcing",
+  "paper": 6.0,
+  "file": "node_coupling.md",
+  "regex": "K&K tree \\(GFPS\\)[^\\n]*coupling \\(right - wrong\\) ([+-][\\d.]+)",
+  "tol": 0.05
+ },
+ {
+  "name": "Node coupling, K&K answer-only",
+  "paper": 1.7,
+  "file": "node_coupling.md",
+  "regex": "K&K A2 [^\\n]*coupling \\(right - wrong\\) ([+-][\\d.]+)",
+  "tol": 0.05
+ },
+ {
+  "name": "BIG-Bench Hard two-option tasks, Tree Forcing - permuted (6 seeds)",
+  "paper": 6.64,
+  "file": "extras.md",
+  "regex": "\\| Tree − Permuted 6 \\| 2 options \\| 6 \\| \\*\\*([+-][\\d.]+)\\*\\*"
+ },
+ {
+  "name": "BIG-Bench Hard 3+ options, Tree Forcing - permuted (6 seeds)",
+  "paper": 3.66,
+  "file": "extras.md",
+  "regex": "\\| Tree − Permuted 6 \\| 3\\+ options \\| 6 \\| \\*\\*([+-][\\d.]+)\\*\\*"
+ },
+ {
+  "name": "BIG-Bench Hard ECE of the permuted control (6 seeds)",
+  "paper": 15.9,
+  "file": "extras.md",
+  "regex": "bbh: ECE ([\\d.]+) ->",
+  "tol": 0.05
+ },
+ {
+  "name": "GSM8K + GSM1K cue-free, Tree Forcing 1 epoch - placebo (seeds 16-18)",
+  "paper": 1.8,
+  "file": "extras.md",
+  "row": [
+   "GSM Tree 1ep s16-18 − GSM Placebo 2ep",
+   "gsm8kx+gsm1kx (cue-free)"
+  ]
+ },
+ {
+  "name": "K&K-Held-out accuracy when writing the proof first",
+  "paper": 86.4,
+  "file": "extras.md",
+  "regex": "K&K proof generation: kk ([\\d.]+)",
+  "tol": 0.05
+ },
+ {
+  "name": "GSM8K + GSM1K cue-free accuracy when writing a rationale first (paper: about 88)",
+  "paper": 87.6,
+  "file": "extras.md",
+  "regex": "pooled ([\\d.]+)",
+  "tol": 0.05
+ },
+ {
+  "name": "Hint test (registered), gain with the last step left, answer-only 1 epoch",
+  "paper": 36.4,
+  "file": "mechanism_check.md",
+  "regex": "- A2-c1: H = true_r1 - plain ([+-][\\d.]+)",
+  "tol": 0.05
+ },
+ {
+  "name": "Hint test, gain with the last step left, Tree Forcing 2 epochs",
+  "paper": 38.6,
+  "file": "mechanism_check.md",
+  "regex": "- GFPQ-c2: H = true_r1 - plain ([+-][\\d.]+)",
+  "tol": 0.05
+ }
+]

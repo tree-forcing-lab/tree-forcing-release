@@ -80,8 +80,21 @@ DAG from a job list. A 4B Tree Forcing run on Knights-and-Knaves takes about 12 
 
 ## Reproducing the paper's numbers
 
-Download and unpack the run outputs so that `runs_archive/runs/` and `runs_archive/restored_runs/` exist (or point
-`RUNS` and `RESTORED` at them), then:
+One command reproduces every number and data figure of the paper from the released run outputs (CPU only, Python 3
+with numpy and matplotlib; about an hour on two cores):
+
+```bash
+bash reproduce.sh                                   # downloads the run outputs from Zenodo (DOI 10.5281/zenodo.24381352)
+RUNS_ARCHIVE=/path/to/tree-forcing-runs.tar.gz bash reproduce.sh   # or use a local copy
+```
+
+It checks the archive's sha256 (`runs_archive.sha256`), unpacks it to `runs_archive/` and the data (`data/**/*.jsonl.gz`,
+md5-checked), runs every analysis script below with its output in `reproduced/` (tables as Markdown, Figures 2 and 3 as
+PDF), and finally runs `analysis/check_numbers.py`, which compares the reproduced numbers with those printed in the
+paper (`analysis/expected_numbers.json`) and exits non-zero on any mismatch. Figure 1 is a diagram
+(`paper/figures/overview_tikz.tex`).
+
+The individual steps, if you want to run them by hand:
 
 ```bash
 python3 scripts/unpack_data.py
