@@ -6,7 +6,7 @@ reasoning tree into an extra yes/no question about the problem, answered with th
 final decision; at test time the model sees only the final question. The paper evaluates it on Knights-and-Knaves
 puzzles, GSM8K, logic grid puzzles and FOLIO with Qwen3.5-4B (and Qwen3.5-9B on Knights-and-Knaves).
 
-Paper: arXiv link to be added. Run outputs (predictions and metrics of every cited run): Zenodo DOI to be added.
+Paper: arXiv link to be added. Run outputs (predictions and metrics of every cited run): https://doi.org/10.5281/zenodo.24381352.
 
 ## Layout
 

@@ -13,7 +13,7 @@ import numpy as np  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 SCR = Path(sys.argv[1])
-OUT = ROOT / "paper/figures/mechanism.pdf"
+OUT = Path(__import__("os").environ.get("FIG_OUT", ROOT / "paper/figures/mechanism.pdf"))
 OK = {"black": "#000000", "orange": "#E69F00", "sky": "#56B4E9", "green": "#009E73", "blue": "#0072B2",
       "verm": "#D55E00", "purple": "#CC79A7", "grey": "#999999"}
 plt.rcParams.update({"font.size": 8, "font.family": "serif", "axes.spines.top": False, "axes.spines.right": False,

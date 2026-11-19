@@ -32,5 +32,6 @@ for lab, key in ROWS:
         ids = [i for i in ca if i in cb]
         d.append(100 * float(np.mean([ca[i] - cb[i] for i in ids])))
     data[lab] = d
-json.dump(data, open(ROOT / "analysis/fig_content.json", "w"), indent=1)
+OUT = Path(__import__("os").environ.get("OUT", ROOT / "analysis"))
+json.dump(data, open(OUT / "fig_content.json", "w"), indent=1)
 print({k: round(float(np.mean(v)), 2) for k, v in data.items()})

@@ -72,7 +72,9 @@ for a in ("A2", "Tree"):
 
 # (3) BBH by task type
 print("\n## (3) BBH: two-option vs more-option tasks (end of training)\n" + H)
-bbh = {json.loads(l)["item_id"]: json.loads(l) for l in open(ROOT / "data/eval/bbh.jsonl")}
+# task ("group") and option labels of every BIG-Bench Hard item, read from the prediction rows of the untrained model
+# (each row carries them), so the BIG-Bench Hard evaluation file itself is not needed
+bbh = {r["item_id"]: {"group": r["group"], "labels": r["labels"]} for r in L.rows(L.BASE_RUN, "bbh")}
 two = lambda i: len(bbh[i]["labels"]) == 2
 for a, b in (("Tree", "A2"), ("Tree s13-15", "Shuffled"), ("Shuffled", "A2 s13-15") if "A2 s13-15" in A else ("Shuffled", "A2")):
     pass
