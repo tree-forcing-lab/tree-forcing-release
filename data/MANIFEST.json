@@ -1,0 +1,247 @@
+[
+ {
+  "file": "data/student_kk_tf/train.jsonl",
+  "md5": "e53d7f6d8e36351da60d34c3288c132b",
+  "bytes": 33742439,
+  "lines": 1792,
+  "license": "ours"
+ },
+ {
+  "file": "data/student_kk_tf/val.jsonl",
+  "md5": "8d352af42e529c20af16e145165bfcc5",
+  "bytes": 5597450,
+  "lines": 300,
+  "license": "ours"
+ },
+ {
+  "file": "data/student_kk_tf_rat/train.jsonl",
+  "md5": "12b47cd8371b2a0ddd71243304f0db57",
+  "bytes": 39477367,
+  "lines": 1792,
+  "license": "ours"
+ },
+ {
+  "file": "data/student_kk_tf_rat/val.jsonl",
+  "md5": "eae61db130961e701c53876e70ba7c6a",
+  "bytes": 6545000,
+  "lines": 300,
+  "license": "ours"
+ },
+ {
+  "file": "data/student_kk_tf_rat_nonodes/train.jsonl",
+  "md5": "c4c1c80f1bd11e72d1dacacc9e5b895b",
+  "bytes": 8833960,
+  "lines": 1792,
+  "license": "ours"
+ },
+ {
+  "file": "data/student_kk_tf_rat_nonodes/val.jsonl",
+  "md5": "06366134d460896792c5a2dae76c8b74",
+  "bytes": 1464868,
+  "lines": 300,
+  "license": "ours"
+ },
+ {
+  "file": "data/student_kk_tf_n3/train.jsonl",
+  "md5": "0c9ec08157bf4fbac053f8012ca291e9",
+  "bytes": 5259719,
+  "lines": 1792,
+  "license": "ours"
+ },
+ {
+  "file": "data/student_kk_tf_n3/val.jsonl",
+  "md5": "8d352af42e529c20af16e145165bfcc5",
+  "bytes": 5597450,
+  "lines": 300,
+  "license": "ours"
+ },
+ {
+  "file": "data/student_kk_tf_n8/train.jsonl",
+  "md5": "f2a92339fdfe47adb7adc16b9b144762",
+  "bytes": 8768025,
+  "lines": 1792,
+  "license": "ours"
+ },
+ {
+  "file": "data/student_kk_tf_n8/val.jsonl",
+  "md5": "8d352af42e529c20af16e145165bfcc5",
+  "bytes": 5597450,
+  "lines": 300,
+  "license": "ours"
+ },
+ {
+  "file": "data/student_kk_tf_vrf/train.jsonl",
+  "md5": "adfb3b51abca144929952d2a5e20fdba",
+  "bytes": 56851414,
+  "lines": 1792,
+  "license": "ours"
+ },
+ {
+  "file": "data/student_kk_tf_vrf/val.jsonl",
+  "md5": "8d352af42e529c20af16e145165bfcc5",
+  "bytes": 5597450,
+  "lines": 300,
+  "license": "ours"
+ },
+ {
+  "file": "data/student_gsm8k_tf_vt/train.jsonl",
+  "md5": "28298610aa972d9ea6d472dbd80138c3",
+  "bytes": 46498361,
+  "lines": 5923,
+  "license": "GSM8K (MIT)"
+ },
+ {
+  "file": "data/student_gsm8k_tf_vt/val.jsonl",
+  "md5": "9f55fec541246e41401a7b5fa6c5510a",
+  "bytes": 3053883,
+  "lines": 393,
+  "license": "GSM8K (MIT)"
+ },
+ {
+  "file": "data/student_gsm8k_tf_vt_rat/train.jsonl",
+  "md5": "627037af5491165634ff1298e73f6831",
+  "bytes": 47930231,
+  "lines": 5923,
+  "license": "GSM8K (MIT)"
+ },
+ {
+  "file": "data/student_gsm8k_tf_vt_rat/val.jsonl",
+  "md5": "e2dc1d8e0d38073580da135fd8e07ca9",
+  "bytes": 3145967,
+  "lines": 393,
+  "license": "GSM8K (MIT)"
+ },
+ {
+  "file": "data/student_zebra_cell_tf/train.jsonl",
+  "md5": "7b980d461b5b63060d8ffdb7df107b8c",
+  "bytes": 26984657,
+  "lines": 1200,
+  "license": "ours"
+ },
+ {
+  "file": "data/student_zebra_cell_tf/val.jsonl",
+  "md5": "177bacb79f380d923779cec13f3fa4da",
+  "bytes": 6710492,
+  "lines": 300,
+  "license": "ours"
+ },
+ {
+  "file": "data/eval/kk_deep.jsonl",
+  "md5": "eafd8939b4b6cca9c4a9d9f467870b14",
+  "bytes": 4416422,
+  "lines": 2000,
+  "license": "ours"
+ },
+ {
+  "file": "data/eval/kk_heldout.jsonl",
+  "md5": "76572edb0dc274bc9b78b8801e2de6bb",
+  "bytes": 733316,
+  "lines": 450,
+  "license": "ours"
+ },
+ {
+  "file": "data/eval/diag_kk.jsonl",
+  "md5": "0b8979cd820ce0cca7d50877d76f004a",
+  "bytes": 2767342,
+  "lines": 1600,
+  "license": "ours"
+ },
+ {
+  "file": "data/eval/diag_A_mid.jsonl",
+  "md5": "80abb15aa62d4be1e761a4a5c24b9eff",
+  "bytes": 786353,
+  "lines": 450,
+  "license": "ours"
+ },
+ {
+  "file": "data/eval/val_kk.jsonl",
+  "md5": "cbc5cebdfb8e822c2781b7fcedbeaefc",
+  "bytes": 1092547,
+  "lines": 111,
+  "license": "ours"
+ },
+ {
+  "file": "data/eval/zebra_cell_in.jsonl",
+  "md5": "0350f7f1d372dc0cc9d4973f35dab67c",
+  "bytes": 1283390,
+  "lines": 600,
+  "license": "ours"
+ },
+ {
+  "file": "data/eval/zebra_cell_ex.jsonl",
+  "md5": "f59729a6bba1718b8d43d248cf96069c",
+  "bytes": 1822749,
+  "lines": 450,
+  "license": "ours"
+ },
+ {
+  "file": "data/eval/xkk.jsonl",
+  "md5": "4b181b71619b49132e15cc7a01ac03da",
+  "bytes": 1058877,
+  "lines": 612,
+  "license": "Knights-and-Knaves, Xie et al. (CC BY-NC-SA 4.0)"
+ },
+ {
+  "file": "data/eval/gsm8k_mc.jsonl",
+  "md5": "45537cb1d9dfa0f855af0244f599632a",
+  "bytes": 758305,
+  "lines": 1260,
+  "license": "GSM8K (MIT)"
+ },
+ {
+  "file": "data/eval/gsm8k_mc_v2.jsonl",
+  "md5": "047acac20ec4fa67a2a93f519e3f297e",
+  "bytes": 1123279,
+  "lines": 1317,
+  "license": "GSM8K (MIT)"
+ },
+ {
+  "file": "data/eval/gsm8k_mc_v2_xprob.jsonl",
+  "md5": "802f87738aac9e0e535416d044c488d4",
+  "bytes": 1354675,
+  "lines": 1317,
+  "license": "GSM8K (MIT)"
+ },
+ {
+  "file": "data/eval/gsm8k_val_xprob.jsonl",
+  "md5": "c1b2cd4b14567a7c4523ccc4d269628c",
+  "bytes": 885643,
+  "lines": 393,
+  "license": "GSM8K (MIT)"
+ },
+ {
+  "file": "data/eval/bbeh.jsonl",
+  "md5": "40d9a4d45f497c6edaaa66ed5d02f988",
+  "bytes": 9661587,
+  "lines": 1920,
+  "license": "BIG-Bench Extra Hard (Apache-2.0)"
+ },
+ {
+  "file": "data/eval/musr.jsonl",
+  "md5": "7ed547a0d0cb2cbaa20c603c73f16ed6",
+  "bytes": 3845395,
+  "lines": 756,
+  "license": "MuSR (CC BY 4.0)"
+ },
+ {
+  "file": "data/bench/train_kk.jsonl",
+  "md5": "f4fe13b1332a2ff27ef9bf15d9ca559d",
+  "bytes": 4231742,
+  "lines": 1106,
+  "license": "ours (K&K deduplication input)"
+ },
+ {
+  "file": "data/student_v3sl/train.jsonl",
+  "md5": "ea0f57ffc1d2547608f47267d32063e0",
+  "bytes": 24351003,
+  "lines": 995,
+  "license": "ours (K&K records only; deduplication input)"
+ },
+ {
+  "file": "data/student_v3sl/val.jsonl",
+  "md5": "a43155b50a21dc5ae59685aed605cc1e",
+  "bytes": 2609269,
+  "lines": 111,
+  "license": "ours (K&K records only; deduplication input)"
+ }
+]

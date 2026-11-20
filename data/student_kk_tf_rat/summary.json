@@ -1,0 +1,64 @@
+{
+ "base": {
+  "train": "e53d7f6d8e36351da60d34c3288c132b",
+  "val": "8d352af42e529c20af16e145165bfcc5"
+ },
+ "out": {
+  "rat/train": "12b47cd8371b2a0ddd71243304f0db57",
+  "nonodes/train": "c4c1c80f1bd11e72d1dacacc9e5b895b",
+  "rat/val": "eae61db130961e701c53876e70ba7c6a",
+  "nonodes/val": "06366134d460896792c5a2dae76c8b74"
+ },
+ "patterns": {
+  "is_role": 29282,
+  "c_role_req": 10048,
+  "c_stmt_tv": 15207,
+  "c_role": 19364,
+  "c_contra": 2706,
+  "role_req": 5121,
+  "stmt_tv": 9520
+ },
+ "rows": {
+  "train": {
+   "rows": 1792,
+   "no_tree_no_rationale": 0,
+   "nodes_median": 41.0,
+   "nodes_max": 117,
+   "chars_median": 2840.5,
+   "chars_p95": 5620,
+   "chars_max": 10831
+  },
+  "val": {
+   "rows": 300,
+   "no_tree_no_rationale": 0,
+   "nodes_median": 41.0,
+   "nodes_max": 97,
+   "chars_median": 2767.5,
+   "chars_p95": 5213,
+   "chars_max": 7571
+  }
+ },
+ "tokens": {
+  "train": {
+   "n": 1792,
+   "total_median": 1166.0,
+   "total_p95": 2002,
+   "total_max": 3269,
+   "cont_median": 799.0,
+   "cut_at_3072": 1,
+   "cut_at_4096": 0,
+   "cut_at_5120": 0
+  },
+  "val": {
+   "n": 300,
+   "total_median": 1158.0,
+   "total_p95": 1938,
+   "total_max": 2547,
+   "cont_median": 777.0,
+   "cut_at_3072": 0,
+   "cut_at_4096": 0,
+   "cut_at_5120": 0
+  },
+  "tokenizer": "results/weights/T1-Qwen3.5-2B-Base-student_v3-s2/model"
+ }
+}

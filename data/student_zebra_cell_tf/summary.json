@@ -1,0 +1,117 @@
+{
+ "counts": {
+  "train": {
+   "3x3": 300,
+   "3x4": 300,
+   "4x4": 300,
+   "4x5": 300
+  },
+  "val": {
+   "3x3": 75,
+   "3x4": 75,
+   "4x4": 75,
+   "4x5": 75
+  },
+  "test_in": {
+   "3x3": 150,
+   "3x4": 150,
+   "4x4": 150,
+   "4x5": 150
+  },
+  "test_ex": {
+   "5x5": 150,
+   "5x6": 150,
+   "6x6": 150
+  }
+ },
+ "fails": {},
+ "n_probe_puzzles_deduped_against": 5584,
+ "max_cases": 60,
+ "tree": "ancestors of the asked cell's placement node (zebra.proof_tree)",
+ "nodes_kept_over_whole": {
+  "3x3": 0.514,
+  "3x4": 0.458,
+  "4x4": 0.604,
+  "4x5": 0.608
+ },
+ "node_types": {
+  "parse": 7694,
+  "derive": 19735,
+  "case": 17543
+ },
+ "node_truth_share": 0.509,
+ "gold_index_counts": {
+  "3x3:0": 122,
+  "3x3:1": 128,
+  "3x3:2": 125,
+  "3x4:0": 111,
+  "3x4:1": 139,
+  "3x4:2": 125,
+  "4x4:0": 99,
+  "4x4:1": 95,
+  "4x4:2": 96,
+  "4x4:3": 85,
+  "4x5:0": 96,
+  "4x5:1": 95,
+  "4x5:2": 83,
+  "4x5:3": 101
+ },
+ "tokens_train": {
+  "3x3": {
+   "items": 300,
+   "final_tokens_median": 202.0,
+   "final_tokens_max": 235,
+   "nodes_median": 13.0,
+   "nodes_max": 36,
+   "gfps_tokens_per_item_mean": 3035,
+   "longest_example": 250
+  },
+  "3x4": {
+   "items": 300,
+   "final_tokens_median": 244.0,
+   "final_tokens_max": 294,
+   "nodes_median": 16.0,
+   "nodes_max": 50,
+   "gfps_tokens_per_item_mean": 4276,
+   "longest_example": 308
+  },
+  "4x4": {
+   "items": 300,
+   "final_tokens_median": 314.0,
+   "final_tokens_max": 387,
+   "nodes_median": 48.0,
+   "nodes_max": 153,
+   "gfps_tokens_per_item_mean": 16343,
+   "longest_example": 399
+  },
+  "4x5": {
+   "items": 300,
+   "final_tokens_median": 376.0,
+   "final_tokens_max": 469,
+   "nodes_median": 63.0,
+   "nodes_max": 208,
+   "gfps_tokens_per_item_mean": 26024,
+   "longest_example": 481
+  },
+  "all": {
+   "gfps_tokens_per_epoch": 14903390,
+   "final_tokens_per_epoch": 342653
+  }
+ },
+ "md5": {
+  "data/student_zebra_cell_tf/train.jsonl": "7b980d461b5b63060d8ffdb7df107b8c",
+  "data/student_zebra_cell_tf/val.jsonl": "177bacb79f380d923779cec13f3fa4da",
+  "data/eval/zebra_cell_in.jsonl": "0350f7f1d372dc0cc9d4973f35dab67c",
+  "data/eval/zebra_cell_ex.jsonl": "f59729a6bba1718b8d43d248cf96069c"
+ },
+ "seeds": {
+  "bases": {
+   "train": 3000000,
+   "val": 4000000,
+   "test": 5000000
+  },
+  "puzzle": "Random(base + 10000 * size_index + k)",
+  "cell": "Random(7 * base + 10000 * size_index + k)",
+  "tree": "Random('tree-' + item_id)"
+ }
+}

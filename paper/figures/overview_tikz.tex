@@ -1,0 +1,60 @@
+% Figure 1: method overview (TikZ). \input inside a figure environment; needs tikz with arrows.meta, and \definecolor{tfblue}.
+\begin{tikzpicture}[
+  font=\scriptsize,
+  frame/.style={draw=black!40, fill=black!5, rounded corners=3pt, anchor=north west, inner sep=0pt},
+  mframe/.style={draw=tfblue, fill=tfblue!8, rounded corners=3pt, anchor=north west, inner sep=0pt},
+  txt/.style={anchor=north west, align=left, inner sep=0pt},
+  note/.style={font=\scriptsize\itshape, text=black!60},
+  arr/.style={-{Stealth[length=5pt]}, thick, black!80},
+  tnode/.style={circle, draw=tfblue, thick, fill=white, minimum size=8pt, inner sep=0pt},
+]
+\def\H{3.95}
+% ---------------- training ----------------
+\node[font=\small\bfseries, anchor=west] at (0, 0.4) {Training};
+% problem
+\node[frame, minimum width=3.4cm, minimum height=\H cm] (P) at (0, 0) {};
+\node[txt, text width=3.1cm] at (0.15, -0.15) {{\footnotesize\bfseries Training problem}\\[4pt]
+  Alice: ``If Karen is a knight, then Grace is a knave.''\\[1pt]
+  Karen: ``Alice is a knave or Grace is a knave.''\\[1pt]
+  Henry: ``\ldots''\quad Grace: ``\ldots''\\[4pt]
+  Who is a knight and who is a knave?\\ A) \ldots\quad F) \ldots};
+% tree
+\node[frame, minimum width=3.6cm, minimum height=\H cm] (T) at (4.5, 0) {};
+\node[txt] at (4.65, -0.15) {\footnotesize\bfseries Verified reasoning tree};
+\begin{scope}[shift={(4.5,0)}]
+  \node[tnode] (r1) at (1.75, -1.1) {}; \node[tnode] (r2) at (2.45, -1.1) {}; \node[tnode] (r3) at (3.15, -1.1) {};
+  \node[tnode] (c1) at (2.1, -1.95) {}; \node[tnode] (c2) at (2.8, -1.95) {};
+  \node[tnode] (d1) at (2.45, -2.8) {};
+  \foreach \a/\b in {r1/c1, r2/c1, r2/c2, r3/c2, c1/d1, c2/d1} \draw[black!50] (\a) -- (\b);
+  \node[note, anchor=west] at (0.15, -1.1) {read};
+  \node[note, anchor=west] at (0.15, -1.95) {case};
+  \node[note, anchor=west] at (0.15, -2.8) {derive};
+  \node[note, anchor=south, align=center] at (1.8, -3.85) {truth of every node known};
+\end{scope}
+% node questions
+\node[frame, minimum width=4.9cm, minimum height=\H cm] (Q) at (9.75, 0) {};
+\node[txt, text width=4.6cm] at (9.9, -0.15) {{\footnotesize\bfseries Node questions}\\ \textit{\textcolor{black!60}{training only}}\\[4pt]
+  [statements] If Alice were a knight, would Henry's statement be false?\\ \hspace*{1em}A) Yes\quad B) No\\[4pt]
+  [statements] Is Karen a knight exactly when her statement is true?\\ \hspace*{1em}A) Yes\quad B) No\\[4pt]
+  \textit{\textcolor{black!60}{44 per puzzle; the answers of earlier nodes are never shown}}};
+% model
+\node[mframe, minimum width=2.75cm, minimum height=\H cm] (M) at (15.4, 0) {};
+\node[txt, text width=2.5cm] at (15.55, -0.15) {{\footnotesize\bfseries\color{tfblue} One model,\\ one readout}\\[5pt]
+  single forward pass; read $p(\mathrm{A}), p(\mathrm{B}), \ldots$ at ``Answer:''\\[6pt]
+  loss: final question + its node questions, equal total weight};
+% arrows
+\draw[arr] (3.4,-1.75) -- node[above, note, text=black!80] {solver} (4.5,-1.75);
+\draw[arr] (8.1,-1.75) -- node[above=1pt, note, text=black!80, align=center] {one yes/no\\question\\per node} (9.75,-1.75);
+\draw[arr] (14.65,-1.75) -- (15.4,-1.75);
+\draw[arr] (1.7,-\H) -- (1.7,-4.4) -- node[below, note, text=black!80] {final question with its gold option} (16.75,-4.4) -- (16.75,-\H);
+% ---------------- test ----------------
+\draw[black!30, dashed] (0,-5.0) -- (18.15,-5.0);
+\node[font=\small\bfseries, anchor=west] at (0, -5.35) {Test};
+\node[frame, minimum width=5.3cm, minimum height=0.95cm] (TQ) at (1.5, -5.6) {};
+\node[txt, text width=5.0cm] at (1.65, -5.75) {statements + final question + options\\ \textit{\textcolor{black!60}{no tree, no node questions}}};
+\node[mframe, minimum width=4.6cm, minimum height=0.95cm] (TM) at (8.3, -5.6) {};
+\node[txt, text width=4.3cm] at (8.45, -5.75) {{\color{tfblue} same single forward pass}\\ decision $=\arg\max\, p(\mathrm{A}\ldots\mathrm{F})$};
+\draw[arr] (6.8,-6.07) -- (8.3,-6.07);
+\draw[arr] (12.9,-6.07) -- (14.0,-6.07);
+\node[note, anchor=west, align=left] at (14.1, -6.07) {same cost as\\ answer-only training};
+\end{tikzpicture}

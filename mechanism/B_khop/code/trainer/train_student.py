@@ -1,0 +1,2369 @@
+"""Train one student arm and evaluate it on held-out sets (final question only).
+
+Example (HPC):
+ python scripts/train_student.py --model ~/cotd/models/Qwen3.5-2B-Base \
+ --train data/student/train.jsonl --eval val=data/student/val.jsonl \
+ --final teacher --subq cot --subq-target cot --out runs/A1S1-seed0 --seed 0
+
+Arms: --final {none,teacher,gold} x --subq {none,cot,random}. Writes metrics.json and preds_<set>.jsonl.
+
+Two GPUs, one job:
+ python -m torch.distributed.run --standalone --nproc_per_node 2 scripts/train_student.py... --precision bf16 \
+ --fsdp --fsdp-optim cpu-adamw|8bit-sr [--token-budget 4096]
+Every update holds the same sequences as on one GPU, split across the ranks, gradients summed; rank 0 writes the files.
+"""
+from __future__ import annotations
+
+import argparse
+import dataclasses
+import json
+import math
+import random
+import shutil
+import sys
+import time
+from pathlib import Path
+
+import torch
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from cotdistill.student import (LOOP_SIDECAR, Example, LayerLoop, brier_loss, build_examples, build_fact_examples,  # noqa: E402
+                                build_full_tree, build_group,
+                                build_stage_examples, curriculum_item, draw_loop_T, evaluate, evaluate_local, evaluate_subq,
+                                kl_loss, label_logits, loop_rms_summary, parse_loop_Ts, parse_loop_layers, text_parts,
+                                lm_loss, load_model, logit_softcap, micro_batches, pack_rng, pack_views, readouts,
+                                scaffold_fade, si_group, slot_forward, slot_group, special_prefix, subq_sets,
+                                teacher_forward, use_chat_template, worked_steps)
+from cotdistill.depth_forcing import (DF_HEADS_FILE, DF_SIDECAR, DFSpec, DFWindow, DepthForcing, build_table,  # noqa: E402
+                                      df_heads_state, no_operand_counts, param_groups, parse_df_layers,
+                                      supervised_counts)
+from cotdistill import frontier as b3_lib  # noqa: E402  (frontier interchange, --b3-arm)
+
+
+# Arguments that do not change the training trajectory: a checkpoint may be resumed with different values.
+RESUME_FREE = {"stop_after_h", "ckpt_every_min", "ckpt_single", "stop_at_step", "code_commit", "eval", "eval_subq", "eval_bs",
+               "eval_max_len", "dump_hidden", "dump_layers", "log_every", "save", "eval_local", "eval_local_view",
+               "log_update_loss", "eval_mid_preds", "slot_necessity", "slot_necessity_sets", "slot_swap_token", "loop_eval_T",
+               "slot_decode", "slot_decode_set", "slot_mean_n", "save_dir", "eval_value_render", "slot_detect_sets",
+               "teacher_align_train_n"}
+
+# Training arguments added after checkpoints may have been written: a checkpoint without the key had this value.
+NEW_ARG_DEFAULTS = {"tree_view": "problem", "tree_sources": "", "tree_node_weight": 0.0, "attn_impl": "", "fsdp": False,
+                    "fsdp_optim": None, "tree_mix_p": 0.5, "tree_scaffold": 0.0, "tree_depth_weight": 0.0,
+                    "chat_template": False, "tree_pack": 0, "tree_node_types": "", "tree_target": "real",
+                    "node_render": "op", "si_stages": 0, "si_chain": "true", "si_final_only": False, "si_smooth": 0.1,
+                    "si_schedule": "global", "si_keep_optim": False, "si_remove": "front", "curriculum_steps": 0,
+                    "curriculum_mode": "cumulative", "curriculum_final_nodes": False, "latent_slots": 0, "slot_c": 1,
+                    "slot_token": "auto", "slot_place": "before-options", "slot_lambda": 1.0, "slot_target": "tree",
+                    "slot_overflow": "merge", "slot_final_only": False, "slot_layer": "final", "slot_readout": "decode",
+                    "slot_fill": "none", "slot_tokens": "same", "slot_head_grad": False, "slot_pad_weight": 1.0,
+                    "slot_teacher": "none", "slot_align_layers": "12-20", "slot_align_lambda": 1.0, "slot_force_p": 0.5,
+                    "slot_teacher_ce": 0.5, "answer_teacher": "none", "answer_align_layers": "12-27",
+                    "answer_align_lambda": 1.0, "answer_teacher_ce": 0.5, "teacher_grad_probe": "",
+                    "teacher_ce_guard": 0.0, "loop_layers": "", "loop_T": 2, "loop_alpha": 1.0, "loop_untied": False,
+                    "loop_mix": "", "df_layers": "", "df_L0": 6, "df_stride": 4, "df_lambda": 0.5,
+                    "df_target": "contrast", "df_shuffle": False, "df_max_steps": 4, "df_dim": 256,
+                    "df_shared_head": False, "df_temperature": 0.1, "df_pos": "answer", "df_head_lr": None,
+                    "b3_arm": "", "b3_layer": 19, "b3_dim": 128, "b3_p": 0.5, "b3_source_grad": False, "b3_strict": 1.0,
+                    "b3_strict_share": 0.5, "b3_lambda": 1.0, "b3_max_nodes": 4, "b3_block_all": False,
+                    "b3_rotate": False, "b3_rotate_lr": None}
+
+LORA_TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj",
+                "in_proj_qkv", "in_proj_z", "in_proj_a", "in_proj_b", "out_proj"]
+
+
+def read_jsonl(p: str) -> list[dict]:
+    return [json.loads(l) for l in open(p) if l.strip()]
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--model", required=True)
+    ap.add_argument("--train", required=True)
+    ap.add_argument("--extra-train", default="",
+                    help="comma list of jsonl files whose rows are appended to the --train rows before any "
+                         "filter, shuffle or order seed (e.g. data/eval/khop/train_kh.jsonl); a duplicate item_id is an "
+                         "error; the row counts go to metrics.json extra_train; empty = off")
+    ap.add_argument("--eval", nargs="*", default=[], help="name=path.jsonl")
+    ap.add_argument("--final", default="teacher", choices=["none", "teacher", "gold"])
+    ap.add_argument("--subq", default="none", choices=["none", "cot", "random", "mix"])
+    ap.add_argument("--subq-target", default="cot", choices=["fresh", "cot", "truth", "commit"])
+    ap.add_argument("--lambda-sub", type=float, default=1.0)
+    ap.add_argument("--rationale-lm", action="store_true", help="DHRD-style baseline: LM loss on teacher CoT + answer")
+    ap.add_argument("--lambda-lm", type=float, default=1.0)
+    ap.add_argument("--lm-max-len", type=int, default=3072)
+    ap.add_argument("--subq-k", type=int, default=0, help="at most K random sub-questions per item and epoch (0 = all)")
+    ap.add_argument("--subq-frac", type=float, default=0.0,
+                    help="use a random fraction of each item's sub-questions per epoch (0 = all)")
+    ap.add_argument("--subq-weight", default="split", choices=["split", "each"],
+                    help="split: lambda-sub shared by an item's sub-questions; each: every sub-question weighs lambda-sub")
+    ap.add_argument("--depth-stages", type=int, default=0,
+                    help="depth curriculum: N sub-question stages ordered by tree depth (each 1 pass over the items, "
+                         "--stage-k nodes per item), then the final questions for --epochs; 0 = off")
+    ap.add_argument("--stage-k", type=int, default=1, help="sub-questions per item in each depth stage")
+    ap.add_argument("--final-replay", type=int, default=0,
+                    help="depth curriculum: also train this many tree nodes per item and epoch in the final stage")
+    ap.add_argument("--level-balanced", action="store_true", help="depth curriculum: draw replay nodes level-uniformly")
+    ap.add_argument("--reset-optim", action="store_true", help="curricula: reset the AdamW state at each stage")
+    ap.add_argument("--fact-stages", type=int, default=0,
+                    help="fact internalization: N passes with the tree nodes stated in the prompt, dropping shallow "
+                         "levels first, then the plain final questions for --epochs; 0 = off")
+    ap.add_argument("--facts-always", action="store_true",
+                    help="upper-bound diagnostic: every final question is trained with all tree nodes stated")
+    ap.add_argument("--grouped-aux", type=int, default=0,
+                    help="exposure-matched grouped training: every optimizer update holds --items-per-update problems, "
+                         "each as 1 final view + K auxiliary views (0 = off)")
+    ap.add_argument("--aux-kind", default="cot", choices=["cot", "random", "placebo", "tree", "tree_shuf", "cot_mc", "random_mc", "cot_randlabel"],
+                    help="grouped training: CoT nodes, matched controls, the CoT views with zero loss (placebo), CoT "
+                         "nodes with their parents' results stated (tree), or with unrelated nodes' results (tree_shuf)")
+    ap.add_argument("--tree-full", default="", choices=["", "true", "matched", "plain", "placebo", "control"],
+                    help="full-tree groups: every problem with ALL its nodes (up to --tree-cap) in one update; true = "
+                         "parents' results stated, matched = as many depth-matched non-parent results, plain = no "
+                         "facts, placebo = plain at zero weight, control = the control questions")
+    ap.add_argument("--aux-answer", default="all", choices=["all", "exclude", "only"],
+                    help="grouped training: auxiliary CoT nodes that are not (exclude) / are (only) answer components")
+    ap.add_argument("--subq-filter", default="all", choices=["all", "path", "mirror"],
+                    help="decision chains: ask only the nodes of the chain the final reads (path) or of the mirror "
+                         "chain (mirror) in --subq cot/mix, grouped and full-tree views (stated results and matched "
+                         "pools still use every node); all = every node")
+    ap.add_argument("--tree-eligible-only", action="store_true",
+                    help="full-tree groups: keep only the eligible node views (TFE/TFME/GFE); items without one train "
+                         "their final question only; the per-problem auxiliary weight is split over the kept views")
+    ap.add_argument("--label-smoothing", type=float, default=0.0,
+                    help="mix every training target with the uniform distribution over its options (0 = off)")
+    ap.add_argument("--order-seed", type=int, default=None,
+                    help="seed of the problem order (grouped and full-tree arms); default = --seed. Varying it alone "
+                         "or --seed alone (node sampling, option order) decomposes the seed variance")
+    ap.add_argument("--tree-cap", type=int, default=10,
+                    help="full-tree groups: at most this many nodes per problem (0 = no cap: every node every epoch)")
+    ap.add_argument("--tree-view", default="problem",
+                    choices=["problem", "local", "ancestors", "statements", "statements+question", "local+ctxparse", "mix",
+                             "bare"],
+                    help="full-tree groups: how a node is asked. problem = with the original problem (the TF/TFM/GF "
+                         "arms); local = Tree Forcing: no problem text, only the preamble and the parents' results "
+                         "(--tree-full true) or as many matched non-parent results (matched) or nothing (plain: "
+                         "TFLN, in rng lockstep with TFL); parse nodes show their statement line(s); ancestors = every "
+                         "transitive ancestor's result, shallow to deep (true only). Needs the local fields of "
+                         "data/student_v3sl (scripts/build_local_kk.py). statements = GFP-S (plain only): the problem "
+                         "view without the final question and its options (K&K: preamble + statement lines; numgen: "
+                         "the problem text without its question sentence), in rng lockstep with GFP. local+ctxparse = "
+                         "TFLP (true only): TFL with the parse nodes asked in the statements view; mix = MIX (true "
+                         "only): each node asked once per epoch, in the statements view with probability "
+                         "--tree-mix-p (a coin per seed, epoch, item and node), else in its TFL view; both in rng "
+                         "lockstep with TFL; bare = GFPVB (plain, --node-format value only): the node question "
+                         "with its own options and nothing else (no problem text)")
+    ap.add_argument("--tree-mix-p", type=float, default=0.5,
+                    help="--tree-view mix: share of node views asked in the statements view (the rest local)")
+    ap.add_argument("--tree-scaffold", type=float, default=0.0,
+                    help="GTF (--tree-full plain --tree-view statements only): scaffold fading over the first fraction "
+                         "F of the updates: at update t of T, a derived node is asked with its parents' results stated "
+                         "('Known results:' under the statement lines) with probability max(0, 1 - t / (F x T)), else "
+                         "in the plain GFP-S view; a coin per seed, epoch, item and node (not the training rng, so the "
+                         "run stays step-matched with GFP-S); 0 = off")
+    ap.add_argument("--tree-depth-weight", type=float, default=0.0,
+                    help="full-tree groups: split each problem's node-view weight (the same total) in proportion to "
+                         "(1 + node depth)^G instead of evenly; 0 = off (GTF uses 1)")
+    ap.add_argument("--tree-pack", type=int, default=0,
+                    help="GFPSP (--tree-full plain --tree-view statements only): read up to N >= 2 node views of a "
+                         "problem in one sequence (statement block, then each node question with its options and "
+                         "'Answer:' cue, no answers), read out at every cue; nodes in a seeded order per seed, epoch and "
+                         "problem (not the training rng: same nodes, option orders, targets and weights as GFPS); a new "
+                         "pack (re-reading the block) when N or --max-len is reached; the final question stays its own "
+                         "sequence; 0 = off")
+    ap.add_argument("--tree-sources", default="",
+                    help="full-tree groups: comma list of item sources that get node views; other items train their "
+                         "final question only (every view mode); empty = all sources")
+    ap.add_argument("--tree-node-types", default="",
+                    help="full-tree groups: comma list of node types (the subq field type, e.g. parse,derive: GFPSNC = "
+                         "GFP-S without the K&K case nodes) that get node views; nodes of other types are not asked "
+                         "(their results may still be stated as parents in --tree-full true / matched / GTF); the "
+                         "per-problem weight convention is unchanged, so the kept views share the same total; only the "
+                         "items of --tree-sources are affected; empty = every node type")
+    ap.add_argument("--tree-target", default="real", choices=["real", "shuffled", "placebo"],
+                    help="full-tree groups: the node targets. real = the data's (--subq-target); shuffled = GFPSR / "
+                         "GFPQR, the random-label control (--tree-full plain, views problem / statements / "
+                         "statements+question, yes/no nodes): each problem's node targets permuted among its nodes "
+                         "(the yes rate per problem unchanged), a multiple-choice node's answer drawn uniformly, by "
+                         "generators keyed by --seed and the item (not the training rng: the same nodes, order, option "
+                         "orders and weights as the real-target arm; fixed over the epochs); the final question is "
+                         "untouched. placebo = GFPSX / GFPQX, the placebo control (same scope): each node question "
+                         "replaced by a surface question about the problem text with a correct answer and the node's "
+                         "own yes/no (is a name / number / word / sentence in the problem; never a tree token or a "
+                         "derived number; student.placebo_questions, keyed by --seed and the item, fixed over the "
+                         "epochs; the \"no\" sentences come from other training problems of the same source); same "
+                         "views, weights, option orders and targets as the real-target arm (unrelated to --tree-full "
+                         "placebo, the zero-weight views)")
+    ap.add_argument("--tree-node-weight", type=float, default=0.0,
+                    help="full-tree groups: loss weight of every node view (times the item weight); 0 = the per-problem "
+                         "convention, --aux-total split evenly over the problem's views")
+    ap.add_argument("--node-format", default="yesno", choices=["yesno", "mc", "value", "yesno+value"],
+                    help="full-tree groups: ask nodes as yes/no questions, or in multiple-choice form with other "
+                         "confident No nodes of the item and 'None of them' as options (same stated results); value = "
+                         "the item's value nodes (field value_nodes, scripts/build_gsm8k_ops.py: one node per atomic "
+                         "operation, three options, one-hot target) in the rendering --node-render instead of the "
+                         "yes/no nodes (GFPQV / GFPQVQ / GFPQO / GFPVB; --tree-full plain, views problem / statements / "
+                         "statements+question / bare); yesno+value = GFPQVM: the yes/no views exactly as yesno, plus "
+                         "the value views, each format carrying half of the per-problem --aux-total (a problem with "
+                         "one format only gives it the whole)")
+    ap.add_argument("--node-render", default="op", choices=["op", "qop", "opsel", "vt", "vtr"],
+                    help="--node-format value / yesno+value: the value-node rendering: op = the bare operation "
+                         "('What is 4 x 1.5?'), qop = the Socratic sub-question plus the operation, opsel = operation "
+                         "selection ('<sub-question> Which computation gives it?', three expressions); nodes without "
+                         "the rendering are not asked. vt = the verification nodes (item field verify_nodes, "
+                         "scripts/build_gsm8k_vt.py; GFPQVT; --tree-view problem only): one node per asked option of "
+                         "the final question, 'In this problem, what does option C (8) stand for?' with four "
+                         "descriptions (the answer / a solution step's sub-question / a number written in the problem "
+                         "/ none of the solution's quantities); vtr = the same stems and choices, each problem's "
+                         "descriptions permuted among its nodes (GFPQVTR, wrong-content control). --eval-subq scores "
+                         "the value nodes in this rendering (vtr: in vt; --eval-value-render)")
+    ap.add_argument("--eval-value-render", default="auto", choices=["auto", "none", "op", "qop", "opsel", "vt"],
+                    help="the rendering in which --eval-subq scores value / verification nodes: auto = --node-render "
+                         "(vt for vtr, whose targets are the control's); none = not scored; e.g. vt scores the "
+                         "verification nodes of a data/student_gsm8k_tf_vt val file for any arm (A2, GFPQ, ...)")
+    ap.add_argument("--si-stages", type=int, default=0,
+                    help="stepwise internalisation (SI / SIY / SIS; Deng et al. 2024, ICoT-SI; full-tree loop): the "
+                         "final question is trained with the problem's worked steps written between the problem and "
+                         "its options ('Worked steps:' / 'Step 1: 4 + 2 = 6', student.si_group; the item field "
+                         "worked_steps of data/student_gsm8k_tf_si*, or a numgen item's program), over S + 1 stages "
+                         "of --epochs / (S + 1) epochs each; stage k removes the first ceil(k n / S) of the n steps, so "
+                         "stage S trains the test format; the node views of the group are build_full_tree's (SIY: "
+                         "GFPQ's) unless --si-final-only; evaluations stay final-question-only, with a mid-training "
+                         "evaluation (--eval-at mechanism, --eval-mid sets) at the end of every stage but the last; "
+                         "0 = off")
+    ap.add_argument("--si-chain", default="true", choices=["true", "wrong", "wrong-results", "plan"],
+                    help="--si-stages: the written steps. true = the solution's operations; wrong = SIS, the "
+                         "wrong-content control: every computed value written wrongly (each result a distractor of "
+                         "the same size, never the truth, and an operand that is an earlier result that result's wrong "
+                         "value), the same lines and counts; wrong-results = only the results wrong")
+    ap.add_argument("--si-final-only", action="store_true",
+                    help="--si-stages: train the final question only (SI / SIS); off = also the node views of the "
+                         "full-tree group (SIY with GFPQ's yes/no views)")
+    ap.add_argument("--si-smooth", type=float, default=0.1,
+                    help="--si-stages: removal smoothing, the probability of removing one more step (a coin per "
+                         "seed, stage, pass and item, not the training rng)")
+    ap.add_argument("--si-schedule", default="global", choices=["global", "stage"],
+                    help="--si-stages: one warmup + cosine schedule over all stages (global) or a fresh one per "
+                         "stage (stage)")
+    ap.add_argument("--si-keep-optim", action="store_true",
+                    help="--si-stages: keep the AdamW state across stages (default: reset at every stage, as ICoT-SI)")
+    ap.add_argument("--si-remove", default="front", choices=["front", "back"],
+                    help="--si-stages: remove the steps from the front (ICoT-SI; the kept steps keep their numbers) "
+                         "or from the back (the steps nearest the answer first)")
+    ap.add_argument("--si-mix", action="store_true",
+                    help="PFX (needs --si-stages 1): one stage of --epochs; every pass draws per item, from si_rng, "
+                         "plain (p 1/2) or a uniform prefix k in 1..n-1 of its worked steps, written with values "
+                         "(true) or as a plan (results '?', linked operands '[Step i]'), 1/2 each; letter loss only")
+    ap.add_argument("--curriculum-steps", type=int, default=0,
+                    help="step curriculum (GFPQC; full-tree loop, --tree-full plain, yes/no nodes): K node stages, "
+                         "then the final questions. Node stage j (1..K) trains only the node views (the arm's view, "
+                         "e.g. GFPQ's) of the nodes whose solution step (node field step: GSM8K's Socratic step "
+                         "index) is <= j (--curriculum-mode cumulative) or == j (exact), every step beyond K counted "
+                         "as K (no node is left out); no final question in the node stages; each problem's node "
+                         "views share --aux-total (the --tree-node-types convention); problems without a node of the "
+                         "stage are not in it. The last stage trains the final questions only (--curriculum-final-"
+                         "nodes: with all their node views, GFPQ's groups). --epochs is the total, split evenly "
+                         "(epochs / (K + 1) passes per stage, each stage counted in its own updates per pass); one "
+                         "warmup + cosine schedule over all stages; the AdamW state is kept across stages "
+                         "(--reset-optim resets it); a mid-training evaluation (--eval-mid sets) at the end of every "
+                         "stage but the last, no --eval-at; 0 = off")
+    ap.add_argument("--curriculum-mode", default="cumulative", choices=["cumulative", "exact"],
+                    help="--curriculum-steps: node stage j asks the steps <= j (cumulative) or == j (exact)")
+    ap.add_argument("--curriculum-final-nodes", action="store_true",
+                    help="--curriculum-steps: the last stage trains the final questions with all their node views "
+                         "(GFPQ's groups) instead of the final questions only")
+    ap.add_argument("--latent-slots", type=int, default=0,
+                    help="latent node slots (Tree Forcing v2, design (a); LS / LSU / LSR / LSY; full-tree loop, "
+                         "--tree-full plain, yes/no nodes): K slots of --slot-c reserved tokens each in every final "
+                         "question's prompt (--slot-place), in training and in every evaluation (one forward pass, the "
+                         "same letter readout); in training only, slot j's final-layer states start a separate "
+                         "sequence through the same network and head that must continue with the problem's j-th worked "
+                         "step ('4 + 2 = 6'; field worked_steps, data/student_gsm8k_tf_si*), loss = letter CE + "
+                         "--slot-lambda x the mean slot decoding CE per problem; 0 = off")
+    ap.add_argument("--slot-c", type=int, default=1, help="--latent-slots: tokens (vectors) per slot")
+    ap.add_argument("--slot-token", default="auto",
+                    help="--latent-slots: the slot token, an existing single token of the tokenizer (auto = the first "
+                         "of <|box_start|>, <|quad_start|>, ... that is one; Qwen3.5: <|box_start|>)")
+    ap.add_argument("--slot-place", default="before-options", choices=["before-options", "after-options"],
+                    help="--latent-slots: the slot line between the problem and its options (before-options: the "
+                         "slots see the problem only; prompts without an options block get it at the end) or after "
+                         "the options, right before the 'Answer:' cue")
+    ap.add_argument("--slot-lambda", type=float, default=1.0,
+                    help="--latent-slots: weight of the slot decoding loss per problem (split over its supervised "
+                         "slots, as --aux-total over the node views)")
+    ap.add_argument("--slot-target", default="tree", choices=["tree", "none", "shuffled"],
+                    help="--latent-slots: tree = slot j decodes the j-th worked step (LS / LSY); none = the slots without "
+                         "any slot loss (LSU, the pause-token control; no decoding pass); shuffled = LSR, the "
+                         "wrong-content control: the same supervised slots, texts drawn from other problems' slot "
+                         "targets (keyed by --seed and the item, fixed over the epochs)")
+    ap.add_argument("--slot-overflow", default="merge", choices=["merge", "truncate"],
+                    help="--latent-slots: a chain longer than K: merge = steps K..n joined into slot K (the answer's "
+                         "step stays in), truncate = the first K steps")
+    ap.add_argument("--slot-final-only", action="store_true",
+                    help="--latent-slots: train the final questions only (LS / LSU / LSR); off = also the node views of "
+                         "the full-tree group (LSY with GFPQ's yes/no views, which carry no slots)")
+    ap.add_argument("--slot-necessity", default="",
+                    help="--latent-slots, after training: the necessity test, a comma list of modes, each evaluated on "
+                         "--slot-necessity-sets next to the intact slots: swap (every slot token replaced by "
+                         "--slot-swap-token), drop (no slot line, the A2 prompt), noise@<layer|mid>:<sigma> (Gaussian "
+                         "noise of sigma x RMS on the slot states after that decoder layer); eval keys <set>@<mode>, "
+                         "metrics slot_necessity, preds_<set>@<mode>.jsonl")
+    ap.add_argument("--slot-necessity-sets", default="", help="--slot-necessity: comma list of eval sets (default all)")
+    ap.add_argument("--slot-swap-token", default="auto",
+                    help="--slot-necessity swap: the replacement token (auto = the next reserved token, <|quad_start|>)")
+    ap.add_argument("--slot-decode", type=int, default=0,
+                    help="--latent-slots, after training: decode every slot of the first N items of --slot-decode-set "
+                         "back to text greedily (same separate-sequence path): slot_decode_<set>.jsonl and "
+                         "metrics slot_decode (exact / value match by slot)")
+    ap.add_argument("--slot-decode-set", default="", help="--slot-decode: the eval set (default: the first --eval set); "
+                    "--slot-readout lens: a comma list of sets, each read out on its first --slot-decode items")
+    # v2.1 (arms LSL / LSLU / LSLR / LSLY): the slot state at an intermediate layer, read by the model's own final norm
+    # and LM head, value targets; defaults = v2 (every v2 arm unchanged)
+    ap.add_argument("--slot-layer", default="final",
+                    help="--latent-slots: the decoder layer whose OUTPUT holds the supervised slot states: final (v2: the "
+                         "final normed states, read by no later position), a 0-based layer index (negative from the "
+                         "end) or a fraction of the depth (0.67 -> layer round(0.67 n) - 1: 20 of 32 on Qwen3.5-4B / 9B, "
+                         "15 of 24 on 2B); an intermediate layer for --slot-readout lens")
+    ap.add_argument("--slot-readout", default="decode", choices=["decode", "lens", "tsf"],
+                    help="--latent-slots: decode (v2) = the final slot states start a separate decoding pass of the "
+                         "worked step's text; lens (v2.1) = slot j's c states at --slot-layer through the model's own "
+                         "final norm + LM head (no second pass, no new parameters), position i predicting token i of "
+                         "the step's VALUE ('6'), then '\\n' up to c; tsf = teacher-state slots with forced reading "
+                         "(TSF: --slot-teacher, --slot-align-*, "
+                         "--slot-force-p, --slot-teacher-ce)")
+    ap.add_argument("--slot-fill", default="none", choices=["none", "last", "answer"],
+                    help="--slot-readout lens: slots after a shorter chain get no target (none), the chain's last value "
+                         "(last: the answer's step) or the gold option's text (answer)")
+    ap.add_argument("--slot-tokens", default="same", choices=["same", "distinct"],
+                    help="--latent-slots: one slot token for every slot (same, v2) or K different tokens, slot j's c "
+                         "positions all slot j's (distinct; auto on Qwen3.5: the six grounding tokens, then "
+                         "<|fim_pad|> ...; else --slot-token t1,t2,...)")
+    ap.add_argument("--slot-head-grad", action="store_true",
+                    help="--slot-readout lens: let the slot loss train the LM head (the tied input embedding on "
+                         "Qwen3.5-2B / 4B); default off: the head is read detached, a fixed readout")
+    ap.add_argument("--slot-pad-weight", type=float, default=1.0,
+                    help="--slot-readout lens: weight of the SLOT_END padding positions of a slot in its lens CE, "
+                         "relative to the value's own tokens (1 = the plain mean over the c positions, as before; 0 = "
+                         "only the value's tokens count), the CE renormalised over the weights")
+    ap.add_argument("--slot-mean-n", type=int, default=300,
+                    help="--slot-necessity mean: the slot means come from the first N training items")
+    # TSF (teacher-state slots with forced reading; arms TSF / TSFN / TSFR / TSFX / TSF6): --slot-readout tsf. Defaults
+    # = off (every other arm unchanged)
+    ap.add_argument("--slot-teacher", default="none", choices=["none", "steps", "shuffled", "placebo"],
+                    help="--slot-readout tsf: the teacher view (the same weights: the final question with worked-step "
+                         "lines before its options, no slot line) whose states the slots are aligned to and forced "
+                         "with: steps = the item's worked steps (TSF / TSFN / TSF6), shuffled = another item's (TSFR, "
+                         "keyed by --seed and the item, fixed), placebo = the problem's own sentences in place of its "
+                         "steps (TSFX); slot j's c = 2 tokens <- the line's token that predicts the value's first token "
+                         "and the value's last token (steps; placebo: the line's last two tokens)")
+    ap.add_argument("--slot-align-layers", default="12-20",
+                    help="--slot-readout tsf: the decoder layers (0-based outputs, 'a-b' or a comma list) whose slot "
+                         "states are aligned to the teacher's (smooth L1 / teacher RMS, stop-grad); the last must be "
+                         "--slot-layer, where the forced reading replaces them")
+    ap.add_argument("--slot-align-lambda", type=float, default=1.0,
+                    help="--slot-readout tsf: alignment-loss weight per problem, split over its supervised slots")
+    ap.add_argument("--slot-force-p", type=float, default=0.5,
+                    help="--slot-readout tsf: probability that a micro-batch is forced (the layer-L states of its "
+                         "supervised slots replaced by the teacher's before the later layers compute the letter CE; "
+                         "the coin keyed by --seed, the update and the micro-batch's items); 0 = TSFN")
+    ap.add_argument("--slot-teacher-ce", type=float, default=0.5,
+                    help="--slot-readout tsf: letter-CE weight of the teacher view (x the final view's weight)")
+    ap.add_argument("--slot-detect-sets", default="auto",
+                    help="--slot-readout tsf, at every --eval-at point: the early 'use' detector (accuracy intact / "
+                         "slot states mean-ablated / teacher-forced / forced with another item's teacher states, on all "
+                         "and on the chained items, and the alignment loss) on these --eval-mid sets; auto = those with "
+                         "an item with worked steps, none = off")
+    # PTAD (zero-latent CODI, answer-position self-distillation; arms PTAD / PTADR / PTADX): no slots. Defaults = off
+    ap.add_argument("--answer-teacher", default="none", choices=["none", "steps", "shuffled", "placebo"],
+                    help="PTAD (full-tree loop, --tree-full plain, yes/no nodes; final views only, the A2 prompt): the "
+                         "student's 'Answer:' states at --answer-align-layers are aligned (smooth L1 / teacher RMS, "
+                         "stop-grad) to those of a teacher view through the same weights, the final question with "
+                         "worked-step lines before its options (steps = the item's, shuffled = another item's, placebo "
+                         "= the problem's sentences), which also trains the letter CE at --answer-teacher-ce")
+    ap.add_argument("--answer-align-layers", default="12-27",
+                    help="--answer-teacher: aligned decoder layers (0-based outputs, 'a-b' or a comma list; the memo "
+                         "leaves out the last four of 32)")
+    ap.add_argument("--answer-align-lambda", type=float, default=1.0, help="--answer-teacher: alignment-loss weight")
+    ap.add_argument("--answer-teacher-ce", type=float, default=0.5,
+                    help="--answer-teacher: letter-CE weight of the teacher view")
+    ap.add_argument("--teacher-grad-probe", default="",
+                    help="TSF / PTAD: comma list of update indices (0-based, e.g. 0,5,10,15,20) at which the gradient "
+                         "norms of the student CE, the teacher CE and the alignment loss are measured (three extra "
+                         "forward + backward passes of the update, which itself is unchanged); after the last one, a "
+                         "median ratio alignment / student CE outside [0.3, 3] rescales the alignment loss once to "
+                         "ratio 1 (metrics teacher.grad_probe)")
+    ap.add_argument("--teacher-ce-guard", type=float, default=0.0,
+                    help="TSF / PTAD: at the first --eval-at point, an accuracy on the first --eval-mid set more than 3 "
+                         "points below this reference (A2 at the same point) lowers the teacher-view CE weight to 0.25 "
+                         "for the rest of the run (memo section 3.10; metrics teacher.guard; 0 = off)")
+    ap.add_argument("--teacher-align-train-n", type=int, default=200,
+                    help="TSF / PTAD: the alignment loss is also measured on the first N training items at every "
+                         "--eval-at point and at the end (the train / held-out gap)")
+    ap.add_argument("--aux-total", type=float, default=1.0,
+                    help="full-tree groups: auxiliary weight per problem, split evenly over its node views")
+    ap.add_argument("--aux-sources", default="", help="grouped training: comma list of item sources whose auxiliary "
+                    "views keep their weight; items of other sources get the same views at zero weight (placebo)")
+    ap.add_argument("--fact-withdraw", type=float, default=0.0,
+                    help="tree aux views: the stated results are kept with probability 1 - progress / F over the first "
+                         "fraction F of training and dropped entirely afterwards (0 = always kept)")
+    ap.add_argument("--aux-weight", type=float, default=0.5, help="grouped training: loss weight of each auxiliary view")
+    ap.add_argument("--items-per-update", type=int, default=32, help="grouped training: problems per optimizer update")
+    ap.add_argument("--lambda-brier", type=float, default=0.0, help="add this x Brier score (vs the soft target)")
+    ap.add_argument("--permute-final", type=float, default=0.0,
+                    help="probability of reordering a final question's options each epoch (target follows the texts)")
+    ap.add_argument("--epochs", type=float, default=2.0)
+    ap.add_argument("--lr", type=float, default=1e-5)
+    ap.add_argument("--warmup", type=float, default=0.05)
+    ap.add_argument("--micro-bs", type=int, default=8)
+    ap.add_argument("--grad-accum", type=int, default=4)
+    ap.add_argument("--max-len", type=int, default=1536)
+    ap.add_argument("--precision", default="fp32master", choices=["fp32master", "bf16"])
+    ap.add_argument("--optim", default="adamw", choices=["adamw", "adamw8bit", "adamw8bit-sr", "adamw8bit_sr"],
+                    help="adamw8bit = bitsandbytes (round-to-nearest bf16 writes); adamw8bit-sr = torchao AdamW8bit "
+                         "with bf16 stochastic rounding (needs --precision bf16 and torchao; adamw8bit_sr = the same)")
+    ap.add_argument("--token-budget", "--mb-tokens", type=int, default=0,
+                    help="length-sorted micro-batches of at most N padded tokens (and at most --token-budget-seqs "
+                         "sequences) instead of --micro-bs chunks; same gradient per update; 0 = off. Full-tree loop: an "
+                         "update is a problem group. Other loops: an update is still the --micro-bs x --grad-accum "
+                         "examples of the fixed loop (same refills), only regrouped by length (not with --rationale-lm)")
+    ap.add_argument("--token-budget-seqs", type=int, default=16, help="--token-budget: sequences per micro-batch cap")
+    ap.add_argument("--stop-after-h", type=float, default=0.0,
+                    help="full-tree loop: at the first update boundary after H hours (counted from this process's "
+                         "start) write <out>/ckpt and exit with code 3; a rerun with the same --out resumes; 0 = off")
+    ap.add_argument("--ckpt-every-min", type=float, default=0.0,
+                    help="full-tree loop: also write <out>/ckpt every M minutes (one checkpoint, replaced atomically)")
+    ap.add_argument("--ckpt-single", action="store_true",
+                    help="delete the previous checkpoint before writing the new one: one copy on disk instead of two "
+                         "during a write (4B: about 17 instead of 34 GB), but a kill during the write leaves none")
+    ap.add_argument("--stop-at-step", type=int, default=0,
+                    help="planned stop (checkpoint + exit 3) after this update; for tests and the resume smoke")
+    ap.add_argument("--no-grad-ckpt", action="store_true")
+    ap.add_argument("--loop-layers", default="",
+                    help="LayerLoop (arms LOOP / LOOP-MIX / LOOP-UNTIED): 'lo-hi', the 0-based decoder layers (inclusive) "
+                         "re-applied T - 1 extra times inside every forward (training and evaluation), e.g. 16-19 on "
+                         "Qwen3.5-4B; each layer runs with its own pass-1 kwargs (masks); empty = off "
+                         "(cotdistill.student.LayerLoop)")
+    ap.add_argument("--loop-T", type=int, default=2, help="--loop-layers: passes through the window (1 = the plain model); "
+                    "the training T when --loop-mix is empty and the T of the plain-named evaluations")
+    ap.add_argument("--loop-alpha", type=float, default=1.0,
+                    help="--loop-layers: damping of every extra pass, x <- x + alpha (block(x) - x), in (0, 1]; 1 = the "
+                         "plain re-application (stage 0 eval knob)")
+    ap.add_argument("--loop-untied", action="store_true",
+                    help="--loop-layers: the extra passes run deep copies of the window's layers (new parameters, "
+                         "initialised from the pretrained weights, saved with the model as loop_untied.*); off: the "
+                         "same layers (tied)")
+    ap.add_argument("--loop-mix", default="",
+                    help="--loop-layers: comma list of pass counts, e.g. 1,2: every training micro-batch draws its T "
+                         "uniformly from them (keyed by --seed, the update and the micro-batch's items; --fsdp: by the "
+                         "update's items and the micro-batch slot); empty = the fixed --loop-T")
+    ap.add_argument("--loop-eval-T", default="",
+                    help="--loop-layers: comma list of pass counts for the final evaluations: every set is scored at "
+                         "--loop-T under its name and at every other listed T as <name>@T<t>; default: --loop-T only")
+    ap.add_argument("--df-layers", default="",
+                    help="depth forcing (arms DF / DFX; cotdistill.depth_forcing): 'auto' (layers --df-L0 + --df-stride "
+                         "x k for k = 1..--df-max-steps) or a comma list of 0-based decoder layers; the value of worked "
+                         "step k is made decodable from the residual output of layer k of the list at the answer "
+                         "position, by a probe head trained with the model (the plain A2 arm: --final teacher --subq "
+                         "none); empty: off")
+    ap.add_argument("--df-L0", type=int, default=6, help="--df-layers auto: the layer before the first forced one")
+    ap.add_argument("--df-stride", type=int, default=4, help="--df-layers auto: layers per step")
+    ap.add_argument("--df-lambda", type=float, default=0.5, help="--df-layers: weight of the auxiliary loss")
+    ap.add_argument("--df-target", default="contrast", choices=["contrast", "digits"],
+                    help="--df-layers: contrast = InfoNCE of head k's vector against the value encodings (the item's "
+                         "steps, options, prompt numbers and the other items' steps); digits = cross-entropy over a "
+                         "fixed digit code of the value")
+    ap.add_argument("--df-shuffle", action="store_true",
+                    help="--df-layers: control DFX: every item's targets are another item's step values (a fixed "
+                         "partner drawn from --seed)")
+    ap.add_argument("--df-max-steps", type=int, default=4, help="--df-layers: steps supervised per item (at most)")
+    ap.add_argument("--df-dim", type=int, default=256, help="--df-layers contrast: the probe vector size")
+    ap.add_argument("--df-shared-head", action="store_true", help="--df-layers: one probe head for every step")
+    ap.add_argument("--df-temperature", type=float, default=0.1, help="--df-layers contrast: InfoNCE temperature")
+    ap.add_argument("--df-pos", default="answer", choices=["answer", "operand"],
+                    help="--df-layers: where step k is read: answer = the 'Answer:' cue (DF / DFX); operand = the last "
+                         "token of the latest occurrence of one of the step's operands in the question (DFO / DFOX; a "
+                         "step without an operand in the question is unsupervised, counted as no_operand_position)")
+    ap.add_argument("--df-head-lr", type=float, default=None,
+                    help="--df-layers: learning rate of the probe heads (body.df_heads: heads and the contrast "
+                         "projection), their own optimizer group with weight decay 0, scaled by the same schedule as "
+                         "--lr; default: --lr (one group, as without the flag)")
+    ap.add_argument("--b3-arm", default="", choices=["", "fsiit", "ssiit", "cfaug", "sham"],
+                    help="frontier interchange training (cotdistill.frontier): fsiit = every frontier value of a "
+                         "source item written into the receiver's layer-L residual at its frontier positions, letter CE "
+                         "toward the counterfactual answer; ssiit = one value; cfaug = no write, the question's numbers "
+                         "substituted and the answer recomputed; sham = the full write, the label cf(S) or the decoy "
+                         "cf(S') by a fair coin. The plain "
+                         "A2 arm (--final teacher --subq none); empty: off")
+    ap.add_argument("--b3-layer", type=int, default=19, help="--b3-arm: the written decoder layer (its output, 0-based)")
+    ap.add_argument("--b3-dim", type=int, default=128, help="--b3-arm: residual dimensions written per node (one shared "
+                    "slice [0, d) for every node, each at its own token; the strictness 'sub' views use [d, 2d))")
+    ap.add_argument("--b3-p", type=float, default=0.5, help="--b3-arm: share of items whose plain example is replaced by "
+                    "the intervened view each epoch (the forwards per update do not change)")
+    ap.add_argument("--b3-source-grad", action="store_true", help="--b3-arm: gradient through the source forward "
+                    "(default: the source pass is detached)")
+    ap.add_argument("--b3-strict", type=float, default=1.0, help="--b3-arm: weight of the strictness views (the size "
+                    "partner, different values, written at a non-node question token or into the spare slice [d, 2d) "
+                    "at the node tokens, label = the gold); 0 = none")
+    ap.add_argument("--b3-strict-share", type=float, default=0.5, help="--b3-arm: among the substituted (intervened) "
+                    "views, the share that are strictness views")
+    ap.add_argument("--b3-lambda", type=float, default=1.0, help="--b3-arm: weight of the intervened views")
+    ap.add_argument("--b3-max-nodes", type=int, default=4, help="--b3-arm: frontier nodes written at most")
+    ap.add_argument("--b3-block-all", action="store_true", help="--b3-arm (v2): the plain final example of every "
+                    "item with an intervened view gets that view's option block (gold, cf(S), cf(S'); the epoch's "
+                    "coins), no write, label = the gold (mode blockplain), so the block composition carries no label "
+                    "prior; items without a view keep their block")
+    ap.add_argument("--b3-rotate", action="store_true", help="--b3-arm: learned subspaces (v2 option (b)): the "
+                    "written slices become the row blocks of a learned map Q (2 x --b3-dim rows of the hidden size, "
+                    "orthonormal, torch orthogonal parametrisation, initialised to the coordinate axes = the slice "
+                    "write); the source's Q0 coordinates replace the receiver's Q0 (aligned) or Q1 (spare) component. "
+                    "Q has its own optimizer group (weight decay 0), its own clip at 1.0 and is saved as "
+                    "<out>/b3_rotation.pth")
+    ap.add_argument("--b3-rotate-lr", type=float, default=None, help="--b3-rotate: Q's learning rate, scaled by the same "
+                    "schedule as --lr; default: --lr")
+    ap.add_argument("--fsdp", action="store_true",
+                    help="FSDP2 data parallelism over the torchrun ranks (one GPU each): every update holds the same "
+                         "sequences as on one GPU, split across the ranks, gradients summed; --precision bf16 (fp32master "
+                         "only with cpu-adamw, for equivalence checks); "
+                         "--token-budget works in every loop; rank 0 writes the outputs (scale12b/fsdp2.md)")
+    ap.add_argument("--fsdp-optim", default=None, choices=["cpu-adamw", "8bit-sr"],
+                    help="--fsdp optimizer (default cpu-adamw): cpu-adamw = fp32 master + AdamW of each rank's shard on "
+                         "the CPU (one gradient D2H and one weight H2D per update; no checkpoints); 8bit-sr = torchao "
+                         "AdamW8bit with bf16 stochastic rounding on the GPU shards (resumable)")
+    ap.add_argument("--log-update-loss", action="store_true",
+                    help="grouped / plain loops: also log upd_loss, the whole update's loss (the full-tree loop's and "
+                         "--fsdp's loss column); for step-by-step comparisons with --fsdp runs")
+    ap.add_argument("--attn-impl", default="", choices=["", "sdpa", "eager", "flex_attention"],
+                    help="attention implementation passed to from_pretrained (empty = the transformers default, sdpa). "
+                         "Gemma 4: not flash_attention_2, whose kernels stop at head_dim 256 (global layers use 512)")
+    ap.add_argument("--chat-template", action="store_true",
+                    help="train and evaluate every view as one user turn of the model's chat template, thinking off "
+                         "(the text without its 'Answer:' cue + 'Answer with the letter of the correct option only.', "
+                         "as scripts/eval_llm_baseline.py), read out at the assistant turn's first token (bare 'A', "
+                         "not ' A'); off: unchanged")
+    ap.add_argument("--eval-bs", type=int, default=8)
+    ap.add_argument("--eval-max-len", type=int, default=6144, help="long eval states (JevBench hard) need more room")
+    ap.add_argument("--save", action="store_true", help="save the final weights (bf16) to <out>/model")
+    ap.add_argument("--save-dir", default="", help="--save: write the model (and latent_slots.json) to this directory "
+                    "instead of <out>/model, e.g. a job-local dir for a probe that is not uploaded (hpc PROBE=1)")
+    ap.add_argument("--eval-at", default="", help="training-length curve: comma list of points, in epochs, at which "
+                    "the --eval-mid sets are evaluated during training (e.g. 0.5,1,2,4); stored as metrics.json trajectory")
+    ap.add_argument("--eval-mid", default="", help="comma list of --eval set names for the --eval-at points (default all)")
+    ap.add_argument("--eval-mid-preds", action="store_true",
+                    help="also write each --eval-at point's predictions on the --eval-mid sets to "
+                         "<out>/mid/preds_<name>_e<epoch>.jsonl (checkpoint selection on a val set, e.g. "
+                         "scripts/fa_readout.py --sf); off: nothing is written")
+    ap.add_argument("--eval-mid-max", type=int, default=600,
+                    help="at --eval-at points each set is cut to at most this many items (every k-th item, spread "
+                         "across the file's task groups); the final eval always uses the full sets")
+    ap.add_argument("--lora-r", type=int, default=0, help="LoRA rank (0 = full fine-tuning)")
+    ap.add_argument("--lora-alpha", type=float, default=0.0, help="LoRA alpha (default 2 x rank)")
+    ap.add_argument("--lora-dropout", type=float, default=0.05)
+    ap.add_argument("--lora-targets", default=",".join(LORA_TARGETS),
+                    help="module names to adapt (names absent from the model are skipped)")
+    ap.add_argument("--dump-layers", default="", help="comma list of decoder layers whose readout states are saved "
+                    "with --dump-hidden (shape [n, layers + 1, hidden]; the last entry is the final readout state)")
+    ap.add_argument("--dump-hidden", default="", help="comma list of eval-set names whose readout hidden states "
+                    "to save as hidden_<name>.pt (float16, preds order)")
+    ap.add_argument("--eval-local", default="", help="student data file with local fields (e.g. data/student_v3sl/"
+                    "val.jsonl): local-step probe, every K&K node asked in its local view (eval key local_kk, "
+                    "preds_local_kk.jsonl; accuracy by node type and depth)")
+    ap.add_argument("--eval-local-view", default="local", choices=["local", "ancestors"],
+                    help="--eval-local: parents' results (key local_kk) or all ancestors' results (local_kk_anc)")
+    ap.add_argument("--eval-subq", default=None, help="student data file (e.g. val.jsonl) whose sub-questions to "
+                    "score, or comma-separated name=path entries (predictions in preds_subq[_name].jsonl)")
+    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--code-commit", default="", help="commit of the code checkout (recorded in metrics.json args only)")
+    ap.add_argument("--out", required=True)
+    ap.add_argument("--log-every", type=int, default=20)
+    args = ap.parse_args()
+    tree_opts = (args.tree_view != "problem" or args.tree_sources or args.tree_node_weight or args.tree_cap == 0 or
+                 args.tree_scaffold or args.tree_depth_weight or args.tree_pack or args.tree_node_types or
+                 args.tree_target != "real" or args.latent_slots or args.answer_teacher != "none")
+    if tree_opts and not args.tree_full:
+        raise SystemExit("--tree-view / --tree-sources / --tree-node-weight / --tree-cap 0 / --tree-scaffold / "
+                         "--tree-depth-weight / --tree-pack / --tree-node-types / --tree-target / --latent-slots / "
+                         "--answer-teacher need --tree-full")
+    if args.tree_target != "real" and (args.tree_full != "plain" or args.node_format != "yesno" or
+                                       args.tree_view not in ("problem", "statements", "statements+question") or
+                                       args.tree_eligible_only or args.tree_scaffold):
+        raise SystemExit(f"--tree-target {args.tree_target}: for --tree-full plain (GF / GFP / GFPS / GFPQ: views "
+                         "problem, statements, statements+question) with yes/no nodes, without --tree-eligible-only "
+                         "or --tree-scaffold")
+    if args.tree_pack and (args.tree_pack < 2 or (args.tree_full, args.tree_view) != ("plain", "statements") or
+                           args.tree_scaffold or args.fsdp or args.chat_template):
+        raise SystemExit(f"--tree-pack {args.tree_pack}: at least 2 views per pack, for --tree-full plain --tree-view "
+                         "statements (GFPS) without --tree-scaffold, --fsdp or --chat-template")
+    value_fmt = args.node_format in ("value", "yesno+value")
+    if args.node_render != "op" and not value_fmt:
+        raise SystemExit(f"--node-render {args.node_render}: for --node-format value / yesno+value")
+    if args.node_render in ("vt", "vtr") and args.tree_view != "problem":
+        raise SystemExit(f"--node-render {args.node_render} (verification nodes ask what an option is): --tree-view "
+                         "problem (the prompt with its options)")
+    if value_fmt and (args.tree_full != "plain" or args.tree_view not in ("problem", "statements", "statements+question")
+                      + (("bare",) if args.node_format == "value" else ()) or args.tree_eligible_only or
+                      args.tree_scaffold or args.tree_depth_weight or args.tree_pack or args.tree_node_types or
+                      args.tree_target != "real"):
+        raise SystemExit(f"--node-format {args.node_format}: for --tree-full plain, views problem / statements / "
+                         "statements+question (and bare for value), without --tree-eligible-only, --tree-scaffold, "
+                         "--tree-depth-weight, --tree-pack, --tree-node-types or --tree-target")
+    if args.tree_view == "bare" and args.node_format != "value":
+        raise SystemExit("--tree-view bare (GFPVB): for --tree-full plain --node-format value")
+    if args.tree_view != "problem" and not (args.tree_full == "true" and args.tree_view not in ("statements", "statements+question", "bare") or
+                                             args.tree_full in ("matched", "plain") and args.tree_view == "local" or
+                                             args.tree_full == "plain" and args.tree_view in ("statements", "statements+question", "bare")):
+        raise SystemExit(f"--tree-view {args.tree_view} is implemented for --tree-full true (local/ancestors/"
+                         "local+ctxparse/mix), matched (local) and plain (local, statements)")
+    if args.tree_view != "problem" and (args.tree_eligible_only or args.node_format not in ("yesno", "value", "yesno+value")):
+        raise SystemExit("--tree-view local/ancestors/statements/local+ctxparse/mix does not combine with "
+                         "--tree-eligible-only / --node-format mc")
+    if not 0.0 <= args.tree_mix_p <= 1.0 or args.tree_mix_p != 0.5 and args.tree_view != "mix":
+        raise SystemExit(f"--tree-mix-p {args.tree_mix_p}: a probability, for --tree-view mix only")
+    if args.tree_scaffold < 0 or args.tree_scaffold and (args.tree_full, args.tree_view) != ("plain", "statements"):
+        raise SystemExit(f"--tree-scaffold {args.tree_scaffold}: a fraction > 0 of the updates, for --tree-full plain "
+                         "--tree-view statements only (GTF)")
+    if args.tree_depth_weight and args.tree_full == "control":
+        raise SystemExit("--tree-depth-weight needs tree nodes: control questions have no depth")
+    node_types = frozenset(x.strip() for x in args.tree_node_types.split(",") if x.strip()) or None
+    if args.tree_node_types and (node_types is None or args.tree_full == "control"):
+        raise SystemExit(f"--tree-node-types {args.tree_node_types!r}: a comma list of node types, for tree nodes "
+                         "(not --tree-full control: control questions have no type)")
+    if args.tree_eligible_only and args.tree_full not in ("true", "matched", "plain", "placebo"):
+        raise SystemExit("--tree-eligible-only needs --tree-full true/matched/plain/placebo")
+    if args.subq_filter != "all" and (args.depth_stages or args.fact_stages or args.facts_always):
+        raise SystemExit("--subq-filter is not implemented for --depth-stages / --fact-stages / --facts-always")
+    if args.subq_filter != "all" and (args.aux_kind in ("random", "random_mc") if args.grouped_aux else
+                                      args.tree_full == "control" if args.tree_full else args.subq in ("random", "none")):
+        raise SystemExit("--subq-filter only restricts CoT nodes; this arm asks none (control questions or no "
+                         "sub-questions), so the filter would do nothing")
+
+    if args.optim == "adamw8bit_sr":     # the spelling of the plan notes
+        args.optim = "adamw8bit-sr"
+    if args.optim == "adamw8bit-sr" and args.precision != "bf16":
+        raise SystemExit("--optim adamw8bit-sr rounds bf16 weights stochastically; it needs --precision bf16")
+    resumable = bool(args.stop_after_h or args.ckpt_every_min or args.stop_at_step)
+    if resumable and not args.tree_full:
+        raise SystemExit("--stop-after-h / --ckpt-every-min / --stop-at-step are implemented for the full-tree loop "
+                         "only (--tree-full)")
+    if args.token_budget and args.rationale_lm and not args.tree_full:
+        raise SystemExit("--token-budget does not combine with --rationale-lm (LM continuations are not regrouped)")
+    if args.fsdp_optim and not args.fsdp:
+        raise SystemExit("--fsdp-optim needs --fsdp")
+    if args.fsdp:
+        args.fsdp_optim = args.fsdp_optim or "cpu-adamw"
+        if args.precision != "bf16" and args.fsdp_optim != "cpu-adamw":
+            raise SystemExit("--fsdp-optim 8bit-sr rounds bf16 shards stochastically: use --precision bf16")
+        # (--precision fp32master with cpu-adamw keeps fp32 shards on the GPUs: the exact analogue of the single-GPU
+        # fp32master + AdamW recipe, for equivalence checks at small scale; 12B needs bf16 shards)
+        if args.optim != "adamw":
+            raise SystemExit("--fsdp: the optimizer is --fsdp-optim (8bit-sr = torchao AdamW8bit with bf16 stochastic "
+                             "rounding, cpu-adamw = fp32 master + AdamW on the CPU), not --optim")
+        if args.lora_r or args.rationale_lm:
+            raise SystemExit("--fsdp does not support --lora-r or --rationale-lm")
+        if resumable and args.fsdp_optim != "8bit-sr":
+            raise SystemExit("--fsdp-optim cpu-adamw does not checkpoint (fp32 master + m + v = 12 B/param, 143 GB at "
+                             "12B, over the 100 GB quota): no --stop-after-h / --ckpt-every-min / --stop-at-step")
+    si_flags = (args.si_chain != "true" or args.si_final_only or args.si_smooth != 0.1 or args.si_schedule != "global"
+                or args.si_keep_optim or args.si_remove != "front" or args.si_mix)
+    if args.si_mix and args.si_stages != 1:
+        raise SystemExit("--si-mix (PFX) needs --si-stages 1: one mixed stage of --epochs")
+    if args.si_stages < 0 or si_flags and not args.si_stages:
+        raise SystemExit("--si-chain / --si-final-only / --si-smooth / --si-schedule / --si-keep-optim / --si-remove "
+                         "need --si-stages S >= 1")
+    if args.si_stages and (not args.tree_full or args.tree_pack or resumable or args.depth_stages or args.fact_stages
+                           or args.facts_always or not 0.0 <= args.si_smooth <= 1.0):
+        raise SystemExit(f"--si-stages {args.si_stages}: for the full-tree loop (--tree-full; SI / SIS with "
+                         "--si-final-only), without --tree-pack, --stop-after-h / --ckpt-every-min / --stop-at-step "
+                         "(no multi-stage resume), --depth-stages, --fact-stages or --facts-always; --si-smooth a "
+                         "probability")
+    if args.curriculum_steps < 0 or ((args.curriculum_mode != "cumulative" or args.curriculum_final_nodes)
+                                     and not args.curriculum_steps):
+        raise SystemExit("--curriculum-mode / --curriculum-final-nodes need --curriculum-steps K >= 1")
+    if args.curriculum_steps and (args.tree_full != "plain" or args.node_format != "yesno" or
+                                  args.tree_view not in ("problem", "statements", "statements+question") or
+                                  args.si_stages or args.tree_pack or resumable or args.depth_stages or
+                                  args.fact_stages or args.facts_always or args.tree_eligible_only or
+                                  args.tree_scaffold or args.tree_depth_weight or args.tree_target != "real" or
+                                  args.eval_at):
+        raise SystemExit(f"--curriculum-steps {args.curriculum_steps}: for the full-tree loop with --tree-full plain, "
+                         "yes/no nodes (views problem / statements / statements+question), without --si-stages, "
+                         "--tree-pack, --stop-after-h / --ckpt-every-min / --stop-at-step (no multi-stage resume), "
+                         "--depth-stages, --fact-stages, --facts-always, --tree-eligible-only, --tree-scaffold, "
+                         "--tree-depth-weight or --tree-target; no --eval-at (it evaluates at its stage ends)")
+    slot_flags = (args.slot_c != 1 or args.slot_token != "auto" or args.slot_place != "before-options" or
+                  args.slot_lambda != 1.0 or args.slot_target != "tree" or args.slot_overflow != "merge" or
+                  args.slot_final_only or args.slot_necessity or args.slot_necessity_sets or
+                  args.slot_swap_token != "auto" or args.slot_decode or args.slot_decode_set or
+                  args.slot_layer != "final" or args.slot_readout != "decode" or args.slot_fill != "none" or
+                  args.slot_tokens != "same" or args.slot_mean_n != 300 or args.slot_head_grad or
+                  args.slot_pad_weight != 1.0)
+    tsf_flags = (args.slot_teacher != "none" or args.slot_align_layers != "12-20" or args.slot_align_lambda != 1.0 or
+                 args.slot_force_p != 0.5 or args.slot_teacher_ce != 0.5 or args.slot_detect_sets != "auto")
+    slot_flags = slot_flags or tsf_flags
+    if args.latent_slots < 0 or slot_flags and not args.latent_slots:
+        raise SystemExit("--slot-* options need --latent-slots K >= 1")
+    if args.latent_slots and (args.tree_full != "plain" or args.node_format != "yesno" or
+                              args.tree_view not in ("problem", "statements", "statements+question") or
+                              args.si_stages or args.curriculum_steps or args.tree_pack or args.tree_scaffold or
+                              args.tree_target != "real" or args.tree_eligible_only or args.chat_template or
+                              args.depth_stages or args.fact_stages or args.facts_always or args.slot_c < 1 or
+                              args.slot_lambda < 0 or args.slot_decode < 0):
+        raise SystemExit(f"--latent-slots {args.latent_slots}: for the full-tree loop with --tree-full plain and yes/no "
+                         "nodes (views problem / statements / statements+question), without --si-stages, "
+                         "--curriculum-steps, --tree-pack, --tree-scaffold, --tree-target, --tree-eligible-only, "
+                         "--chat-template, --depth-stages, --fact-stages or --facts-always; --slot-c >= 1, "
+                         "--slot-lambda >= 0, --slot-decode >= 0")
+    if args.latent_slots:
+        from cotdistill.student import parse_slot_necessity
+        try:
+            parse_slot_necessity(args.slot_necessity)
+        except ValueError as e:
+            raise SystemExit(str(e))
+        if args.slot_readout == "lens" and args.slot_layer == "final":
+            raise SystemExit("--slot-readout lens needs an intermediate --slot-layer (e.g. 0.67)")
+        if args.slot_readout == "decode" and (args.slot_layer != "final" or args.slot_fill != "none" or
+                                              args.slot_head_grad or args.slot_pad_weight != 1.0):
+            raise SystemExit("--slot-layer / --slot-fill / --slot-head-grad / --slot-pad-weight are for --slot-readout "
+                             "lens (decode reads the final states)")
+        if not (args.slot_pad_weight >= 0.0 and math.isfinite(args.slot_pad_weight)):
+            raise SystemExit("--slot-pad-weight >= 0")
+        if args.slot_mean_n < 1:
+            raise SystemExit("--slot-mean-n >= 1")
+        if "mean" in parse_slot_necessity(args.slot_necessity) and args.slot_layer == "final":
+            raise SystemExit("--slot-necessity mean ablates the slot states at --slot-layer: set it, or use mean@<layer>")
+        if args.slot_readout != "tsf" and tsf_flags:
+            raise SystemExit("--slot-teacher / --slot-align-layers / --slot-align-lambda / --slot-force-p / "
+                             "--slot-teacher-ce / --slot-detect-sets are for --slot-readout tsf")
+        if args.slot_readout != "tsf" and {"force", "forceswap"} & set(parse_slot_necessity(args.slot_necessity)):
+            raise SystemExit("--slot-necessity force / forceswap: for --slot-readout tsf (teacher states)")
+        if args.slot_readout == "tsf":
+            if args.slot_teacher == "none":
+                raise SystemExit("--slot-readout tsf needs --slot-teacher steps / shuffled / placebo")
+            if args.slot_layer == "final":
+                raise SystemExit("--slot-readout tsf needs an intermediate --slot-layer (the forcing layer, e.g. 0.67)")
+            if args.slot_c != 2:
+                raise SystemExit("--slot-readout tsf: --slot-c 2 (token 1 <- the teacher's pre-value position, 2 <- its "
+                                 "value end)")
+            if (args.slot_fill != "none" or args.slot_target != "tree" or args.slot_lambda != 1.0 or
+                    args.slot_head_grad or args.slot_pad_weight != 1.0 or args.slot_decode or args.slot_decode_set):
+                raise SystemExit("--slot-readout tsf: no --slot-fill (slots past the chain have no target), "
+                                 "--slot-target (the content controls are --slot-teacher shuffled / placebo), "
+                                 "--slot-lambda (its weight is --slot-align-lambda), --slot-head-grad, --slot-pad-weight "
+                                 "or --slot-decode / --slot-decode-set (no slot readout)")
+            if not (0.0 <= args.slot_force_p <= 1.0 and args.slot_align_lambda >= 0 and args.slot_teacher_ce >= 0):
+                raise SystemExit("--slot-force-p in [0, 1], --slot-align-lambda >= 0, --slot-teacher-ce >= 0")
+    tsf = bool(args.latent_slots) and args.slot_readout == "tsf"
+    ptad = args.answer_teacher != "none"
+    if (args.answer_align_layers != "12-27" or args.answer_align_lambda != 1.0 or args.answer_teacher_ce != 0.5) \
+            and not ptad:
+        raise SystemExit("--answer-align-layers / --answer-align-lambda / --answer-teacher-ce need --answer-teacher")
+    if ptad and (args.latent_slots or args.tree_full != "plain" or args.node_format != "yesno" or
+                 args.tree_view not in ("problem", "statements", "statements+question") or args.si_stages or
+                 args.curriculum_steps or args.tree_pack or args.tree_scaffold or args.tree_target != "real" or
+                 args.tree_eligible_only or args.chat_template or args.depth_stages or args.fact_stages or
+                 args.facts_always or args.rationale_lm or args.answer_align_lambda < 0 or args.answer_teacher_ce < 0):
+        raise SystemExit(f"--answer-teacher {args.answer_teacher} (PTAD): for the full-tree loop with --tree-full plain "
+                         "and yes/no nodes (views problem / statements / statements+question; final views only), "
+                         "without --latent-slots, --si-stages, --curriculum-steps, --tree-pack, --tree-scaffold, "
+                         "--tree-target, --tree-eligible-only, --chat-template, --depth-stages, --fact-stages, "
+                         "--facts-always or --rationale-lm; --answer-align-lambda >= 0, --answer-teacher-ce >= 0")
+    if (args.teacher_grad_probe or args.teacher_ce_guard or args.teacher_align_train_n != 200) and not (tsf or ptad):
+        raise SystemExit("--teacher-grad-probe / --teacher-ce-guard / --teacher-align-train-n are for TSF "
+                         "(--slot-readout tsf) and PTAD (--answer-teacher)")
+    try:
+        probe_steps = sorted({int(x) for x in args.teacher_grad_probe.split(",") if x.strip()})
+    except ValueError:
+        raise SystemExit(f"--teacher-grad-probe {args.teacher_grad_probe!r}: a comma list of update indices")
+    if any(x < 0 for x in probe_steps) or args.teacher_align_train_n < 0 or args.teacher_ce_guard < 0:
+        raise SystemExit("--teacher-grad-probe indices >= 0, --teacher-align-train-n >= 0, --teacher-ce-guard >= 0")
+    if args.teacher_ce_guard and not args.eval_at:
+        raise SystemExit("--teacher-ce-guard acts at the first --eval-at point: set --eval-at")
+    if (tsf or ptad) and args.lambda_brier:
+        raise SystemExit("TSF / PTAD: no --lambda-brier")
+    if args.ckpt_single and not resumable:
+        raise SystemExit("--ckpt-single needs --stop-after-h, --ckpt-every-min or --stop-at-step")
+    if args.chat_template and args.rationale_lm:
+        raise SystemExit("--chat-template does not combine with --rationale-lm (the LM continuation is not a chat turn)")
+    loop_spec = None                 # --loop-layers: (lo, hi), the mix choices and the eval pass counts
+    if args.loop_layers:
+        try:
+            loop_lo, loop_hi = parse_loop_layers(args.loop_layers)
+            loop_mix = parse_loop_Ts(args.loop_mix)
+            loop_eval_T = parse_loop_Ts(args.loop_eval_T) or (args.loop_T,)
+        except ValueError as e:
+            raise SystemExit(f"--loop-layers: {e}")
+        if args.loop_T < 1 or not 0.0 < args.loop_alpha <= 1.0:
+            raise SystemExit("--loop-T >= 1 and 0 < --loop-alpha <= 1")
+        if len(loop_mix) == 1:
+            raise SystemExit("--loop-mix lists two or more pass counts (one value: use --loop-T)")
+        if args.loop_untied and args.lora_r:
+            raise SystemExit("--loop-untied does not combine with --lora-r (the copies would carry adapters of their own)")
+        if args.dump_layers:
+            raise SystemExit("--loop-layers does not combine with --dump-layers (the looped layers record their "
+                             "hidden states once per pass, so the layer indices shift)")
+        loop_spec = (loop_lo, loop_hi, loop_mix, loop_eval_T)
+    elif args.loop_T != 2 or args.loop_alpha != 1.0 or args.loop_untied or args.loop_mix or args.loop_eval_T:
+        raise SystemExit("--loop-T / --loop-alpha / --loop-untied / --loop-mix / --loop-eval-T need --loop-layers")
+    df_spec = None                   # --df-layers: the depth-forcing spec (cotdistill.depth_forcing.DFSpec)
+    df_flags = (args.df_L0 != 6 or args.df_stride != 4 or args.df_lambda != 0.5 or args.df_target != "contrast" or
+                args.df_shuffle or args.df_max_steps != 4 or args.df_dim != 256 or args.df_shared_head or
+                args.df_temperature != 0.1 or args.df_pos != "answer" or args.df_head_lr is not None)
+    if args.df_layers:
+        if args.df_head_lr is not None and not args.df_head_lr > 0:
+            raise SystemExit(f"--df-head-lr {args.df_head_lr}: > 0")
+        if (args.tree_full or args.grouped_aux or args.depth_stages or args.fact_stages or args.facts_always or
+                args.subq != "none" or args.rationale_lm or args.lora_r or args.loop_layers or args.latent_slots):
+            raise SystemExit("--df-layers (DF / DFX / DFO / DFOX): for the plain final-question arm (A2: --subq none) "
+                             "without --tree-full, --grouped-aux, --depth-stages, --fact-stages, --facts-always, "
+                             "--rationale-lm, --lora-r (the heads would be frozen), --loop-layers (the layer indices "
+                             "shift) or --latent-slots")
+        if args.df_pos == "operand" and args.chat_template:
+            raise SystemExit("--df-pos operand maps character offsets of the plain prompt to tokens: no --chat-template")
+        try:
+            df_spec = DFSpec(parse_df_layers(args.df_layers, args.df_max_steps, args.df_L0, args.df_stride),
+                             lam=args.df_lambda, target=args.df_target, dim=args.df_dim, shared_head=args.df_shared_head,
+                             shuffle=args.df_shuffle, max_steps=args.df_max_steps, temperature=args.df_temperature,
+                             seed=args.seed, L0=args.df_L0, stride=args.df_stride, pos=args.df_pos)
+            from cotdistill.depth_forcing import validate_spec
+            validate_spec(df_spec)
+        except ValueError as e:
+            raise SystemExit(f"depth forcing: {e}")
+    elif df_flags:
+        raise SystemExit("--df-L0 / --df-stride / --df-lambda / --df-target / --df-shuffle / --df-max-steps / --df-dim / "
+                         "--df-shared-head / --df-temperature / --df-pos / --df-head-lr need --df-layers")
+    b3_spec = None                   # --b3-arm: the frontier-interchange spec (cotdistill.frontier.B3Spec)
+    b3_flags = (args.b3_layer != 19 or args.b3_dim != 128 or args.b3_p != 0.5 or args.b3_source_grad or
+                args.b3_strict != 1.0 or args.b3_strict_share != 0.5 or args.b3_lambda != 1.0 or args.b3_max_nodes != 4 or
+                args.b3_block_all or args.b3_rotate or args.b3_rotate_lr is not None)
+    if args.b3_arm:
+        if (args.tree_full or args.grouped_aux or args.depth_stages or args.fact_stages or args.facts_always or
+                args.subq != "none" or args.rationale_lm or args.lora_r or args.loop_layers or args.latent_slots or
+                args.df_layers or args.chat_template or args.permute_final):
+            raise SystemExit("--b3-arm (B3: F-SIIT / S-SIIT / CF-AUG / SHAM): for the plain final-question arm (A2: --subq "
+                             "none) without --tree-full, --grouped-aux, --depth-stages, --fact-stages, --facts-always, "
+                             "--rationale-lm, --lora-r, --loop-layers (the layer indices shift), --latent-slots, --df-layers "
+                             "(two hook systems), --chat-template or --permute-final (positions are character offsets of "
+                             "the plain prompt)")
+        try:
+            b3_spec = b3_lib.B3Spec(args.b3_arm, layer=args.b3_layer, dim=args.b3_dim, p=args.b3_p,
+                                    source_grad=args.b3_source_grad, strict=args.b3_strict,
+                                    strict_share=args.b3_strict_share, lam=args.b3_lambda, max_nodes=args.b3_max_nodes,
+                                    rotate=args.b3_rotate, rotate_lr=args.b3_rotate_lr,
+                                    seed=args.seed, block_all=args.b3_block_all)
+            b3_lib.validate_spec(b3_spec)
+        except ValueError as e:
+            raise SystemExit(f"frontier interchange: {e}")
+    elif b3_flags:
+        raise SystemExit("--b3-layer / --b3-dim / --b3-p / --b3-source-grad / --b3-strict / --b3-strict-share / "
+                         "--b3-lambda / --b3-max-nodes / --b3-block-all / --b3-rotate / --b3-rotate-lr need --b3-arm")
+    t_start = time.time()
+
+    torch.manual_seed(args.seed)
+    rng = random.Random(args.seed)
+    # Problem order for the grouped and full-tree arms comes from its own generator, so every arm with the same seed
+    # sees the same problems in the same updates in every epoch (common random numbers for paired comparisons);
+    # sampling inside a group still uses rng.
+    order_rng = random.Random(f"order-{args.seed if args.order_seed is None else args.order_seed}")
+    if args.save_dir and not args.save:
+        raise SystemExit("--save-dir needs --save")
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    save_to = Path(args.save_dir) if args.save_dir else out / "model"    # --save (--save-dir: a job-local dir)
+    fs = None                        # --fsdp: rank, world, device and mesh (cotdistill.fsdp.Dist)
+    if args.fsdp:
+        import torch.distributed as dist
+        from cotdistill import fsdp as fsdp_lib
+        fs = fsdp_lib.init()
+        print(f"fsdp: {fs.world} ranks, device {fs.device}, optimizer {args.fsdp_optim}", flush=True)
+    is_main = fs is None or fs.rank == 0
+    dev = "cuda" if torch.cuda.is_available() else "cpu"
+
+    import transformers
+    tok = transformers.AutoTokenizer.from_pretrained(args.model)
+    if tok.pad_token_id is None:
+        tok.pad_token = tok.eos_token
+    if args.chat_template:
+        print("chat template: every view rendered as", repr(use_chat_template(tok, args.model)), flush=True)
+    dtype = torch.float32 if args.precision == "fp32master" else torch.bfloat16
+    model = load_model(args.model, dtype, args.attn_impl or None)
+    if fs is None:
+        model = model.to(dev)
+    model.config.use_cache = False
+    print(f"readout: special prefix {special_prefix(tok)}, logit soft-cap {logit_softcap(model)}, "
+          f"attention {model.config._attn_implementation}", flush=True)
+    if not args.no_grad_ckpt and hasattr(model, "gradient_checkpointing_enable"):
+        if fs is None:
+            model.gradient_checkpointing_enable()
+        else:                        # non-reentrant checkpointing composes with FSDP2's per-layer hooks
+            model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+    if args.lora_r:                  # frozen backbone + LoRA on attention, MLP and Gated-DeltaNet projections
+        from peft import LoraConfig, get_peft_model
+        names = {n.rsplit(".", 1)[-1] for n, _ in model.named_modules()}
+        targets = [t for t in args.lora_targets.split(",") if t in names]
+        model = get_peft_model(model, LoraConfig(r=args.lora_r, lora_alpha=args.lora_alpha or 2 * args.lora_r,
+                                                 lora_dropout=args.lora_dropout, target_modules=targets, bias="none"))
+        if not args.no_grad_ckpt:
+            model.enable_input_require_grads()
+        print(f"lora r={args.lora_r} targets={targets}", flush=True)
+    loop = None                      # --loop-layers: installed for the whole run (training and every evaluation)
+    loop_counts: dict = {}           # --loop-mix: training micro-batches per drawn T
+    loop_mix, loop_eval_T = (), (args.loop_T,)
+    if loop_spec is not None:        # before sharding: the untied copies must exist to be wrapped (and deep-copied
+        loop_lo, loop_hi, loop_mix, loop_eval_T = loop_spec    # from plain tensors, not DTensors)
+        loop = LayerLoop(text_parts(model)[0], loop_lo, loop_hi, T=args.loop_T, alpha=args.loop_alpha,
+                         untied=args.loop_untied, log=[]).install()
+        new_params = sum(p.numel() for m_ in loop.block for p in m_.parameters()) if args.loop_untied else 0
+        print(f"layer loop: layers {loop_lo}-{loop_hi}, T {args.loop_T}, alpha {args.loop_alpha}, "
+              f"{'untied (' + str(new_params) + ' new parameters)' if args.loop_untied else 'tied'}, "
+              f"mix {list(loop_mix) or 'off'}, eval T {list(loop_eval_T)}", flush=True)
+
+    def set_loop_T(batch: list, at_step: int, salt: str = "") -> None:
+        """--loop-mix: draw the pass count of the next training forward (student.draw_loop_T) and count it; without
+        a mix (or a loop) nothing happens and T stays --loop-T."""
+        if loop is None or not loop_mix:
+            return
+        loop.T = draw_loop_T(args.seed, at_step, batch, loop_mix, salt)
+        loop_counts[loop.T] = loop_counts.get(loop.T, 0) + 1
+    df = None                        # --df-layers: the heads (body.df_heads) and captures; before sharding, so FSDP
+    df_table: dict = {}              # wraps the heads with the root unit; item_id -> targets (training items)
+    df_win = None                    # the log window of the auxiliary loss (DFWindow)
+    if df_spec is not None:
+        try:
+            df = DepthForcing(model, df_spec)
+        except ValueError as e:
+            raise SystemExit(f"depth forcing: {e}")
+        df_win = DFWindow(df_spec.K)
+        print(f"depth forcing: layers {list(df_spec.layers)} (step k <- output of layer k), lambda {df_spec.lam}, "
+              f"target {df_spec.target}, {'shared head' if df_spec.shared_head else str(df_spec.K) + ' heads'}, "
+              f"{df.n_params()} new parameters, position {df_spec.pos}, head lr "
+              f"{args.df_head_lr if args.df_head_lr is not None else str(args.lr) + ' (= --lr)'}"
+              f"{', SHUFFLED targets (DFX)' if df_spec.shuffle else ''}", flush=True)
+
+    def df_term(aux, st: dict):
+        """--df-layers (one GPU): lambda x the micro-batch's mean auxiliary loss, its stats added to the log window.
+        At --df-lambda 0 the term is left out of the graph, so the gradient is the plain arm's bit for bit."""
+        df_win.add(st)
+        return args.df_lambda * aux if args.df_lambda else 0.0
+    b3 = None                        # --b3-arm: the runtime (frontier.Frontier: source pass + slice write at layer L)
+    b3_table: dict = {}              # item_id -> ItemPlan, partner tables (frontier.build_table)
+    b3_win = None                    # the log window (frontier.B3Window)
+    b3_counts: dict = {}             # what the per-epoch substitution drew (plain / full / single / strict / sham / cfaug)
+    if b3_spec is not None:
+        try:
+            b3 = b3_lib.Frontier(model, b3_spec)
+        except ValueError as e:
+            raise SystemExit(f"frontier interchange: {e}")
+        b3_win = b3_lib.B3Window()
+        print(f"frontier interchange: arm {b3_spec.arm}, layer {b3_spec.layer} (output), {b3_spec.dim} dims per node, up to "
+              f"{b3_spec.max_nodes} nodes, p {b3_spec.p}, source {'with' if b3_spec.source_grad else 'without'} gradient, "
+              f"strict weight {b3_spec.strict} (share {b3_spec.strict_share}), lambda {b3_spec.lam}, "
+              + (f"learned subspace Q ({2 * b3_spec.dim} x hidden, lr "
+                 f"{b3_spec.rotate_lr if b3_spec.rotate_lr is not None else str(args.lr) + ' (= --lr)'})"
+                 if b3_spec.rotate else "coordinate slices")
+              + (", block-all (plain examples in the views' blocks, label the gold)" if b3_spec.block_all else ""),
+              flush=True)
+        if b3_spec.rotate and fs is not None and fs.world > 1:
+            raise SystemExit("--b3-rotate: one rank only (Q is outside the FSDP model: its gradient is not reduced over "
+                             "the ranks and the shard norm would count it once per rank)")
+    if fs is not None:               # shard on the CPU-loaded model: each rank moves only its shards to its GPU
+        model = fsdp_lib.shard_model(model, fs.mesh, keep_unsharded=(loop.dl[loop.lo:loop.hi + 1] +
+                                                                     (loop.block if loop.untied else []))
+                                     if loop is not None else ())
+    params = [p for p in model.parameters() if p.requires_grad]
+    b3_rot = []                      # --b3-rotate: Q's parameter (outside the model and params: own group, own clip)
+    if b3 is not None:
+        b3.place(fs.device if fs is not None else dev)
+        b3_rot = b3.rot_params()
+    # --df-head-lr: [base, heads at their own lr]; --b3-rotate: [base, Q at its own lr]; else params itself (one
+    # group, unchanged)
+    groups = param_groups(params, df.heads, args.df_head_lr) if df is not None else (
+        b3_lib.rotation_groups(params, b3_rot, args.b3_rotate_lr if args.b3_rotate_lr is not None else args.lr)
+        if b3_rot else params)
+    trainer = None                   # --fsdp: clipping over the shards + the optimizer setup (cotdistill.fsdp.ShardedOptim)
+    if fs is not None:
+        trainer = fsdp_lib.ShardedOptim(params, args.fsdp_optim, args.lr, fs.device,
+                                        groups=None if groups is params else groups)
+        opt = trainer.opt
+    elif args.optim == "adamw8bit":
+        import bitsandbytes as bnb
+        opt = bnb.optim.AdamW8bit(groups, lr=args.lr, weight_decay=0.0)
+    elif args.optim == "adamw8bit-sr":   # 8-bit block-wise states, bf16 weights written with stochastic rounding
+        try:
+            from torchao.optim import AdamW8bit
+        except ImportError as e:
+            try:                         # torchao < 0.11 keeps the low-bit optimizers under prototype
+                from torchao.prototype.low_bit_optim import AdamW8bit
+            except ImportError:
+                raise SystemExit(f"--optim adamw8bit-sr needs torchao (pip install --no-deps torchao, so pip leaves "
+                                 f"torch alone): {e}")
+        opt = AdamW8bit(groups, lr=args.lr, weight_decay=0.0, bf16_stochastic_round=True)
+    else:
+        opt = torch.optim.AdamW(groups, lr=args.lr, weight_decay=0.0, fused=dev == "cuda")
+
+    df_head_params = [p for p in params if df is not None and id(p) in {id(q) for q in df.heads.parameters()}]
+    b3_rot_gn: list = [None]
+
+    def rot_clip() -> None:
+        """--b3-rotate: Q's own clip at 1.0 before the model's. Q is not in params, so the model's clip coefficient is
+        the rotate-off arm's for the same model gradient (and, under --fsdp, Q stays out of the shard norm, which is
+        all-reduced over the ranks); its pre-clip norm is the log column b3_rot_gnorm."""
+        if b3_rot:
+            b3_rot_gn[0] = float(torch.nn.utils.clip_grad_norm_(b3_rot, 1.0))
+
+    def rot_row() -> dict:
+        """--b3-rotate log columns: Q's distance from its init (frontier.Frontier.rot_stats), the lr its group holds now
+        (the scheduled value) and its last pre-clip gradient norm."""
+        if not b3_rot:
+            return {}
+        return {**b3.rot_stats(), "b3_rot_lr": float(opt.param_groups[-1]["lr"]), "b3_rot_gnorm": b3_rot_gn[0]}
+    df_prev: list = [None]
+
+    def df_head_stats(gnorm) -> dict:
+        """--df-layers log columns: the head group's lr as the optimizer holds it now (the scheduled value), the heads'
+        weight norm, the norm of their change since the previous row (the proof that they move) and their pre-clip
+        gradient norm at the last update (--fsdp: this rank's shards)."""
+        cur = torch.cat([fsdp_lib._local(p).detach().float().reshape(-1).cpu() for p in df_head_params]) if fs is not None \
+            else torch.cat([p.detach().float().reshape(-1).cpu() for p in df_head_params])
+        delta = float((cur - df_prev[0]).norm()) if df_prev[0] is not None else None
+        df_prev[0] = cur
+        return {"df_head_lr_now": float(opt.param_groups[-1]["lr"]), "df_head_norm": float(cur.norm()),
+                "df_head_delta": delta, "df_head_gnorm": gnorm}
+
+    train_items = read_jsonl(args.train)
+    extra_train: dict = {}           # --extra-train: path -> rows appended
+    if args.extra_train:
+        from collections import Counter
+        seen = {it["item_id"] for it in train_items}
+        for xp in [x for x in args.extra_train.split(",") if x]:
+            if not Path(xp).exists():
+                raise SystemExit(f"--extra-train: no file {xp}")
+            rows = read_jsonl(xp)
+            for it in rows:
+                if it["item_id"] in seen:
+                    raise SystemExit(f"--extra-train {xp}: item_id {it['item_id']} is already a training row")
+                seen.add(it["item_id"])
+            train_items += rows
+            extra_train[xp] = len(rows)
+            print(f"extra-train: {len(rows)} rows from {xp} (sources {dict(Counter(it.get('source') for it in rows))})",
+                  flush=True)
+        print(f"extra-train: total training rows {len(train_items)} ({len(train_items) - sum(extra_train.values())} "
+              f"from {args.train})", flush=True)
+    if args.subq_filter != "all" and not any("on_path" in sq for it in train_items for sq in it.get("subqs", [])):
+        raise SystemExit(f"--subq-filter {args.subq_filter}: no node of {args.train} has on_path (decision-chain data "
+                         "only, e.g. DATA=data/student_chain); the filter would drop every node")
+    evals = {kv.split("=", 1)[0]: read_jsonl(kv.split("=", 1)[1]) for kv in args.eval}
+    if df is not None:               # --df-layers: the training targets (DFX: the partners' values), fixed for the run
+        try:
+            df_table = build_table(train_items, df_spec)
+        except ValueError as e:
+            raise SystemExit(f"depth forcing: {e}")
+        if not df_table:
+            raise SystemExit(f"--df-layers: no item of {args.train} has worked steps (field worked_steps)")
+        print(f"depth forcing: {len(df_table)} of {len(train_items)} training items have steps; items supervising step "
+              f"k = 1..{df_spec.K}: {supervised_counts(df_table, df_spec.K, df_spec.pos)}"
+              + (f"; steps without an operand position: {no_operand_counts(df_table, df_spec.K)}"
+                 if df_spec.pos == "operand" else ""), flush=True)
+    b3_items_by = {it["item_id"]: it for it in train_items} if b3 is not None else {}
+    if b3 is not None:               # --b3-arm: programs, boundaries, partners and option blocks of the training items
+        try:
+            b3_table = b3_lib.build_table(train_items, b3_spec)
+        except ValueError as e:
+            raise SystemExit(f"frontier interchange: {e}")
+        c_ = b3_table["_counts"]
+        if not c_["usable"]:
+            raise SystemExit(f"--b3-arm: no item of {args.train} has a program with a non-empty frontier (worked_steps)")
+        print(f"frontier interchange: {c_['usable']} of {c_['with_steps']} items with steps usable (excluded {c_['excluded']}); "
+              f"{c_['boundaries']} boundaries, frontier sizes {c_['size_hist']}; nodes with an operand position "
+              f"{c_['nodes_with_position']}/{c_['nodes']}; partners size/match/samevalue {c_['partners']}; "
+              f"{c_['excluded']['shared_token']} boundaries with two nodes on one token excluded", flush=True)
+    slot = None                      # --latent-slots: the slot spec (registered for every final question evaluate builds)
+    slot_tg: dict = {}               # item_id -> slot targets (LS / LSY: the worked steps; LSR: other problems' steps)
+    slot_loss_on = False             # a decoding pass (LSU and --slot-lambda 0: none)
+    tplans: dict = {}                # TSF / PTAD: item_id -> the teacher view's plan (student.TeacherPlan)
+
+    def build_plans(items: list[dict], kind: str, k: int, overflow: str) -> dict:
+        """TSF / PTAD: every item's teacher plan (shuffled: the partners of student.teacher_partners, keyed by --seed)."""
+        from cotdistill.student import slot_step_map, teacher_partners, teacher_plan
+        try:
+            partners = {}
+            if kind == "shuffled":
+                need = {it["item_id"]: (sum(x is not None for x in slot_step_map(len(worked_steps(it) or []), k,
+                                                                                 overflow)) if k else 1)
+                        for it in items}
+                partners = teacher_partners(items, args.seed, need)
+            by = {it["item_id"]: it for it in items}
+            return {it["item_id"]: teacher_plan(it, kind, k=k, overflow=overflow,
+                                                partner=by.get(partners.get(it["item_id"]))) for it in items}
+        except ValueError as e:
+            raise SystemExit(f"teacher view ({kind}): {e}")
+    slot_stats: dict = {}
+    swap_token = None
+    slot_info: dict = {}             # v2.1 (lens): the resolved layer and the value coverage, in metrics latent_slots
+    if args.latent_slots:
+        from cotdistill.student import (SLOT_POOL, SlotSpec, choose_slot_token, choose_slot_tokens, final_text,
+                                        lens_target_ids, resolve_slot_layer, set_slot_prompt, shuffled_slot_targets,
+                                        shuffled_value_targets, slot_targets, slot_token_id, spec_slot_targets)
+        try:
+            if args.slot_tokens == "distinct":
+                tokens = choose_slot_tokens(tok, args.latent_slots, args.slot_token)
+                token = tokens[0]
+            else:
+                tokens, token = (), choose_slot_token(tok, args.slot_token)
+            if "swap" in parse_slot_necessity(args.slot_necessity):
+                swap_token = choose_slot_token(tok, args.slot_swap_token, avoid=tokens or (token,),
+                                               **({"pool": SLOT_POOL} if tokens else {}))
+                if swap_token == token or swap_token in tokens:
+                    raise ValueError(f"--slot-swap-token {swap_token!r} is a slot token")
+            layer, slot_info = resolve_slot_layer(model, args.slot_layer)
+        except ValueError as e:
+            raise SystemExit(f"--latent-slots: {e}")
+        for name, items in [("train", train_items)] + list(evals.items()):
+            bad = [it["item_id"] for it in items if any(t in it["prompt"] for t in tokens or (token,)) or
+                   swap_token and swap_token in it["prompt"]]
+            if bad:
+                raise SystemExit(f"--latent-slots: the slot (or swap) token occurs in {len(bad)} {name} prompts, e.g. "
+                                 f"{bad[0]}: pick another --slot-token / --slot-swap-token")
+        if args.slot_readout == "decode" and not tokens:
+            slot = SlotSpec(args.latent_slots, args.slot_c, token, args.slot_place)
+        else:
+            slot = SlotSpec(args.latent_slots, args.slot_c, token, args.slot_place, tokens=tokens, layer=layer,
+                            readout=args.slot_readout, fill=args.slot_fill, head_grad=args.slot_head_grad,
+                            pad_weight=args.slot_pad_weight, overflow=args.slot_overflow)
+        try:
+            set_slot_prompt(tok, slot)
+        except ValueError as e:
+            raise SystemExit(f"--latent-slots: {e}")
+        srcs = {x for x in args.tree_sources.split(",") if x} or None     # supervision: the --tree-sources items
+        sup_items = [it for it in train_items if srcs is None or it.get("source") in srcs]
+        if slot.readout == "tsf":            # TSF: the teacher plans give the supervised slots (fill none)
+            from cotdistill.student import plan_slot_targets
+            tplans = build_plans(sup_items, args.slot_teacher, slot.k, args.slot_overflow)
+            slot_tg = {iid: plan_slot_targets(pl, slot.k) for iid, pl in tplans.items()}
+        elif args.slot_target == "shuffled" and slot.readout == "lens":
+            slot_tg = shuffled_value_targets(sup_items, k=slot.k, overflow=args.slot_overflow, fill=slot.fill,
+                                             seed=args.seed)
+        elif args.slot_target == "shuffled":
+            slot_tg = shuffled_slot_targets(sup_items, k=slot.k, overflow=args.slot_overflow, seed=args.seed)
+        elif args.slot_target == "tree" and slot.readout == "lens":
+            slot_tg = {it["item_id"]: spec_slot_targets(it, slot, args.slot_overflow) for it in sup_items}
+        elif args.slot_target == "tree":
+            slot_tg = {it["item_id"]: slot_targets(it, slot.k, args.slot_overflow) for it in sup_items}
+        n_sup = sum(t is not None for ts in slot_tg.values() for t in ts)
+        if args.slot_target != "none" and not n_sup:
+            raise SystemExit(f"--latent-slots: no {args.tree_sources or 'training'} item of {args.train} has worked "
+                             "steps (field worked_steps: scripts/build_gsm8k_si.py, or a numgen program)")
+        slot_loss_on = args.slot_target != "none" and args.slot_lambda > 0 and slot.readout != "tsf"
+        print(f"latent slots: {slot.k} x {slot.c} {token!r} (id {slot_token_id(tok, token)}), {slot.place}, target "
+              f"{args.slot_target}, lambda {args.slot_lambda}, overflow {args.slot_overflow}, "
+              f"{'final views only' if args.slot_final_only else 'with the node views'}; {n_sup} supervised slots over "
+              f"{sum(any(t is not None for t in ts) for ts in slot_tg.values())} items; decoding pass "
+              f"{'on' if slot_loss_on else 'off'}; final question e.g. {final_text(tok, train_items[0]['prompt'])!r}",
+              flush=True)
+        if slot.readout == "lens" or slot.tokens:     # v2.1: the layer, the tokens and the value coverage
+            if slot.readout == "lens":
+                real = [t for it in sup_items for t in spec_slot_targets(it, slot, args.slot_overflow) if t is not None]
+                fits = [lens_target_ids(tok, t, slot.c)[1] for t in real]
+                slot_info.update(value_targets=len(real), value_fit=sum(fits) / max(1, len(fits)),
+                                 lens_example=[tok.convert_ids_to_tokens(lens_target_ids(tok, t, slot.c)[0])
+                                               for t in spec_slot_targets(sup_items[0], slot, args.slot_overflow)
+                                               if t is not None] if sup_items else [])
+            print(f"latent slots v2.1: readout {slot.readout} at layer {slot.layer} {json.dumps(slot_info)}, fill "
+                  f"{slot.fill}, tokens {list(slot.slot_tokens())} (ids {[slot_token_id(tok, t) for t in slot.slot_tokens()]})"
+                  f", swap {swap_token!r}" + (f", pad weight {slot.pad_weight}" if slot.pad_weight != 1.0 else ""),
+                  flush=True)
+    teacher_cfg = None               # TSF / PTAD: the teacher settings (student.TeacherConfig, registered for tok)
+    teacher_log: dict = {}           # metrics "teacher": settings, views, gradient probe, CE guard
+    teacher_state = {"probe": [], "decided": None, "guard": None}   # checkpointed with the run
+    if tsf or ptad:
+        from cotdistill.student import (TeacherConfig, decoder_count, parse_layer_list, set_teacher, slot_step_map,
+                                        teacher_text_marks, teacher_mark_positions)
+        try:
+            t_layers = parse_layer_list(args.slot_align_layers if tsf else args.answer_align_layers,
+                                        decoder_count(model))
+        except ValueError as e:
+            raise SystemExit(f"--{'slot' if tsf else 'answer'}-align-layers: {e}")
+        if tsf and max(t_layers) != slot.layer:
+            raise SystemExit(f"--slot-align-layers {args.slot_align_layers}: the last layer must be the forcing layer "
+                             f"--slot-layer ({slot.layer})")
+        if ptad:
+            tsrc = {x for x in args.tree_sources.split(",") if x} or None
+            tplans = build_plans([it for it in train_items if tsrc is None or it.get("source") in tsrc],
+                                 args.answer_teacher, 0, "merge")
+        n_view = sum(bool(pl.lines) for pl in tplans.values())
+        if not n_view:
+            raise SystemExit(f"teacher view: no {args.tree_sources or 'training'} item of {args.train} has worked steps")
+        teacher_cfg = TeacherConfig("tsf" if tsf else "ptad", args.slot_teacher if tsf else args.answer_teacher,
+                                    tuple(t_layers), force_p=args.slot_force_p if tsf else 0.0,
+                                    teacher_ce=args.slot_teacher_ce if tsf else args.answer_teacher_ce, seed=args.seed,
+                                    smoothing=args.label_smoothing)
+        set_teacher(tok, teacher_cfg)
+        teacher_log = {"mode": teacher_cfg.mode, "kind": teacher_cfg.kind, "layers": list(t_layers),
+                       "lambda": args.slot_align_lambda if tsf else args.answer_align_lambda,
+                       "force_p": teacher_cfg.force_p, "teacher_ce": teacher_cfg.teacher_ce,
+                       "items_with_teacher_view": n_view, "items": len(tplans)}
+        ex_id = next(iid for iid, pl in tplans.items() if pl.lines)
+        ex_it = next(it for it in train_items if it["item_id"] == ex_id)
+        ex_text, ex_marks = teacher_text_marks(f"{ex_it['prompt']}\n\nAnswer:", tplans[ex_id])
+        if tsf:                          # the teacher tokens of the example's slots (logged, decoded)
+            from cotdistill.student import text_ids as _tids
+            ids = special_prefix(tok) + _tids(tok, ex_text)
+            teacher_log["example"] = {"item_id": ex_id, "slots": [
+                None if pp is None else [tok.decode([ids[q]]) for q in pp]
+                for pp in teacher_mark_positions(tok, ex_text, ex_marks, 10 ** 9)]}
+        print(f"teacher view ({teacher_cfg.mode}, {teacher_cfg.kind}): {n_view} of {len(tplans)} items, layers "
+              f"{list(t_layers)}, lambda {teacher_log['lambda']}, force p {teacher_cfg.force_p}, teacher CE "
+              f"{teacher_cfg.teacher_ce}; e.g. {ex_text!r}" + (f"; slot tokens {teacher_log['example']['slots']}"
+                                                              if tsf else ""), flush=True)
+
+    b3_pass = [0]                    # --b3-arm: epoch_examples calls (the first is the counting pass)
+
+    def epoch_examples() -> list[Example]:
+        ex = []
+        for it in train_items:
+            exs = build_examples(it, final=args.final, subq=args.subq, subq_target=args.subq_target,
+                                 lambda_sub=args.lambda_sub, rng=rng, rationale_lm=args.rationale_lm,
+                                 lambda_lm=args.lambda_lm, permute_final=args.permute_final,
+                                 subq_k=args.subq_k, subq_weight=args.subq_weight, subq_frac=args.subq_frac,
+                                 subq_filter=args.subq_filter)
+            if b3 is not None:       # the item's final view replaced by its intervened view (seed-keyed coins)
+                exs = b3_lib.substitute(exs, it, b3_table.get(it["item_id"]), b3_table, b3_spec, b3_items_by,
+                                        b3_pass[0], b3_counts)
+            ex += exs
+        if b3 is not None:
+            b3_pass[0] += 1
+        rng.shuffle(ex)
+        return ex
+
+    def stage_examples(stage: int):
+        def make() -> list[Example]:
+            ex = []
+            for it in train_items:
+                ex += build_stage_examples(it, stage=stage, n_stages=args.depth_stages, k=args.stage_k, rng=rng,
+                                           subq_target=args.subq_target, level_balanced=args.level_balanced)
+            rng.shuffle(ex)
+            return ex
+        return make
+
+    per_step = args.micro_bs * args.grad_accum
+    def fact_stage(stage: int, n: int):
+        def make() -> list[Example]:
+            ex = [e for it in train_items for e in build_fact_examples(it, stage=stage, n_stages=n, final=args.final)]
+            rng.shuffle(ex)
+            return ex
+        return make
+
+    passes = {"n": 0}
+    aux_sources = {x for x in args.aux_sources.split(",") if x}
+
+    def grouped_examples() -> list[Example]:
+        """Problems in shuffled order, each as build_group's [final] + K auxiliary views, so every update covers the same
+        problems with the same number of sequences in every arm. With --fact-withdraw, stated results fade out with
+        training progress (counted in passes over the data)."""
+        items = train_items[:]
+        order_rng.shuffle(items)
+        ex, n = [], len(items)
+        for j, it in enumerate(items):
+            progress = (passes["n"] + j / n) / max(args.epochs, 1e-9)
+            keep = 1.0 if not args.fact_withdraw else max(0.0, 1.0 - progress / args.fact_withdraw)
+            ex += build_group(it, aux_kind=args.aux_kind, k=args.grouped_aux, aux_weight=args.aux_weight, rng=rng,
+                              final=args.final, subq_target=args.subq_target, permute_final=args.permute_final,
+                              keep_prob=keep, aux_active=not aux_sources or it.get("source") in aux_sources,
+                              aux_answer=args.aux_answer, subq_filter=args.subq_filter)
+        passes["n"] += 1
+        return ex
+
+    tree_sources = {x for x in args.tree_sources.split(",") if x} or None
+    if tree_sources and not any(it.get("source") in tree_sources for it in train_items):
+        raise SystemExit(f"--tree-sources {args.tree_sources}: no item of {args.train} has one of these sources")
+    if node_types:                           # every listed type must occur among the nodes that may be asked
+        have = {sq.get("type") for it in train_items if tree_sources is None or it.get("source") in tree_sources
+                for sq in it.get("subqs") or [] if "id" in sq}
+        if node_types - have:
+            raise SystemExit(f"--tree-node-types {args.tree_node_types}: no node of type(s) "
+                             f"{','.join(sorted(node_types - have))} in the {args.tree_sources or 'tree'} items of "
+                             f"{args.train} (types there: {','.join(sorted(str(x) for x in have))})")
+    if value_fmt:                            # GFPQV / GFPQVQ / GFPQO / GFPVB / GFPQVM: value nodes with the rendering
+        from cotdistill.student import value_field                            # must exist in the tree items
+        vfield = value_field(args.node_render)                                 # (vt / vtr: verify_nodes)
+        n_val = sum(bool((sq.get("renderings") or {}).get(args.node_render)) for it in train_items
+                    if tree_sources is None or it.get("source") in tree_sources for sq in it.get(vfield) or [])
+        if not n_val:
+            raise SystemExit(f"--node-format {args.node_format}: no {args.tree_sources or 'tree'} item of {args.train} "
+                             f"has value nodes ({vfield}) with the rendering {args.node_render} "
+                             "(build them with scripts/build_gsm8k_ops.py, verification nodes with "
+                             "scripts/build_gsm8k_vt.py)")
+        print(f"value nodes ({args.node_render}): {n_val}", flush=True)
+    if args.curriculum_steps:                # GFPQC: every tree node of the --tree-sources items needs its step
+        from cotdistill.student import curriculum_stage
+        by_stage: dict = {}
+        for it in train_items:
+            if tree_sources is None or it.get("source") in tree_sources:
+                for sq in it.get("subqs") or []:
+                    if "id" in sq:
+                        try:
+                            c = curriculum_stage(sq.get("step"), args.curriculum_steps)
+                            by_stage[c] = by_stage.get(c, 0) + 1
+                        except ValueError as e:
+                            raise SystemExit(f"--curriculum-steps: {it['item_id']} node {sq['id']}: {e}")
+        if not by_stage:
+            raise SystemExit(f"--curriculum-steps: no {args.tree_sources or 'tree'} item of {args.train} has tree nodes")
+        print(f"curriculum: {args.curriculum_steps} node stages ({args.curriculum_mode}) + the final stage"
+              f"{' with all nodes' if args.curriculum_final_nodes else ''}; nodes by stage (steps beyond "
+              f"{args.curriculum_steps} in the last): {json.dumps(dict(sorted(by_stage.items())))}", flush=True)
+    if args.tree_view in ("statements", "statements+question", "local+ctxparse", "mix"):   # GFP-S, GFPQ, TFLP, MIX: every
+        from cotdistill.treeplan import problem_no_options, statement_block   # view must build (fail before training);
+        view_fn = problem_no_options if args.tree_view == "statements+question" else statement_block   # GFPQ needs
+        for it in train_items:                                              # only the problem without its options
+            if tree_sources is None or it.get("source") in tree_sources:
+                try:
+                    view_fn(it)
+                except ValueError as e:
+                    raise SystemExit(f"--tree-view {args.tree_view}: {e}")
+    placebo_kw = {}
+    if args.tree_target == "placebo":       # GFPSX / GFPQX: every asked item needs a placebo text, no MC node; the bank
+        from cotdistill.student import PlaceboBank, placebo_text      # of "no" sentences: the training items of
+        from cotdistill.treeplan import is_mc_node                    # --tree-sources
+        tree_items = [it for it in train_items if tree_sources is None or it.get("source") in tree_sources]
+        for it in tree_items:
+            if any(is_mc_node(sq) for sq in it.get("subqs") or [] if "id" in sq):
+                raise SystemExit(f"--tree-target placebo: {it['item_id']} has multiple-choice nodes")
+            if any("id" in sq for sq in it.get("subqs") or []):
+                try:
+                    placebo_text(it)
+                except ValueError as e:
+                    raise SystemExit(f"--tree-target placebo: {e}")
+        bank = PlaceboBank(tree_items)
+        placebo_kw = {"target_kind": "placebo", "placebo_bank": bank}
+        print("placebo bank:", ", ".join(f"{k} {len(bank.texts[k])}" for k in sorted(bank.texts, key=str)), "problems",
+              flush=True)
+    tree_stats: dict = {}
+    # GTF's scaffold fades with the update index t = epoch x U + (position of the problem's group in the epoch) // b
+    # over T updates. U (updates per pass) and T are counted here, before the plan's counting pass, from the problems
+    # with a final question (the others give no group); build_examples with permute_final 0 draws nothing from its
+    # rng, so a throwaway generator keeps the training rng untouched. Checked against the plan below.
+    fade = None
+    if args.tree_scaffold:
+        n_fin = sum(any(e.kind == "final" for e in build_examples(it, final=args.final, subq="none",
+                                                                 subq_target=args.subq_target, lambda_sub=0.0,
+                                                                 rng=random.Random(0)))
+                    for it in train_items)
+        upp = math.ceil(n_fin / args.items_per_update)
+        fade = {"U": upp, "T": max(1, math.ceil(args.epochs * upp))}
+
+    si_log: list[dict] = []                  # --si-stages: the chain counts of every pass
+    cur_log: list[dict] = []                 # --curriculum-steps: the problems and views of every pass
+
+    def fulltree_updates(si_stage: int | None = None, cur_stage: int | None = None) -> list[list[Example]]:
+        """Problems in shuffled order, each as [final] + all its node views; items_per_update problems per update
+        (the number of sequences per update varies with tree size). si_stage (--si-stages): the final views carry
+        that stage's worked steps (student.si_group, which draws from no shared generator). cur_stage
+        (--curriculum-steps K): 1..K = node stage j, each problem's node views of that stage only
+        (student.curriculum_item) and no final view, problems without one left out; K + 1 = the final stage, the
+        final views only (--curriculum-final-nodes: the whole group)."""
+        items = train_items[:]
+        order_rng.shuffle(items)
+        st: dict = {}
+        ep = passes["n"]                     # MIX / GTF key their per-node coins by it (checkpointed; the counting
+        passes["n"] += 1                     # pass is 0)
+        b = args.items_per_update
+        groups, ps = [], []
+        sst: dict = {}                       # --si-stages: this pass's chain counts
+        sst_slot: dict = {}                  # --latent-slots: this pass's slot counts
+        sst_t: dict = {}                     # PTAD: this pass's answer-view counts
+        for it in items:
+            p_sc = None
+            if fade is not None:             # GTF: p(t) of the update this problem's group lands in
+                p_sc = scaffold_fade(ep * fade["U"] + len(groups) // b, fade["T"], args.tree_scaffold)
+            src = it
+            node_stage = cur_stage is not None and cur_stage <= args.curriculum_steps
+            if node_stage:                   # --curriculum-steps: this node stage's nodes of a tree item
+                if tree_sources is not None and it.get("source") not in tree_sources:
+                    continue
+                src = curriculum_item(it, stage=cur_stage, n_stages=args.curriculum_steps, mode=args.curriculum_mode)
+            elif cur_stage is not None and not args.curriculum_final_nodes:   # the final stage: final views only
+                src = dict(it, subqs=[])
+            g = build_full_tree(src, mode=args.tree_full, rng=rng, cap=args.tree_cap,
+                                aux_total=args.aux_total, node_format=args.node_format,
+                                final=args.final, eligible_only=args.tree_eligible_only,
+                                subq_target=args.subq_target, permute_final=args.permute_final,
+                                subq_filter=args.subq_filter, view=args.tree_view,
+                                sources=tree_sources, node_weight=args.tree_node_weight, stats=st,
+                                mix_p=args.tree_mix_p, mix_seed=args.seed, mix_epoch=ep, scaffold_p=p_sc,
+                                depth_weight=args.tree_depth_weight, node_types=node_types,
+                                target_seed=args.seed if args.tree_target != "real" else None,
+                                node_render=args.node_render, **placebo_kw)
+            if g and args.tree_pack and any(e.kind == "subq" for e in g):   # GFPSP: the GFPS views, packed
+                g = pack_views(g, tok, statement_block(it), max_len=args.max_len, max_nodes=args.tree_pack,
+                               rng=pack_rng(args.seed, ep, it["item_id"]), stats=st)
+            if g and si_stage is not None and (tree_sources is None or it.get("source") in tree_sources):
+                g = si_group(g, it, stage=si_stage, n_stages=args.si_stages, chain=args.si_chain, seed=args.seed,
+                             epoch=ep, smooth=args.si_smooth, final_only=args.si_final_only, remove=args.si_remove,
+                             stats=sst, mix=args.si_mix)
+            if g and slot is not None:       # --latent-slots: the slot line (+ targets) in the final view
+                tkw = {}
+                if tsf:                      # TSF: the teacher view rides on the final view (TeacherExample)
+                    from cotdistill.student import TeacherPlan
+                    tkw = {"teacher": tplans.get(it["item_id"], TeacherPlan((), (None,) * slot.k))}
+                g = slot_group(g, it, spec=slot, targets=slot_tg.get(it["item_id"]) if slot_tg else None,
+                               lam=args.slot_align_lambda if tsf else args.slot_lambda,
+                               final_only=args.slot_final_only, stats=sst_slot, **tkw)
+            if g and ptad:                   # PTAD: the final view only (A2 prompt) + its teacher view
+                from cotdistill.student import answer_group
+                g = answer_group(g, it, plan=tplans.get(it["item_id"]), lam=args.answer_align_lambda, stats=sst_t)
+            if g and node_stage:             # node stages train no final question
+                g = [e for e in g if e.kind != "final"]
+            if g:
+                groups.append(g)
+                ps.append(p_sc)
+        if tree_opts and not tree_stats:     # the plan's counting pass: views, dropped views, stated results
+            tree_stats.update(st)
+            print("tree views", json.dumps(st, sort_keys=True), flush=True)
+        if slot is not None and not slot_stats:
+            slot_stats.update(sst_slot)
+            print("latent slot views", json.dumps(sst_slot, sort_keys=True), flush=True)
+        if ptad and "views" not in teacher_log:
+            teacher_log["views"] = dict(sst_t)
+            print("answer views", json.dumps(sst_t, sort_keys=True), flush=True)
+        if args.tree_view == "mix":
+            print(f"mix pass {ep}: {st.get('statements_views', 0)} statements views, {st.get('local_views', 0)} local "
+                  "views", flush=True)
+        if si_stage is not None:
+            si_log.append({"pass": ep, "stage": si_stage, **({"mix": True} if args.si_mix else {}), **sst})
+            print(f"si pass {ep} stage {si_stage}/{args.si_stages}{' mix' if args.si_mix else ''}: "
+                  f"{json.dumps(sst, sort_keys=True)}", flush=True)
+        if cur_stage is not None:
+            row = {"pass": ep, "stage": cur_stage if cur_stage <= args.curriculum_steps else "final",
+                   "problems": len(groups), "node_views": sum(e.kind != "final" for g in groups for e in g),
+                   "finals": sum(e.kind == "final" for g in groups for e in g), "updates": -(-len(groups) // b)}
+            cur_log.append(row)
+            print(f"curriculum pass {ep}: {json.dumps(row)}", flush=True)
+        if fade is not None:
+            print(f"scaffold pass {ep}: {st.get('scaffold_views', 0)} scaffold views of "
+                  f"{st.get('scaffold_eligible', 0)} eligible derived nodes, p(t) {ps[0] if ps else 0:.4f} -> "
+                  f"{ps[-1] if ps else 0:.4f} (updates {ep * fade['U']}-{ep * fade['U'] + fade['U'] - 1} of "
+                  f"{fade['T']})", flush=True)
+        return [[e for g in groups[i:i + b] for e in g] for i in range(0, len(groups), b)]
+
+    if args.tree_full and args.si_mix:      # PFX: one mixed stage of all the epochs (si_stage 0 only keys the log)
+        per_step = 1
+        stages = [("simix", (lambda: fulltree_updates(0)), args.epochs)]
+    elif args.tree_full and args.si_stages:   # SI: S + 1 full-tree stages of epochs / (S + 1) each, steps removed stage by
+        per_step = 1                          # stage
+        stages = [(f"si{k}", (lambda k=k: fulltree_updates(k)), args.epochs / (args.si_stages + 1))
+                  for k in range(args.si_stages + 1)]
+    elif args.tree_full and args.curriculum_steps:   # step curriculum: K node stages, then the final questions, epochs
+        per_step = 1                                  # / (K + 1) each
+        stages = [(f"cur{k}" if k <= args.curriculum_steps else "curfinal", (lambda k=k: fulltree_updates(cur_stage=k)),
+                   args.epochs / (args.curriculum_steps + 1)) for k in range(1, args.curriculum_steps + 2)]
+    elif args.tree_full:
+        per_step = 1                 # make() returns whole updates
+        stages = [("fulltree", fulltree_updates, args.epochs)]
+    elif args.grouped_aux:
+        group = (1 + args.grouped_aux) * args.items_per_update
+        if group % args.micro_bs:
+            raise SystemExit(f"(1 + grouped_aux) x items_per_update = {group} must be a multiple of micro_bs")
+        args.grad_accum = group // args.micro_bs
+        per_step = group
+        stages = [("grouped", grouped_examples, args.epochs)]
+    elif args.facts_always:
+        stages = [("facts", fact_stage(0, 0), args.epochs)]
+    elif args.fact_stages:           # fact internalization: stated facts removed shallow-first, then plain finals
+        stages = [(f"facts{s}", fact_stage(s, args.fact_stages), 1.0) for s in range(args.fact_stages)]
+        stages.append(("final", epoch_examples, args.epochs))
+    elif args.depth_stages:          # sub-question stages by depth, then the final questions, each with its own schedule
+        stages = [(f"depth{s}", stage_examples(s), 1.0) for s in range(args.depth_stages)]
+        def final_examples() -> list[Example]:
+            ex = [e for it in train_items for e in build_examples(
+                it, final=args.final, subq="none", subq_target=args.subq_target, lambda_sub=args.lambda_sub, rng=rng,
+                permute_final=args.permute_final)]
+            if args.final_replay:            # keep the whole tree in play while the final answer is calibrated
+                ex += [e for it in train_items for e in build_stage_examples(
+                    it, stage=args.depth_stages - 1, n_stages=args.depth_stages, k=args.final_replay, rng=rng,
+                    subq_target=args.subq_target, p_new=0.0, level_balanced=args.level_balanced)]
+            rng.shuffle(ex)
+            return ex
+        stages.append(("final", final_examples, args.epochs))
+    else:
+        stages = [("all", epoch_examples, args.epochs)]
+    plan = []
+    for si_k, (name, make, epochs) in enumerate(stages):
+        # SI: every stage has the same updates per pass (one group per problem with a final), so one counting pass as
+        # in the single-stage full-tree loop (the generators then stand where GFPQ's do: SIY in rng lockstep with it)
+        n = len(make()) if not args.si_stages or si_k == 0 else plan[0][2]
+        # (a curriculum node stage without any problem, e.g. --curriculum-mode exact on a few items: no update)
+        plan.append((name, make, n, 0 if args.curriculum_steps and not n else max(1, math.ceil(epochs * n / per_step))))
+        print(f"stage {name}: {n} examples per pass, {plan[-1][3]} steps", flush=True)
+    cur_log.clear()                          # the counting passes are not training
+    if args.si_stages:
+        si_log.clear()                       # the counting pass is not training
+        if not any(worked_steps(it) for it in train_items if tree_sources is None or it.get("source") in tree_sources):
+            raise SystemExit(f"--si-stages: no {args.tree_sources or 'training'} item of {args.train} has worked "
+                             "steps (field worked_steps: scripts/build_gsm8k_si.py, or a numgen program)")
+    total_steps = sum(x[3] for x in plan)
+    passes["n"] = 0                  # the counting pass above does not count as training progress
+    if b3 is not None:               # nor do its draws (epoch 0 is the first training pass)
+        b3_counts.clear()
+        b3_pass[0] = 0
+    if fade is not None and (fade["U"], fade["T"]) != (plan[-1][2], total_steps):
+        raise SystemExit(f"--tree-scaffold: counted {fade['U']} updates per pass and {fade['T']} in all, the plan has "
+                         f"{plan[-1][2]} and {total_steps}")
+    print(f"examples/epoch={plan[-1][2]} steps={total_steps} params={sum(p.numel() for p in params)/1e9:.2f}B "
+          f"device={dev}", flush=True)
+
+    cache: dict = {}
+    step, micro, t0, seen_tok = 0, 0, time.time(), 0
+    history, trajectory = [], []
+    epochs_total = args.epochs if not args.depth_stages and not args.fact_stages else None
+    eval_steps = {}
+    for e in (float(x) for x in args.eval_at.split(",") if x):
+        assert epochs_total, "--eval-at needs a single-stage run (no --depth-stages/--fact-stages)"
+        eval_steps[max(1, round(e / epochs_total * total_steps))] = e
+    if args.si_stages or args.curriculum_steps:   # the end of every stage but the last (the final evaluation follows)
+        done = 0
+        for k, (_, _, _, stage_steps) in enumerate(plan[:-1]):
+            done += stage_steps
+            eval_steps[done] = round((k + 1) * args.epochs / (len(plan)), 6)
+    mid_names = [x for x in args.eval_mid.split(",") if x in evals] or list(evals)   # absent names (smoke) skipped
+    mid_sets = {}
+    for name in mid_names:
+        items = evals[name]
+        k = max(1, -(-len(items) // args.eval_mid_max))
+        mid_sets[name] = items[::k]
+
+    detect_sets: list = []               # TSF / PTAD: the --eval-mid sets of the "use" detector / held-out alignment
+    if teacher_cfg is not None and args.slot_detect_sets != "none":
+        want = [x for x in args.slot_detect_sets.split(",") if x] if args.slot_detect_sets != "auto" else list(mid_sets)
+        detect_sets = [x for x in want if x in mid_sets and any(worked_steps(it) for it in mid_sets[x])]
+        print(f"teacher detector sets: {detect_sets or 'none'}", flush=True)
+
+    def teacher_detect(row: dict, mid_preds: dict) -> None:
+        """TSF at an --eval-at point (memo section 3.8 G5): on each detector set, accuracy with the layer-L slot states
+        mean-ablated (training means), teacher-forced (the item's own teacher vectors) and forced with another item's
+        (<set>@mean / @force / @forceswap: acc, acc_drop = intact - mode, the chained-item numbers of tsf_subsets),
+        the chained-item summary (row[set]["detect"]: force - intact, intact - mean, intact - forceswap) and the
+        alignment loss against the item's own teacher (row[set]["align"]); the alignment on the first
+        --teacher-align-train-n training items (row["align_train"]). PTAD: the held-out / training alignment only."""
+        from cotdistill.student import (_SlotMean, ptad_eval, slot_layer_means, tsf_eval, tsf_subsets)
+        bs, ml = args.eval_bs, args.eval_max_len
+        if teacher_cfg.mode == "ptad":
+            for name in detect_sets:
+                row[name]["align"] = ptad_eval(model, tok, mid_sets[name], max_len=ml, bs=bs, layers=teacher_cfg.layers)
+            if args.teacher_align_train_n:
+                row["align_train"] = ptad_eval(model, tok, train_items[:args.teacher_align_train_n], max_len=ml, bs=bs,
+                                               layers=teacher_cfg.layers)
+            return
+        means = None
+        for name in detect_sets:
+            items, ip = mid_sets[name], mid_preds[name]
+            if means is None:
+                means = slot_layer_means(model, tok, train_items[:args.slot_mean_n], layer=slot.layer, max_len=ml, bs=bs)
+            with _SlotMean(model, tok, slot.layer, means):
+                res = {"mean": evaluate(model, tok, items, ml, bs, cache)}
+            res.update(tsf_eval(model, tok, items, max_len=ml, bs=bs, modes=("force", "forceswap"),
+                                align_layers=teacher_cfg.layers))
+            det = {}
+            for mode in ("mean", "force", "forceswap"):
+                mm, pr = res[mode]
+                sub = tsf_subsets(items, pr, ip, slot)
+                row[f"{name}@{mode}"] = {**{k: mm[k] for k in ("acc", "nll", "ece") if k in mm},
+                                         "acc_drop": row[name].get("acc", 0.0) - mm.get("acc", 0.0), **sub}
+                det[f"{mode}_chain"] = sub["acc_chain"]
+            det.update(n_chain=sub["n_chain"], intact_chain=sub["acc_intact_chain"])
+            if det["intact_chain"] is not None:
+                det.update(force_minus_intact=det["force_chain"] - det["intact_chain"],
+                           intact_minus_mean=det["intact_chain"] - det["mean_chain"],
+                           intact_minus_forceswap=det["intact_chain"] - det["forceswap_chain"])
+            row[name]["detect"] = det
+            row[name]["align"] = res["align"]
+        if args.teacher_align_train_n:
+            row["align_train"] = tsf_eval(model, tok, train_items[:args.teacher_align_train_n], max_len=ml, bs=bs,
+                                          modes=(), align_layers=teacher_cfg.layers).get("align")
+
+    def mid_eval(at_step: int) -> None:
+        if loop is not None:                 # --loop-mix: the evaluations run at the deployment T
+            loop.T = args.loop_T
+        row = {"step": at_step, "epoch": eval_steps[at_step], "s_elapsed": round(time.time() - t0, 1)}
+        mid_preds = {}
+        for name, items in mid_sets.items():
+            m, preds = evaluate(model, tok, items, args.eval_max_len, args.eval_bs, cache)
+            row[name] = {k: m[k] for k in ("acc", "nll", "ece", "brier") if k in m}
+            mid_preds[name] = preds
+            if args.eval_mid_preds and is_main:          # opt-in: the predictions of this point
+                (out / "mid").mkdir(exist_ok=True)
+                with open(out / "mid" / f"preds_{name}_e{eval_steps[at_step]:g}.jsonl", "w") as f:
+                    for p in preds:
+                        f.write(json.dumps(p) + "\n")
+        if teacher_cfg is not None:
+            teacher_detect(row, mid_preds)
+            if args.teacher_ce_guard and teacher_state["guard"] is None and mid_sets:   # memo 3.10: once, at the
+                first = next(iter(mid_sets))                                             # first point
+                acc = row[first].get("acc")
+                low = acc is not None and acc < args.teacher_ce_guard - 0.03
+                if low:
+                    teacher_cfg.teacher_ce = 0.25
+                teacher_state["guard"] = {"set": first, "epoch": eval_steps[at_step], "acc": acc,
+                                          "ref": args.teacher_ce_guard, "lowered": low,
+                                          "teacher_ce": teacher_cfg.teacher_ce}
+                print("teacher CE guard", json.dumps(teacher_state["guard"]), flush=True)
+        trajectory.append(row)
+        print("trajectory", json.dumps(row), flush=True)
+        if is_main:
+            (out / "trajectory.json").write_text(json.dumps(trajectory, indent=1))
+
+    # Resume (full-tree loop only): <out>/ckpt holds the weights, the optimizer and scheduler state, the counters, every
+    # RNG state and the rest of the current epoch's updates. It is written to ckpt.tmp (state.pt last, by rename, so
+    # ckpt.tmp/state.pt marks a complete write) and swapped in by two renames; a kill at any point leaves a complete
+    # checkpoint (ckpt; between the renames the new ckpt.tmp, else ckpt.old), except during a --ckpt-single write.
+    ck_dir, train_args = out / "ckpt", {k: v for k, v in vars(args).items() if k not in RESUME_FREE}
+    ck_tmp, ck_old = out / "ckpt.tmp", out / "ckpt.old"
+    resume = None
+    stop_mark = out / "planned_stop"   # --fsdp: torchrun turns the ranks' exit code 3 into 1, so the job script reads this
+    if resumable:
+        if is_main:
+            if ck_dir.exists() and (ck_tmp / "state.pt").exists():   # killed after a complete write, before the swap
+                shutil.rmtree(ck_dir)
+            if not ck_dir.exists():
+                for d in (ck_tmp, ck_old):   # the newest complete one
+                    if (d / "state.pt").exists():
+                        d.rename(ck_dir)
+                        print(f"recovered {d} as {ck_dir}", flush=True)
+                        break
+                else:
+                    if ck_tmp.exists():
+                        print(f"{ck_tmp} is incomplete (killed during a write) and there is no other checkpoint: "
+                              "training starts from the beginning", flush=True)
+            shutil.rmtree(ck_tmp, ignore_errors=True)
+            shutil.rmtree(ck_old, ignore_errors=True)
+            if fs is not None:
+                stop_mark.unlink(missing_ok=True)
+        if fs is not None:
+            fs.barrier()
+        if ck_dir.exists():
+            resume = torch.load(ck_dir / "state.pt", map_location="cpu", weights_only=False)
+            diff = {k: (resume["args"].get(k, NEW_ARG_DEFAULTS.get(k)), v) for k, v in train_args.items()
+                    if resume["args"].get(k, NEW_ARG_DEFAULTS.get(k)) != v}
+            if diff:
+                raise SystemExit(f"{ck_dir} was written with other training arguments (checkpoint, now): {diff}")
+            if fs is None:
+                if not (ck_dir / "optim.pt").exists():
+                    raise SystemExit(f"{ck_dir} has no optimizer state")
+                model.load_state_dict(torch.load(ck_dir / "model.pt", map_location="cpu", mmap=True, weights_only=True))
+            else:                            # sharded model (torch.distributed.checkpoint), one optimizer file per rank
+                if resume.get("world") != fs.world or not (ck_dir / f"optim.{fs.rank}.pt").exists():
+                    raise SystemExit(f"{ck_dir} was written by {resume.get('world')} ranks, this run has {fs.world}")
+                fsdp_lib.load_sharded(model, ck_dir / "model")
+            rng.setstate(resume["rng"])          # after the plan's counting pass, which consumed both generators
+            order_rng.setstate(resume["order_rng"])
+            torch.set_rng_state(resume["torch_rng"])
+            if dev == "cuda" and resume["cuda_rng"] is not None:
+                torch.cuda.set_rng_state_all(resume["cuda_rng"])
+            passes["n"], micro, seen_tok = resume["passes"], resume["micro"], resume["seen_tok"]
+            history, trajectory = resume["history"], resume["trajectory"]
+            if teacher_cfg is not None and "teacher_state" in resume:   # TSF / PTAD: probe rows, rescale, CE guard
+                teacher_state.update(resume["teacher_state"]["state"])
+                teacher_cfg.scale = resume["teacher_state"]["scale"]
+                teacher_cfg.teacher_ce = resume["teacher_state"]["teacher_ce"]
+            t0 = time.time() - resume["elapsed"]    # s_per_step stays an average over the whole run
+
+    def teacher_ckpt() -> dict:
+        """TSF / PTAD: the run-time teacher state of a checkpoint (nothing for every other arm)."""
+        if teacher_cfg is None:
+            return {}
+        return {"teacher_state": {"state": dict(teacher_state), "scale": teacher_cfg.scale,
+                                  "teacher_ce": teacher_cfg.teacher_ce}}
+
+    def save_ckpt(sched, upd_iter: list) -> None:
+        tmp, old = ck_tmp, ck_old
+        if fs is not None:               # sharded: model via torch.distributed.checkpoint, optimizer + CUDA RNG per rank
+            if is_main:
+                shutil.rmtree(tmp, ignore_errors=True)
+                shutil.rmtree(old, ignore_errors=True)
+                if args.ckpt_single:
+                    shutil.rmtree(ck_dir, ignore_errors=True)
+                tmp.mkdir()
+            fs.barrier()
+            fsdp_lib.save_sharded(model, tmp / "model")
+            torch.save({"optim": opt.state_dict(), "cuda_rng": torch.cuda.get_rng_state() if dev == "cuda" else None},
+                       tmp / f"optim.{fs.rank}.pt")
+            fs.barrier()
+            if is_main:
+                torch.save({"args": train_args, "step": step, "micro": micro, "seen_tok": seen_tok, "passes": passes["n"],
+                            "elapsed": time.time() - t0, "sched": sched.state_dict(), "upd_iter": upd_iter,
+                            "history": history, "trajectory": trajectory, "rng": rng.getstate(),
+                            "order_rng": order_rng.getstate(), "torch_rng": torch.get_rng_state(), "cuda_rng": None,
+                            "world": fs.world, **teacher_ckpt()}, tmp / "state.part")
+                (tmp / "state.part").rename(tmp / "state.pt")
+                if ck_dir.exists():
+                    ck_dir.rename(old)
+                tmp.rename(ck_dir)
+                shutil.rmtree(old, ignore_errors=True)
+            fs.barrier()
+            print(f"checkpoint {ck_dir} at step {step} ({time.time() - t_start:.0f} s into this process)", flush=True)
+            return
+        shutil.rmtree(tmp, ignore_errors=True)
+        shutil.rmtree(old, ignore_errors=True)
+        if args.ckpt_single:             # disk: one checkpoint at a time
+            shutil.rmtree(ck_dir, ignore_errors=True)
+        tmp.mkdir()
+        torch.save(model.state_dict(), tmp / "model.pt")
+        torch.save(opt.state_dict(), tmp / "optim.pt")
+        torch.save({"args": train_args, "step": step, "micro": micro, "seen_tok": seen_tok, "passes": passes["n"],
+                    "elapsed": time.time() - t0, "sched": sched.state_dict(), "upd_iter": upd_iter,
+                    "history": history, "trajectory": trajectory, "rng": rng.getstate(),
+                    "order_rng": order_rng.getstate(), "torch_rng": torch.get_rng_state(),
+                    "cuda_rng": torch.cuda.get_rng_state_all() if dev == "cuda" else None, **teacher_ckpt()},
+                   tmp / "state.part")
+        (tmp / "state.part").rename(tmp / "state.pt")
+        if ck_dir.exists():
+            ck_dir.rename(old)
+        tmp.rename(ck_dir)
+        shutil.rmtree(old, ignore_errors=True)
+        print(f"checkpoint {ck_dir} at step {step} ({time.time() - t_start:.0f} s into this process)", flush=True)
+
+    def probe_loss(z, rd, tp, term: str, norm: float):
+        """--teacher-grad-probe: one loss term of a TSF / PTAD micro-batch (the others at weight 0, so the backward
+        covers the same graph)."""
+        parts = {"ce": kl_loss(z, rd, args.label_smoothing) * len(rd), "teacher": tp["teacher"], "align": tp["align"]}
+        return sum((1.0 if k == term else 0.0) * v for k, v in parts.items()) / norm
+
+    def probe_decide(at: int) -> None:
+        """After the last --teacher-grad-probe update: the median ratio of the alignment loss's gradient norm to the
+        student CE's; outside [0.3, 3] the alignment loss is rescaled once to ratio 1 (teacher_cfg.scale)."""
+        rows = teacher_state["probe"]
+        ratios = sorted(r["align"] / r["ce"] for r in rows if r["ce"] > 0)
+        med = (ratios[len(ratios) // 2] if len(ratios) % 2 else 0.5 * (ratios[len(ratios) // 2 - 1] +
+                                                                        ratios[len(ratios) // 2])) if ratios else None
+        scale = 1.0
+        if med is not None and med > 0 and not 0.3 <= med <= 3.0:
+            scale = 1.0 / med
+        teacher_cfg.scale = scale
+        teacher_state["decided"] = {"after_step": at, "ratio_median": med, "scale": scale, "rescaled": scale != 1.0}
+        print("teacher grad probe", json.dumps(teacher_state["decided"]), flush=True)
+
+    def fsdp_update(upd: list[Example], norm: float, at_step: int = 0) -> dict:
+        """--fsdp: one optimizer update over the sequences upd, split across the ranks (cotdistill.fsdp.split_update).
+        Each sequence's loss is weight x CE / norm as in the single-GPU loops and FSDP sums the ranks' gradients, so
+        the update is the single-GPU one. Clips, steps and zeroes the gradients (the caller steps the scheduler).
+        Returns the update's loss over all ranks, its split by kind (Tree Forcing arms), the pre-clip gradient norm,
+        forward passes (all ranks, pads included), padded tokens and the timings."""
+        t_a = time.time()
+        parts = fsdp_lib.split_update(tok, upd, args.max_len, args.micro_bs, args.token_budget,
+                                      args.token_budget_seqs, fs.world)
+        n_df = (4 + 2 * df_spec.K) if df is not None else 0   # --df-layers: aux sum, micro-batches with pairs, skipped
+        #  (no operand, truncated), [c, n] per k
+        n_b3 = b3_lib.STAT_LEN if b3 is not None else 0            # --b3-arm: the stats vector (frontier.stats_vector)
+        acc = torch.zeros((6 if not slot_loss_on else 9) + (10 if teacher_cfg is not None else 0) + n_df + n_b3,
+                          dtype=torch.float64,
+                          device=fs.device)  # loss, final, node, node CE sum, nodes, padded tok (+ slot loss, slot CE
+        probe = None                         # sum, slots; TSF / PTAD: align loss, align sum, aligned, teacher loss,
+        if teacher_cfg is not None and at_step in probe_steps:   # teacher CE sum, views, forced mbs, mbs, forced
+            probe = {"step": at_step}                            # examples, marks cut)
+            for term in ("ce", "teacher", "align"):  # the update's gradient of one term at a time (every rank)
+                for mb, pad, ntok in parts[fs.rank]:
+                    with torch.autocast("cuda", dtype=torch.bfloat16, enabled=dev == "cuda"):
+                        z, tp, _ = teacher_forward(model, tok, mb, args.max_len, cache, step=at_step)
+                        loss = probe_loss(z, mb, tp, term, norm)
+                    loss.backward()
+                probe[term] = float(fsdp_lib.sharded_grad_norm(params, fs.device))
+                trainer.zero_grad()
+        for k, (mb, pad, ntok) in enumerate(parts[fs.rank]):
+            set_loop_T(upd, at_step, f"mb{k}")   # the same T on every rank's k-th micro-batch (same collectives)
+            with torch.autocast("cuda", dtype=torch.bfloat16, enabled=dev == "cuda"):
+                if teacher_cfg is not None:  # TSF / PTAD: teacher pass + student pass on every rank (pads at weight 0)
+                    z, tp, tst = teacher_forward(model, tok, mb, args.max_len, cache, step=at_step)
+                    loss = (kl_loss(z, mb, args.label_smoothing) * len(mb) + tp["teacher"] + tp["align"]) / norm
+                elif slot_loss_on:       # every rank runs both passes (pads at weight 0): same collectives
+                    z, sl, sls = slot_forward(model, tok, mb, args.max_len, cache)
+                    loss = (kl_loss(z, mb, args.label_smoothing) * len(mb) + sl) / norm
+                elif df is not None:     # DF / DFX: the same logits + the auxiliary loss (every rank, pads at weight 0)
+                    z, df_aux, df_st = df.call(model, tok, mb, args.max_len, cache, df_table)
+                    loss = kl_loss(z, mb, args.label_smoothing) * len(mb) / norm
+                    if args.df_lambda:
+                        loss = loss + args.df_lambda * df_aux * len(mb) / norm
+                elif b3 is not None:     # B3: source pass + receiver pass with the slice write (every rank, pads at 0)
+                    z, b3_st = b3.call(model, tok, mb, args.max_len, cache)
+                    loss = kl_loss(z, mb, args.label_smoothing) * len(mb) / norm
+                else:
+                    z = label_logits(model, tok, mb, args.max_len, cache)
+                    loss = kl_loss(z, mb, args.label_smoothing) * len(mb) / norm
+                if args.lambda_brier:
+                    loss = loss + args.lambda_brier * brier_loss(z, mb) * len(mb) / norm
+            loss.backward()
+            if pad:                      # weight 0: no loss, no gradient, only the collectives
+                continue
+            acc[0] += loss.detach().double()
+            acc[5] += ntok
+            if b3 is not None:           # the B3 stats vector (per mode n / CE / hits, cut positions, source forwards)
+                o3 = acc.numel() - n_b3
+                for q_, v_ in enumerate(b3_lib.stats_vector(b3_st)):
+                    acc[o3 + q_] += v_
+            if df is not None:           # the auxiliary loss (micro-batches with pairs) and the probe hits per k
+                o = acc.numel() - n_df
+                if df_st["n"]:
+                    acc[o] += df_st["aux"]
+                    acc[o + 1] += 1
+                acc[o + 2] += df_st["skipped"]["no_operand"]
+                acc[o + 3] += df_st["skipped"]["truncated"]
+                for k_, (c_, n_) in df_st["per_k"].items():
+                    acc[o + 2 + 2 * k_] += c_
+                    acc[o + 3 + 2 * k_] += n_
+            if slot_loss_on:
+                acc[6] += sl.item() / norm
+                acc[7] += sls["slot_ce_sum"]
+                acc[8] += sls["slot_n"]
+            if teacher_cfg is not None:
+                for q, v in enumerate((tp["align"].detach().item() / norm, tst["align_sum"], tst["slot_n"],
+                                       tp["teacher"].detach().item() / norm, tst["teacher_ce_sum"], tst["teacher_n"],
+                                       tst["forced"], 1, tst["forced_n"], tst["marks_cut"])):
+                    acc[6 + q] += v
+            if tree_opts:
+                with torch.no_grad():
+                    for zz, e in zip(z, mb):
+                        ce = kl_loss([zz.detach().float()], [dataclasses.replace(e, weight=1.0)],
+                                     args.label_smoothing).double()
+                        acc[1 if e.kind == "final" else 2] += e.weight * ce / norm
+                        if e.kind != "final":
+                            acc[3] += ce
+                            acc[4] += 1
+        if dev == "cuda":
+            torch.cuda.synchronize()
+        t_b = time.time()
+        dist.all_reduce(acc)
+        df_gn = float(fsdp_lib.sharded_grad_norm(df_head_params, fs.device)) if df is not None else None
+        rot_clip()
+        gnorm = float(trainer.clip_grad_norm_(1.0))
+        t_c = time.time()
+        trainer.step()
+        trainer.zero_grad()
+        a = acc.tolist()
+        slot_part = {"loss_slot": a[6], "slot_ce_sum": a[7], "slot_n": int(a[8])} if slot_loss_on else {}
+        if teacher_cfg is not None:
+            slot_part = dict(zip(("align", "align_sum", "align_n", "teacher", "teacher_ce", "teacher_n", "forced_mb",
+                                  "mb", "forced_n", "marks_cut"), a[6:16]), probe=probe)
+        return {"loss": a[0], "loss_final": a[1], "loss_node": a[2], "node_ce": a[3] / max(1.0, a[4]), "gnorm": gnorm,
+                "fwd": len(parts[fs.rank]) * fs.world, "pad_fwd": sum(x[1] for r in parts for x in r),
+                "pad_tok": int(a[5]), "fb_s": t_b - t_a, "clip_s": t_c - t_b, "opt_s": time.time() - t_c,
+                **{k: v for k, v in trainer.timing.items() if k != "opt_step_s"}, **slot_part, "df_gnorm": df_gn,
+                **({"b3": a[-n_b3:]} if b3 is not None else {}),
+                **({"df": (a[-n_df], int(a[-n_df + 1]), [[int(a[-n_df + 2 + 2 * k_]), int(a[-n_df + 3 + 2 * k_])]
+                                                         for k_ in range(1, df_spec.K + 1)],
+                           int(a[-n_df + 2]), int(a[-n_df + 3]))} if df is not None else {})}
+
+    def fsdp_row(fu: dict) -> dict:
+        """--fsdp log columns: the update's loss, forwards, padded tokens, time split and per-rank memory (collective)."""
+        upd_s = fu["fb_s"] + fu["clip_s"] + fu["opt_s"]
+        r = {"upd_loss": fu["loss"], "fwd": fu["fwd"], "pad_fwd": fu["pad_fwd"], "pad_tok": fu["pad_tok"],
+             "upd_s": round(upd_s, 3), "fb_s": round(fu["fb_s"], 3), "clip_s": round(fu["clip_s"], 3),
+             "opt_s": round(fu["opt_s"], 3), "pad_tok_per_s": round(fu["pad_tok"] / max(upd_s, 1e-9), 1)}
+        r.update({k: round(v, 3) for k, v in fu.items() if k in ("step_s", "d2h_wait_s")})
+        r.update(fsdp_lib.rank_stats(fs.device))
+        return r
+
+    last_ckpt = time.time()
+    model.train()
+    reset_stages = args.reset_optim or bool(args.si_stages) and not args.si_keep_optim
+    gsched = None                            # --si-stages with --si-schedule global: one schedule over every stage
+    if args.si_stages and args.si_schedule == "global" or args.curriculum_steps:
+        gwarm = max(1, int(args.warmup * total_steps))
+        gsched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s, w=gwarm, t=total_steps: min(1.0, (s + 1) / w) * 0.5 * (
+            1 + math.cos(math.pi * min(1.0, s / t))))
+    for si, (name, make, _, stage_steps) in enumerate(plan):
+        if reset_stages and si > 0:
+            if trainer is not None:
+                trainer.reset_state()
+            else:
+                opt.state.clear()
+        if gsched is not None:
+            sched = gsched
+        else:
+            warm = max(1, int(args.warmup * stage_steps))
+            sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s, w=warm, t=stage_steps: min(1.0, (s + 1) / w) * 0.5 * (
+                1 + math.cos(math.pi * min(1.0, s / t))))
+        ex_iter: list[Example] = []
+        end = step + stage_steps
+        upd_iter: list[list[Example]] = []
+        if resume is not None:           # single-stage full-tree run; after the scheduler, whose constructor sets the LR
+            if fs is None:
+                opt.load_state_dict(torch.load(ck_dir / "optim.pt", map_location="cpu", weights_only=False))
+            else:
+                ost = torch.load(ck_dir / f"optim.{fs.rank}.pt", map_location="cpu", weights_only=False)
+                opt.load_state_dict(ost["optim"])
+                if ost["cuda_rng"] is not None:
+                    torch.cuda.set_rng_state(ost["cuda_rng"])
+            sched.load_state_dict(resume["sched"])
+            step, upd_iter = resume["step"], resume["upd_iter"]
+            print(f"resumed from {ck_dir} at step {step}", flush=True)
+        gwin: list[float] = []           # pre-clip gradient norms since the last log row (Tree Forcing arms)
+        while (name == "fulltree" or name.startswith("si") or name.startswith("cur")) and step < end:
+            # One problem group per update; the loss is scaled by 1 / (3 x items_per_update), the per-sequence
+            # normalisation of the 1 final + 2 auxiliary grouped arms, so the learning-rate scale is comparable.
+            if not upd_iter:
+                upd_iter = make()
+            upd, upd_iter = upd_iter[0], upd_iter[1:]
+            norm, upd_loss = 3 * args.items_per_update, 0.0
+            split = {"final": 0.0, "subq": 0.0, "node_ce": 0.0, "node_n": 0}
+            if slot_loss_on:
+                split.update(slot=0.0, slot_ce=0.0, slot_n=0)
+            if teacher_cfg is not None:      # TSF / PTAD: align loss, teacher CE, forcing counts
+                split.update(align=0.0, align_sum=0.0, align_n=0, teacher=0.0, teacher_ce=0.0, teacher_n=0,
+                             forced_mb=0, mb=0, forced_n=0, marks_cut=0)
+            if fs is not None:           # the same sequences split across the ranks, gradients summed
+                fu = fsdp_update(upd, norm, step)
+                upd_loss = fu["loss"]
+                split.update(final=fu["loss_final"], subq=fu["loss_node"], node_ce=fu["node_ce"], node_n=1)
+                if slot_loss_on:
+                    split.update(slot=fu["loss_slot"], slot_ce=fu["slot_ce_sum"], slot_n=fu["slot_n"])
+                if teacher_cfg is not None:
+                    split.update({k: fu[k] for k in ("align", "align_sum", "align_n", "teacher", "teacher_ce",
+                                                     "teacher_n", "forced_mb", "mb", "forced_n", "marks_cut")})
+                    if fu["probe"] is not None:
+                        teacher_state["probe"].append(fu["probe"])
+                seen_tok += sum(min(args.max_len, len(e.text) // 3) for e in upd)
+                if tree_opts:
+                    gwin.append(fu["gnorm"])
+                sched.step()
+            else:
+                # micro_bs chunks, or length-sorted micro-batches of at most token_budget padded tokens
+                mbs = micro_batches(tok, upd, args.max_len, args.micro_bs, args.token_budget, args.token_budget_seqs)
+                if teacher_cfg is not None and step in probe_steps:   # TSF / PTAD: one term's gradient at a time
+                    prow = {"step": step}
+                    for term in ("ce", "teacher", "align"):
+                        for mb in mbs:
+                            with torch.autocast("cuda", dtype=torch.bfloat16, enabled=dev == "cuda"):
+                                z, tp, _ = teacher_forward(model, tok, mb, args.max_len, cache, step=step)
+                                loss = probe_loss(z, readouts(mb), tp, term, norm)
+                            loss.backward()
+                        gs = [p_.grad for p_ in params if p_.grad is not None]
+                        prow[term] = float(torch.nn.utils.get_total_norm(gs)) if gs else 0.0
+                        opt.zero_grad(set_to_none=True)
+                    teacher_state["probe"].append(prow)
+                for mb in mbs:
+                    rd = readouts(mb)                  # --tree-pack: one entry per node view of a pack; else mb
+                    set_loop_T(mb, step)
+                    with torch.autocast("cuda", dtype=torch.bfloat16, enabled=dev == "cuda"):
+                        if teacher_cfg is not None:    # TSF / PTAD: the teacher pass + the student pass (forced or not)
+                            z, tp, tst = teacher_forward(model, tok, mb, args.max_len, cache, step=step)
+                            loss = (kl_loss(z, rd, args.label_smoothing) * len(rd) + tp["teacher"] + tp["align"]) / norm
+                            split["align"] += tp["align"].detach().item() / norm
+                            split["teacher"] += tp["teacher"].detach().item() / norm
+                            for k_, v_ in (("align_sum", "align_sum"), ("align_n", "slot_n"), ("teacher_ce", "teacher_ce_sum"),
+                                           ("teacher_n", "teacher_n"), ("forced_mb", "forced"), ("forced_n", "forced_n"),
+                                           ("marks_cut", "marks_cut")):
+                                split[k_] += tst[v_]
+                            split["mb"] += 1
+                        elif slot_loss_on:             # --latent-slots: the main pass + the slot decoding pass
+                            z, sl, sls = slot_forward(model, tok, mb, args.max_len, cache)
+                            loss = (kl_loss(z, rd, args.label_smoothing) * len(rd) + sl) / norm
+                            split["slot"] += sl.item() / norm
+                            split["slot_ce"] += sls["slot_ce_sum"]
+                            split["slot_n"] += sls["slot_n"]
+                        else:
+                            z = label_logits(model, tok, mb, args.max_len, cache)
+                            loss = kl_loss(z, rd, args.label_smoothing) * len(rd) / norm
+                        if args.lambda_brier:          # as in the grouped loop (was silently ignored in full-tree arms)
+                            loss = loss + args.lambda_brier * brier_loss(z, rd) * len(rd) / norm
+                    loss.backward()
+                    upd_loss += loss.item()
+                    seen_tok += sum(min(args.max_len, len(e.text) // 3) for e in mb)
+                    if tree_opts:                      # Tree Forcing arms: the loss split by kind (detached, no gradient)
+                        with torch.no_grad():
+                            for zz, e in zip(z, rd):
+                                ce = kl_loss([zz.detach().float()], [dataclasses.replace(e, weight=1.0)],
+                                             args.label_smoothing).item()
+                                split[e.kind if e.kind in split else "subq"] += e.weight * ce / norm
+                                if e.kind != "final":
+                                    split["node_ce"] += ce
+                                    split["node_n"] += 1
+                gnorm = torch.nn.utils.clip_grad_norm_(params, 1.0)
+                if tree_opts:                          # pre-clip gradient norm (clipped at 1.0), per update
+                    gwin.append(float(gnorm))
+                opt.step()
+                sched.step()
+                opt.zero_grad(set_to_none=True)
+            step += 1
+            if teacher_cfg is not None and probe_steps and step - 1 == probe_steps[-1]:
+                probe_decide(step - 1)       # the alignment loss's one-time rescale (from the next update on)
+            if step % args.log_every == 0 or step == total_steps:
+                dt = time.time() - t0
+                mem = torch.cuda.max_memory_allocated() / 2**30 if dev == "cuda" else 0.0
+                row = {"step": step, "loss": upd_loss, "lr": float(sched.get_last_lr()[0]), "s_per_step": dt / step,
+                       "approx_tok_per_s": seen_tok / dt, "peak_gib": mem, "seqs": len(upd)}
+                if fs is not None:
+                    row.update(fsdp_row(fu))
+                elif args.token_budget:
+                    row["fwd"] = len(mbs)
+                if args.tree_pack:
+                    row["reads"] = len(readouts(upd))
+                if tree_opts:      # this update's loss by kind (weighted; the two sum to loss without Brier), its
+                    # mean unweighted node CE, and the pre-clip gradient norms of the updates since the last row
+                    row.update(loss_final=split["final"], loss_node=split["subq"],
+                               node_ce=split["node_ce"] / max(1, split["node_n"]),
+                               gnorm=sum(gwin) / len(gwin), gnorm_max=max(gwin),
+                               clip_frac=sum(g > 1.0 for g in gwin) / len(gwin))
+                    if slot_loss_on:   # the slot decoding loss (weighted, in loss) and its mean unweighted CE per slot
+                        row.update(loss_slot=split["slot"], slot_ce=split["slot_ce"] / max(1, split["slot_n"]),
+                                   slot_n=split["slot_n"])
+                    if teacher_cfg is not None:   # TSF / PTAD: the weighted align loss and teacher CE (in loss), their
+                        row.update(loss_align=split["align"],     # mean unweighted values, the forcing counts
+                                   align=split["align_sum"] / max(1, split["align_n"]), align_n=int(split["align_n"]),
+                                   loss_teacher=split["teacher"],
+                                   teacher_ce=split["teacher_ce"] / max(1, split["teacher_n"]),
+                                   teacher_n=int(split["teacher_n"]), forced_mb=int(split["forced_mb"]),
+                                   mb=int(split["mb"]), forced_n=int(split["forced_n"]),
+                                   marks_cut=int(split["marks_cut"]))
+                    gwin.clear()
+                history.append(row)
+                print(json.dumps(row), flush=True)
+            if step in eval_steps:
+                mid_eval(step)
+            if resumable and step < total_steps:
+                stop = bool(args.stop_at_step and step >= args.stop_at_step or
+                            args.stop_after_h and time.time() - t_start >= args.stop_after_h * 3600)
+                ck_now = stop or args.ckpt_every_min and time.time() - last_ckpt >= args.ckpt_every_min * 60
+                if fs is not None:       # clock-based decisions: every rank follows rank 0's
+                    flags = torch.tensor([int(stop), int(bool(ck_now))], device=fs.device)
+                    dist.broadcast(flags, 0)
+                    stop, ck_now = bool(flags[0]), bool(flags[1])
+                if ck_now:
+                    save_ckpt(sched, upd_iter)
+                    last_ckpt = time.time()
+                if stop:
+                    print(f"planned stop after step {step}/{total_steps}; rerun with the same --out to resume", flush=True)
+                    if fs is not None:
+                        if is_main:
+                            stop_mark.write_text(f"{step}\n")
+                        fs.barrier()
+                        dist.destroy_process_group()
+                    sys.exit(3)
+        upd_acc = 0.0                    # --log-update-loss: the current update's loss so far
+        while step < end:
+            if fs is not None:           # one whole update: the grad_accum micro-batches the loop below takes, split
+                upd = []                 # across the ranks (same refills, so the same sequences in the same updates)
+                for _ in range(args.grad_accum):
+                    if len(ex_iter) < args.micro_bs:
+                        ex_iter += make()
+                    batch, ex_iter = ex_iter[:args.micro_bs], ex_iter[args.micro_bs:]
+                    upd += batch
+                fu = fsdp_update(upd, args.micro_bs * args.grad_accum)   # = len(batch) x grad_accum below
+                if df is not None:
+                    df_win.add_reduced(*fu["df"])
+                    df_gn = fu["df_gnorm"]
+                if b3 is not None:
+                    b3_win.add_reduced(fu["b3"])
+                seen_tok += sum(min(args.max_len, len(e.text) // 3) for e in upd)
+                micro += args.grad_accum
+                sched.step()
+                step += 1
+                if step % args.log_every == 0 or step == total_steps:
+                    dt = time.time() - t0
+                    mem = torch.cuda.max_memory_allocated() / 2**30 if dev == "cuda" else 0.0
+                    row = {"step": step, "loss": fu["loss"], "lr": float(sched.get_last_lr()[0]), "s_per_step": dt / step,
+                           "approx_tok_per_s": seen_tok / dt, "peak_gib": mem, "gnorm": fu["gnorm"]}
+                    row.update(fsdp_row(fu))
+                    if df is not None:
+                        row.update(df_win.row(args.df_lambda))
+                        row.update(df_head_stats(df_gn))
+                    if b3 is not None:   # B3: per-mode examples, CE and letter accuracy since the last row
+                        row.update(b3_win.row())
+                        row.update(rot_row())
+                    history.append(row)
+                    print(json.dumps(row), flush=True)
+                if step in eval_steps:
+                    mid_eval(step)
+                continue
+            if args.token_budget:        # one GPU: the update of the fixed loop below (grad_accum refills of micro_bs,
+                upd = []                 # so the same sequences in the same updates), regrouped by length
+                for _ in range(args.grad_accum):
+                    if len(ex_iter) < args.micro_bs:
+                        ex_iter += make()
+                    batch, ex_iter = ex_iter[:args.micro_bs], ex_iter[args.micro_bs:]
+                    upd += batch
+                norm, upd_loss, padded = args.micro_bs * args.grad_accum, 0.0, []   # = len(batch) x grad_accum below
+                mbs = micro_batches(tok, upd, args.max_len, args.micro_bs, args.token_budget, args.token_budget_seqs,
+                                    padded=padded)
+                for mb in mbs:
+                    set_loop_T(mb, step)
+                    with torch.autocast("cuda", dtype=torch.bfloat16, enabled=dev == "cuda"):
+                        if df is not None:   # DF / DFX: the same logits + the auxiliary loss of the captured layers
+                            z, df_aux, df_st = df.call(model, tok, mb, args.max_len, cache, df_table)
+                        elif b3 is not None: # B3: the two-pass forward (source slices written at layer L)
+                            z, b3_st = b3.call(model, tok, mb, args.max_len, cache)
+                            b3_win.add(b3_st)
+                        else:
+                            z = label_logits(model, tok, mb, args.max_len, cache)
+                        loss = kl_loss(z, mb, args.label_smoothing) * len(mb) / norm
+                        if df is not None:
+                            loss = loss + df_term(df_aux, df_st) * len(mb) / norm
+                        if args.lambda_brier:
+                            loss = loss + args.lambda_brier * brier_loss(z, mb) * len(mb) / norm
+                    loss.backward()
+                    upd_loss += loss.item()
+                seen_tok += sum(min(args.max_len, len(e.text) // 3) for e in upd)
+                micro += args.grad_accum
+                if df is not None:       # the heads' pre-clip gradient norm (log column df_head_gnorm)
+                    df_gn = float(torch.nn.utils.get_total_norm([p.grad for p in df_head_params if p.grad is not None]))
+                rot_clip()
+                torch.nn.utils.clip_grad_norm_(params, 1.0)
+                opt.step()
+                sched.step()
+                opt.zero_grad(set_to_none=True)
+                step += 1
+                if step % args.log_every == 0 or step == total_steps:
+                    dt = time.time() - t0
+                    mem = torch.cuda.max_memory_allocated() / 2**30 if dev == "cuda" else 0.0
+                    row = {"step": step, "loss": upd_loss, "lr": float(sched.get_last_lr()[0]), "s_per_step": dt / step,
+                           "approx_tok_per_s": seen_tok / dt, "peak_gib": mem, "upd_loss": upd_loss, "fwd": len(mbs),
+                           "pad_tok": sum(padded)}
+                    if df is not None:
+                        row.update(df_win.row(args.df_lambda))
+                        row.update(df_head_stats(df_gn))
+                    if b3 is not None:   # B3: per-mode examples, CE and letter accuracy since the last row
+                        row.update(b3_win.row())
+                        row.update(rot_row())
+                    history.append(row)
+                    print(json.dumps(row), flush=True)
+                if step in eval_steps:
+                    mid_eval(step)
+                continue
+            if len(ex_iter) < args.micro_bs:
+                ex_iter += make()
+            batch, ex_iter = ex_iter[:args.micro_bs], ex_iter[args.micro_bs:]
+            set_loop_T(batch, step)
+            cls = [e for e in batch if e.kind != "lm"]
+            lms = [e for e in batch if e.kind == "lm"]
+            with torch.autocast("cuda", dtype=torch.bfloat16, enabled=dev == "cuda"):
+                total = 0.0
+                if cls:
+                    if df is not None:   # DF / DFX: the same logits + the auxiliary loss of the captured layers
+                        z, df_aux, df_st = df.call(model, tok, cls, args.max_len, cache, df_table)
+                    elif b3 is not None: # B3: the two-pass forward (source slices written at layer L); kl_loss below
+                        z, b3_st = b3.call(model, tok, cls, args.max_len, cache)   # reads the views' targets
+                        b3_win.add(b3_st)
+                    else:
+                        z = label_logits(model, tok, cls, args.max_len, cache)
+                    total = kl_loss(z, cls, args.label_smoothing) * len(cls)
+                    if df is not None:
+                        total = total + df_term(df_aux, df_st) * len(cls)
+                    if args.lambda_brier:
+                        total = total + args.lambda_brier * brier_loss(z, cls) * len(cls)
+                if lms:
+                    total = total + lm_loss(model, tok, lms, args.lm_max_len)
+                loss = total / len(batch) / args.grad_accum
+            loss.backward()
+            if args.log_update_loss:     # the whole update's loss (the --fsdp loss column), for step-by-step comparisons
+                upd_acc += loss.item()
+            seen_tok += sum(min(args.max_len, len(e.text) // 3) for e in cls) + \
+                sum(min(args.lm_max_len, (len(e.text) + len(e.continuation)) // 3) for e in lms)  # rough count
+            micro += 1
+            if micro % args.grad_accum == 0:
+                if df is not None:       # the heads' pre-clip gradient norm (log column df_head_gnorm)
+                    df_gn = float(torch.nn.utils.get_total_norm([p.grad for p in df_head_params if p.grad is not None]))
+                rot_clip()
+                torch.nn.utils.clip_grad_norm_(params, 1.0)
+                opt.step()
+                sched.step()
+                opt.zero_grad(set_to_none=True)
+                step += 1
+                if step % args.log_every == 0 or step == total_steps:
+                    dt = time.time() - t0
+                    mem = torch.cuda.max_memory_allocated() / 2**30 if dev == "cuda" else 0.0
+                    row = {"step": step, "loss": loss.item() * args.grad_accum, "lr": float(sched.get_last_lr()[0]),
+                           "s_per_step": dt / step, "approx_tok_per_s": seen_tok / dt, "peak_gib": mem}
+                    if args.log_update_loss:
+                        row["upd_loss"] = upd_acc
+                    if df is not None:   # the auxiliary loss and the probe accuracy per step since the last row
+                        row.update(df_win.row(args.df_lambda))
+                        row.update(df_head_stats(df_gn))
+                    if b3 is not None:   # B3: per-mode examples, CE and letter accuracy since the last row
+                        row.update(b3_win.row())
+                        row.update(rot_row())
+                    history.append(row)
+                    print(json.dumps(row), flush=True)
+                upd_acc = 0.0
+                if step in eval_steps:
+                    mid_eval(step)
+
+    if trainer is not None:              # --fsdp: GPU 8-bit states or the CPU masters and moments
+        trainer.release()
+    else:
+        opt.state.clear()                # the optimizer state is not needed for the evaluations (4B: about 9 GiB)
+    if dev == "cuda":
+        torch.cuda.empty_cache()
+    results = {"args": vars(args), "history": history, "trajectory": trajectory, "eval": {}}
+    if extra_train:
+        results["extra_train"] = extra_train
+    if tree_opts:
+        results["tree_view_stats"] = tree_stats
+    if args.si_stages:
+        results["si"] = si_log
+    if args.curriculum_steps:
+        results["curriculum"] = cur_log
+    if fs is not None:
+        results["fsdp"] = {"world": fs.world, "optim": args.fsdp_optim}
+    final_preds: dict = {}               # TSF: the intact predictions, for the chained-item necessity numbers
+    for name, items in evals.items():    # (--fsdp: every rank evaluates its share of the batches; rank 0 writes)
+        hid = [] if name in args.dump_hidden.split(",") else None
+        m, preds = evaluate(model, tok, items, args.eval_max_len, args.eval_bs, cache, hidden=hid,
+                            layers=[int(x) for x in args.dump_layers.split(",") if x] or None)
+        if tsf:
+            final_preds[name] = preds
+        if hid is not None and is_main:
+            torch.save(torch.stack(hid).half(), out / f"hidden_{name}.pt")
+        results["eval"][name] = m
+        if is_main:
+            with open(out / f"preds_{name}.jsonl", "w") as f:
+                for p in preds:
+                    f.write(json.dumps(p) + "\n")
+        print(name, json.dumps(m), flush=True)
+        for t in (loop_eval_T if loop is not None else ()):   # --loop-eval-T: the same set at the other pass counts
+            if t == args.loop_T:
+                continue
+            loop.T = t
+            mt, pt = evaluate(model, tok, items, args.eval_max_len, args.eval_bs, cache)
+            loop.T = args.loop_T
+            results["eval"][f"{name}@T{t}"] = mt
+            if is_main:
+                with open(out / f"preds_{name}@T{t}.jsonl", "w") as f:
+                    for p in pt:
+                        f.write(json.dumps(p) + "\n")
+            print(f"{name}@T{t}", json.dumps(mt), flush=True)
+    if df is not None:                   # --df-layers: the spec (the sidecar eval_student reads), the supervised counts,
+        probes = {}                      # the probe accuracy per layer on every eval set with worked steps
+        for name, items in evals.items():
+            if any(worked_steps(it) for it in items):
+                probes[name] = df.probe(model, tok, items, args.eval_max_len, args.eval_bs, cache)
+                print(f"df probe {name}", json.dumps(probes[name]), flush=True)
+        results["df"] = {**df_spec.as_dict(), "n_params": df.n_params(),
+                         "train_items_with_steps": len(df_table),
+                         "items_supervising_k": supervised_counts(df_table, df_spec.K, df_spec.pos),
+                         "no_operand_position": no_operand_counts(df_table, df_spec.K),   # per k, training items
+                         "train_pairs_k": list(df_win.totals), "train_skipped": dict(df_win.skipped),
+                         "head_lr": args.df_head_lr if args.df_head_lr is not None else args.lr,
+                         "head_lr_own_group": args.df_head_lr is not None,
+                         "probe": probes}
+        if is_main:
+            (out / DF_SIDECAR).write_text(json.dumps(df_spec.as_dict(), indent=1))
+    if b3 is not None:                   # --b3-arm: the spec, the table counts, what the epochs drew, the training totals,
+        c_ = b3_table["_counts"]         # and the readout (frontier.readout: cf11 accuracy, same-value keep rate) on
+        results["b3"] = {**b3_spec.as_dict(), "table": {k: v for k, v in c_.items()},    # every eval set with steps
+                         "draws": dict(b3_counts), "train": {**b3_lib.B3Window.summary(b3_win.totals),
+                                                             **b3_lib.B3Window.per_mode(b3_win.totals)},
+                         "train_totals": b3_win.totals, "readout": {},
+                         "timing": {"source_forwards": b3.src_forwards, "source_pass_s": round(b3.src_seconds, 2),
+                                    "source_dummy": b3.src_dummy, "readout_s": {}}}
+        for name, items in evals.items():
+            if any(worked_steps(it) for it in items):
+                t_ro = time.time()
+                results["b3"]["readout"][name] = b3.readout(model, tok, items, train_items, args.eval_max_len,
+                                                            args.eval_bs, cache)
+                results["b3"]["timing"]["readout_s"][name] = round(time.time() - t_ro, 2)
+                print(f"b3 readout {name}", json.dumps(results["b3"]["readout"][name]),
+                      f"({results['b3']['timing']['readout_s'][name]} s)", flush=True)
+        print(f"b3 timing: source pass {results['b3']['timing']['source_pass_s']} s over "
+              f"{results['b3']['timing']['source_forwards']} forwards ({results['b3']['timing']['source_dummy']} "
+              f"--fsdp dummy passes not counted)", flush=True)
+        if b3.rot is not None:           # --b3-rotate: Q's final distance from its init, its lr, and Q itself
+            results["b3"]["rotation"] = {**b3.rot_stats(), "lr": args.b3_rotate_lr if args.b3_rotate_lr is not None
+                                         else args.lr, "file": b3_lib.ROT_FILE}
+            if is_main:
+                b3.save_rotation(out / b3_lib.ROT_FILE)
+            print("b3 rotation", json.dumps(results["b3"]["rotation"]), flush=True)
+    if loop is not None:                 # --loop-layers: the spec (the sidecar eval_student reads), the T shares, the RMS log
+        results["layer_loop"] = {**loop.spec(loop_mix), "eval_T": list(loop_eval_T), "train_T_counts": loop_counts,
+                                 "forward_counts": {str(k): v for k, v in sorted(loop.counts.items())},
+                                 "rms": loop_rms_summary(loop.log)}
+        if is_main:
+            (out / LOOP_SIDECAR).write_text(json.dumps(loop.spec(loop_mix), indent=1))
+    if slot is not None:                 # --latent-slots: the spec, the counts, the necessity test, the decoding readout
+        from cotdistill.student import SLOT_SIDECAR, slot_evals
+        results["latent_slots"] = {**slot.as_dict(), "target": args.slot_target, "lambda": args.slot_lambda,
+                                   "overflow": args.slot_overflow, "final_only": args.slot_final_only,
+                                   "swap_token": swap_token, "views": slot_stats,
+                                   **({"info": slot_info} if slot_info else {})}
+        slot_evals(model, tok, evals, results, out, modes=parse_slot_necessity(args.slot_necessity),
+                   sets=[x for x in args.slot_necessity_sets.split(",") if x], swap_token=swap_token,
+                   decode_n=args.slot_decode, decode_set=args.slot_decode_set, max_len=args.eval_max_len,
+                   bs=args.eval_bs, cache=cache, seed=args.seed, overflow=args.slot_overflow, write=is_main,
+                   mean_items=train_items[:args.slot_mean_n], **({"intact_preds": final_preds} if tsf else {}))
+        if is_main:
+            (out / SLOT_SIDECAR).write_text(json.dumps(slot.as_dict(), indent=1))
+    if teacher_cfg is not None:          # TSF / PTAD: the settings, probe, guard; the held-out / training alignment
+        from cotdistill.student import ptad_eval, tsf_eval
+        results["teacher"] = {**teacher_log, "scale": teacher_cfg.scale, "teacher_ce_final": teacher_cfg.teacher_ce,
+                              "grad_probe": {"rows": teacher_state["probe"], **(teacher_state["decided"] or {})},
+                              "guard": teacher_state["guard"]}
+        al: dict = {}
+        sets_a = [(n, its) for n, its in evals.items() if any(worked_steps(it) for it in its)]
+        if args.teacher_align_train_n:
+            sets_a.append(("train", train_items[:args.teacher_align_train_n]))
+        for name, its in sets_a:
+            if teacher_cfg.mode == "tsf":
+                al[name] = tsf_eval(model, tok, its, max_len=args.eval_max_len, bs=args.eval_bs, modes=(),
+                                    align_layers=teacher_cfg.layers).get("align")
+            else:
+                al[name] = ptad_eval(model, tok, its, max_len=args.eval_max_len, bs=args.eval_bs,
+                                     layers=teacher_cfg.layers)
+            print(f"teacher align {name}", json.dumps(al[name]), flush=True)
+        results["teacher_align"] = al
+    eval_value_render = (None if args.eval_value_render == "none" else args.eval_value_render
+                         if args.eval_value_render != "auto" else "vt" if args.node_render == "vtr" else args.node_render)
+    for sname, spath in subq_sets(args.eval_subq or ""):
+        sm, spreds = evaluate_subq(model, tok, read_jsonl(spath), args.max_len, args.eval_bs, cache, seed=args.seed,
+                                   value_render=eval_value_render)
+        results["eval"][sname] = sm
+        if is_main:
+            with open(out / f"preds_{sname}.jsonl", "w") as f:
+                for p in spreds:
+                    f.write(json.dumps(p) + "\n")
+        print(sname, json.dumps({k: round(v["acc"], 3) for k, v in sm.items()}), flush=True)
+    if args.eval_local:
+        lname = "local_kk" if args.eval_local_view == "local" else "local_kk_anc"
+        lm, lpreds = evaluate_local(model, tok, read_jsonl(args.eval_local), args.max_len, args.eval_bs, cache,
+                                    view=args.eval_local_view, seed=args.seed)
+        results["eval"][lname] = lm
+        if is_main:
+            with open(out / f"preds_{lname}.jsonl", "w") as f:
+                for p in lpreds:
+                    f.write(json.dumps(p) + "\n")
+        print(lname, json.dumps({k: round(v["acc"], 3) for k, v in lm.items() if not k.startswith("depth/")}), flush=True)
+    if fs is not None:
+        if is_main:
+            (out / "metrics.json").write_text(json.dumps(results, indent=1))
+            if resumable:                # quota: the sharded checkpoint goes before the full model is written
+                shutil.rmtree(ck_dir, ignore_errors=True)
+        if args.save:                    # full bf16 state dict gathered on rank 0's CPU (collective), rank 0 writes it
+            sd = fsdp_lib.full_state_dict(model)
+            if is_main:
+                model.model.save_pretrained(save_to, state_dict=sd, safe_serialization=True)
+                tok.save_pretrained(save_to)
+                if slot is not None:     # eval_student rebuilds the slot line from it
+                    shutil.copy(out / SLOT_SIDECAR, save_to / SLOT_SIDECAR)
+                if loop is not None:     # eval_student rebuilds the loop (and the untied copies) from it
+                    shutil.copy(out / LOOP_SIDECAR, save_to / LOOP_SIDECAR)
+                if df is not None:       # eval_student rebuilds the heads from the sidecar + df_heads.pt
+                    shutil.copy(out / DF_SIDECAR, save_to / DF_SIDECAR)
+                    torch.save(df_heads_state(sd), save_to / DF_HEADS_FILE)
+            del sd
+        fs.barrier()
+        dist.destroy_process_group()
+        return
+    (out / "metrics.json").write_text(json.dumps(results, indent=1))
+    if args.save:
+        if args.lora_r:                  # adapter for reuse, merged weights so <out>/model loads like a full checkpoint
+            model.save_pretrained(out / "adapter")
+            model = model.merge_and_unload()
+        model.to(torch.bfloat16).save_pretrained(save_to, safe_serialization=True)
+        tok.save_pretrained(save_to)
+        if slot is not None:             # eval_student rebuilds the slot line from it
+            shutil.copy(out / SLOT_SIDECAR, save_to / SLOT_SIDECAR)
+        if loop is not None:             # eval_student rebuilds the loop (and the untied copies) from it
+            shutil.copy(out / LOOP_SIDECAR, save_to / LOOP_SIDECAR)
+        if df is not None:               # eval_student rebuilds the heads from the sidecar + df_heads.pt
+            shutil.copy(out / DF_SIDECAR, save_to / DF_SIDECAR)
+            torch.save(df.heads.state_dict(), save_to / DF_HEADS_FILE)
+    if resumable:                        # finished: metrics (and weights) are written, the checkpoint goes
+        shutil.rmtree(ck_dir, ignore_errors=True)
+
+
+if __name__ == "__main__":
+    main()

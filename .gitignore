@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+/runs_archive/
+/data/**/*.jsonl
+!/data/**/*.jsonl.gz
+/tmp/
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+paper/main.pdf
+/reproduced/
+/tree-forcing-runs.tar.gz

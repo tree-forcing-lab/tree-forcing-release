@@ -1,0 +1,58 @@
+{
+ "script": "scripts/build_gsm8k_rationale.py",
+ "args": {
+  "base": "data/student_gsm8k_tf_vt",
+  "out": "data/student_gsm8k_tf_vt_rat",
+  "raw": "data/raw/gsm8k/train.parquet",
+  "token_stats": "",
+  "lm_max_len": 3072
+ },
+ "md5": {
+  "student_gsm8k_tf_vt_rat/train.jsonl": "627037af5491165634ff1298e73f6831",
+  "student_gsm8k_tf_vt_rat/val.jsonl": "e2dc1d8e0d38073580da135fd8e07ca9"
+ },
+ "base_md5": {
+  "student_gsm8k_tf_vt/train.jsonl": "28298610aa972d9ea6d472dbd80138c3",
+  "student_gsm8k_tf_vt/val.jsonl": "9f55fec541246e41401a7b5fa6c5510a"
+ },
+ "raw_md5": "979c9d17cd5753bc11d745e945289382",
+ "changed_fields": [
+  "rationale"
+ ],
+ "files": {
+  "student_gsm8k_tf_vt_rat/train.jsonl": {
+   "items": 5923,
+   "finals": 5923,
+   "with_rationale": 5923,
+   "notes_removed": 19406,
+   "answer_exact": 5858,
+   "answer_comma_only": 65,
+   "rationale_chars": {
+    "mean": 239.0,
+    "p50": 211,
+    "max": 1137
+   },
+   "rationale_lines": {
+    "mean": 3.56,
+    "max": 9
+   }
+  },
+  "student_gsm8k_tf_vt_rat/val.jsonl": {
+   "items": 393,
+   "finals": 393,
+   "with_rationale": 393,
+   "notes_removed": 1271,
+   "answer_exact": 390,
+   "answer_comma_only": 3,
+   "rationale_chars": {
+    "mean": 231.5,
+    "p50": 199,
+    "max": 938
+   },
+   "rationale_lines": {
+    "mean": 3.52,
+    "max": 8
+   }
+  }
+ }
+}
