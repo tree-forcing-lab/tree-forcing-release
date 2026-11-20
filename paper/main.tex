@@ -1,6 +1,5 @@
 \documentclass[10pt]{article}
 \usepackage[preprint]{tmlr}
-% For arXiv: \usepackage[preprint]{tmlr}
 \input{math_commands.tex}
 \usepackage{hyperref}
 \usepackage{url}
@@ -12,7 +11,6 @@
 \definecolor{tfblue}{HTML}{0072B2}
 \usepackage{amsmath}
 
-% cleveref is not installed here: \cref / \Cref map to hyperref's \autoref with capitalized names
 \newcommand{\cref}[1]{\autoref{#1}}
 \newcommand{\Cref}[1]{\autoref{#1}}
 \renewcommand{\sectionautorefname}{Section}
@@ -20,12 +18,9 @@
 \renewcommand{\tableautorefname}{Table}
 \renewcommand{\figureautorefname}{Figure}
 \newcommand{\tf}{Tree Forcing}
-% Visible placeholder for results that are still running or text the authors will write.
-\newcommand{\pending}[1]{\textcolor{red}{[#1]}}
 
 \title{Tree Forcing: Training Single-Pass Decision Models\\on the Intermediate Conclusions of Verified Reasoning Trees}
 
-% Authors are hidden by tmlr.sty in the submission build; they appear with [preprint] (arXiv) or [accepted].
 \author{\name Haotian Yang\thanks{Equal contribution.} \email haotian.yang@studbocconi.it \\
       \addr Bocconi University
       \AND
