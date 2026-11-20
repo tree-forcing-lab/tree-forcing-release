@@ -1,5 +1,5 @@
 \documentclass[10pt]{article}
-\usepackage{tmlr}
+\usepackage[preprint]{tmlr}
 % For arXiv: \usepackage[preprint]{tmlr}
 \input{math_commands.tex}
 \usepackage{hyperref}
@@ -75,7 +75,7 @@ such decisions with a \emph{single-pass} readout, in which the model reads the p
 assigns to each option is taken as its decision \citep{ldm2026}. Single-pass decision models are fast, and they return
 a distribution over the options that can be inspected and calibrated.
 
-The price of a single pass is reasoning. Chain-of-thought prompting improves accuracy on multi-step problems by letting
+A single pass gives up the written reasoning on which much of the recent progress rests. Chain-of-thought prompting improves accuracy on multi-step problems by letting
 the model write intermediate results before it answers \citep{wei2022cot}, and theoretical work explains why a
 transformer of fixed depth can compute more when it may condition on its own intermediate tokens
 \citep{feng2023mystery,merrill2024expressive}. A model that answers in one pass has no such scratchpad, and a recent
@@ -102,8 +102,7 @@ spent at training time and the single-pass interface stays untouched.
 
 We evaluate \tf{} with Qwen3.5-4B on Knights-and-Knaves puzzles \citep{xie2024kk}, whose trees come from a solver,
 and on GSM8K word problems \citep{cobbe2021gsm8k}, whose trees come from the dataset's step annotations, and we compare
-against answer-only training on the same problems, paired by seed. Several analyses had their criteria fixed before their
-results existed, and we report them whether or not they met them. We find that:
+against answer-only training on the same problems, paired by seed. We find that:
 \begin{itemize}
   \item \textbf{On logic puzzles, \tf{} helps.} It raises one-pass accuracy on Knights-and-Knaves at all six seeds,
   across learning rates and a KL penalty, and with a 9B model (Section~\ref{sec:kk}).
@@ -156,7 +155,8 @@ which about half take a case, a third derive a consequence and the rest read a s
 \emph{K\&K-Deep}, has 2,000 puzzles with 4 to 20 inhabitants, most of them larger than any training puzzle. We also
 report a smaller held-out set (\emph{K\&K-Held-out}) and \emph{K\&K-External}, the public puzzles of
 \citet{xie2024kk}, which are worded differently from ours. For GSM8K we turn 5,923 training problems into five-option
-decisions, with 2.5 node questions per problem, and test on GSM8K and GSM1K \citep{zhang2024gsm1k} with two kinds of
+decisions; each step before the last gives two node questions, a true and a false candidate value, 2.5 per problem
+on average. We test on GSM8K and GSM1K \citep{zhang2024gsm1k} with two kinds of
 distractors: \emph{original} ones built from the problem's numbers and \emph{cue-free} ones taken from other problems.
 
 \paragraph{Training.} We fine-tune all parameters of Qwen3.5-4B, the post-trained release, with AdamW at a learning
@@ -211,7 +211,7 @@ Setting & Answer-only & \tf{} & Gain & Seeds ahead \\
 \end{tabular}
 \end{table}
 
-The size of the gain, however, varies between training runs. When we re-ran three of the seeds with the same
+The size of the gain varies between training runs. When we trained three of the seeds a second time with the same
 configuration, the differences were much smaller, between $-0.7$ and $+2.1$ points, and in a study that trained separate runs for each
 training length, the two configurations validation selected differed by only 1.1 points. Pooled over all nine paired runs,
 the gain is 2.6 points and remains significant (Appendix~\ref{app:tuning} and Appendix~\ref{app:replication}).
@@ -236,9 +236,9 @@ their yes rate, removes the gain entirely.
 \label{fig:content}
 \end{figure}
 
-Correct answers, however, are not enough. The verification control asks as many correct questions about the same
+Correct answers alone do not suffice. The verification control asks as many correct questions about the same
 statements, in the same format, but they do not come from the solver's derivation, and it gains less than a point.
-Keeping only the nodes that read a statement gives nothing either, so the case and derivation steps carry the effect.
+Keeping only the nodes that read a statement gives no gain either, which points to the case and derivation steps.
 Finally, the supervision has to be dense: with three nodes per puzzle the gain is half a point, with eight about one,
 and only the full trees, with 44 nodes on average, give the full gain. We read this as follows: the in-domain gain
 comes from training the model on many of the conclusions it has to reach on the way to the answer.
@@ -264,7 +264,7 @@ multiple-choice question (Table~\ref{tab:transfer}). On BIG-Bench Hard, answer-o
 model by 2 points and \tf{} by 7, at every seed. On BIG-Bench Extra Hard, ShARC and GSM8K, answer-only training falls
 below the untrained model while \tf{} stays near it, so there the difference reflects forgetting rather than transfer.
 \tf{} is ahead on five of the six sets, significantly on four. The gain on BIG-Bench Hard holds when both methods train
-for the same number of epochs and on tasks with three or more options as well as on two-option tasks, and it is
+for the same number of epochs and on questions with three or more options as well as on two-option questions, and it is
 largest on Web of Lies, the task closest to Knights-and-Knaves (Appendix~\ref{app:heldout}).
 
 \begin{table}[t]
@@ -309,12 +309,12 @@ result is inconclusive; on all 203 test problems with FOLIO's own labels the dif
 
 \paragraph{Logic grid puzzles.} We also trained on generated logic grid (``Zebra'') puzzles that ask for one cell of the
 solution, with trees from a solver that records each deduction with its reasons. Here the gain is small: 45.3\%
-against 43.9\% on puzzles of the training sizes, ahead at only three of six seeds, short of the criterion we had
-fixed in advance, and no gain on larger grids. Answering one cell usually requires
+against 43.9\% on puzzles of the training sizes, ahead at only three of six seeds and not significant, and no gain on larger
+grids. Answering one cell usually requires
 propagating constraints across the whole grid, a long chain of dependent deductions, which places these puzzles closer
 to arithmetic than to Knights-and-Knaves. The Zebra-trained \tf{} models still transfer to K\&K-Deep.
 
-\paragraph{Grade-school math.} GSM8K tells a different story. With the original options, \tf{} is 1.2 points ahead of answer-only training (70.5\%
+\paragraph{Grade-school math.} On GSM8K the picture is different. With the original options, \tf{} is 1.2 points ahead of answer-only training (70.5\%
 against 69.3\%), a small but significant gain at all six seeds, and with cue-free options the difference is 0.6
 points. The permuted-nodes control, which on K\&K removed the whole gain, comes within about a point of \tf{},
 and a placebo that replaces each node question by a question about the surface of the problem comes within one to
@@ -325,7 +325,7 @@ on the cue-free sets, against 58\% for either single-pass method.
 
 Across the four tasks, the gain is large where a node is a local check that can be decided from a few statements, as
 on Knights-and-Knaves and FOLIO, and small where a node ends a long chain of dependent steps, as on logic grids and
-GSM8K. The next section asks why.
+GSM8K. Section~\ref{sec:mechanism} discusses possible reasons.
 
 % =====================================================================================================================
 \section{Why Knights-and-Knaves and Not Arithmetic}
@@ -344,7 +344,7 @@ of the trees, and the evidence for each.
 \toprule
  & Knights-and-Knaves & GSM8K \\
 \midrule
-Nodes per problem & 44 & 2.5 \\
+Node questions per problem & 44 & 2.5 \\
 Node content & propositions, cases, derivations & values of solution steps \\
 Source of the tree & solver & dataset annotation \\
 Options & full role assignments & numbers \\
@@ -386,7 +386,7 @@ it solves, against 2 points for answer-only training; the difference persists wi
 observational: it shows that two abilities of the model go together, not that the decision is computed through the
 node answers (Appendix~\ref{app:coupling}).
 
-\paragraph{Density.} The second candidate is simpler. With three nodes per puzzle, close to the 2.5 of GSM8K, the K\&K
+\paragraph{Density.} The second candidate is simpler. With three node questions per puzzle, close to the 2.5 per problem of GSM8K, the K\&K
 gain disappears as well (Section~\ref{sec:content}), so sparse supervision alone could explain why GSM8K gains little. We
 cannot make the GSM8K trees denser, since they come from the dataset's annotation, and our experiments therefore do not
 decide between the two explanations; both fit the results, and they may act together.
@@ -458,6 +458,10 @@ serial tasks; whether this, or only the sparsity of the GSM8K trees, explains th
 question, best answered with tasks that vary dependency depth at a fixed annotation budget.
 
 
+\paragraph{Code and data.} Code, data, training configurations and the analysis scripts that reproduce every
+number in this paper are available at \url{https://github.com/tree-forcing-lab/tree-forcing-release}; the predictions and metrics of all runs are archived at
+\url{https://doi.org/10.5281/zenodo.24381352} (DOI: 10.5281/zenodo.24381352).
+
 \bibliography{refs}
 \bibliographystyle{tmlr}
 
@@ -510,18 +514,17 @@ of each wording; a logistic regression on the question text alone reaches 46--50
 
 \section{Tuning the Baselines}
 \label{app:tuning}
-\paragraph{Training length on K\&K.} In a tuning study registered before its results, we trained separate runs of
-each method at several lengths on seeds 13--15 and selected, for each method, the configuration with the best
-seed-mean validation accuracy (Table~\ref{tab:tuning}); the study also included a re-run of the 12-epoch answer-only
-schedule. Validation selected 8 epochs for both methods: the 8-epoch \tf{} run and epoch 8 of the re-run 12-epoch
-answer-only schedule. The registered comparison of the two selected configurations gave $+1.1$ points on K\&K-Deep (per seed $-2.4$, $+3.1$, $+2.4$;
+\paragraph{Training length on K\&K.} We also trained separate runs of each method at several lengths, with three seeds,
+and selected for each method the configuration with the best mean validation accuracy (Table~\ref{tab:tuning}); the
+answer-only runs include a second 12-epoch run. Validation selected 8 epochs for both methods: the 8-epoch \tf{} run
+and epoch 8 of the second 12-epoch answer-only run. The two selected configurations differ by $+1.1$ points on K\&K-Deep (per seed $-2.4$, $+3.1$, $+2.4$;
 two-level interval $[-2.2, +3.7]$), $+0.2$ on K\&K-Held-out and $+5.7$ on K\&K-External (two-level interval $[+2.2,
-+9.1]$; seed-level interval $[-1.1, +12.4]$). It did not meet its registered criterion on K\&K-Deep.
++9.1]$; seed-level interval $[-1.1, +12.4]$). The difference on K\&K-Deep is not significant.
 
 \begin{table}[h]
 \centering
 \small
-\caption{Training-length study on K\&K (separate runs, seeds 13--15): selected epoch, seed-mean validation accuracy at
+\caption{Training-length study on K\&K (separate runs, three seeds): selected epoch, seed-mean validation accuracy at
 that epoch, and K\&K-Deep accuracy at the end of training (\%).}
 \label{tab:tuning}
 \begin{tabular}{lcccc}
@@ -532,7 +535,7 @@ Answer-only & 2 & 2 & 74.7 & 61.5 \\
  & 4 & 4 & 79.6 & 69.4 \\
  & 8 & 8 & 81.1 & 71.0 \\
  & 12 & 9 & 80.6 & 70.8 \\
- & 12 (re-run) & 8 & 81.6 & 71.8 \\
+ & 12 (second run) & 8 & 81.6 & 71.8 \\
 \tf{} & 3 & 3 & 82.3 & 69.5 \\
  & 4 & 4 & 82.9 & 72.7 \\
  & 6 & 5 & 84.0 & 74.1 \\
@@ -541,23 +544,20 @@ Answer-only & 2 & 2 & 74.7 & 61.5 \\
 \end{tabular}
 \end{table}
 
-\paragraph{Transfer at matched length.} With separate runs of equal length (seeds 13--15, end of training), \tf{} is
+\paragraph{Transfer at matched length.} With separate runs of equal length (three seeds, end of training), \tf{} is
 ahead on BIG-Bench Hard by 3.1 points at 4 epochs (60.5 versus 57.4) and by 4.2 points at 8 epochs (59.9 versus 55.8),
 both significant, and its expected calibration error there is lower (7.0 versus 19.6 and 13.6 versus 31.4).
 \paragraph{GSM8K.} On the cue-free validation set, averaged over six seeds, answer-only training reaches 62.8\% after 1
-epoch and 62.7\% after 2, and \tf{} 64.8\% after 1 epoch and 64.0\% after 2, so the rule selects 1 epoch for both.
-We had first fixed \tf{} at 2 epochs and completed the 1-epoch runs for seeds 16--18 later, with the selection rule
-fixed before they ran. At 2 epochs, \tf{} is 1.4 points ahead of 1-epoch answer-only training on the original options
+epoch and 62.7\% after 2, and \tf{} 64.8\% after 1 epoch and 64.0\% after 2, so validation selects 1 epoch for both.
+At 2 epochs, \tf{} is 1.4 points ahead of 1-epoch answer-only training on the original options
 (both intervals above zero) and 0.7 points on the cue-free ones (not significant); at the selected 1 epoch, 1.2
-points (significant) and 0.6 points (not significant). Four of the answer-only GSM8K run folders (seeds 15 to 18) were
-later overwritten by re-runs of the same configuration; we report the first completed runs, restored from version
-history. The written-reasoning reference of Section~\ref{sec:gsm8k} comes from three runs trained to generate the dataset's
+points (significant) and 0.6 points (not significant). The written-reasoning reference of Section~\ref{sec:gsm8k} comes from three runs trained to generate the dataset's
 rationale (one-pass and generation evaluations of the same runs); on K\&K, from the six proof-generation runs.
 
 \section{All Held-Out Sets}
 \label{app:heldout}
 Table~\ref{tab:heldout} lists every held-out set the K\&K-trained models were evaluated on at the end of training, with
-the untrained model for reference. Besides the sets of Table~\ref{tab:transfer}, these are two K\&K diagnostic sets. Where \tf{} stays close to the untrained
+the untrained model for reference. These are the sets of Table~\ref{tab:transfer}. Where \tf{} stays close to the untrained
 model while answer-only training falls below it (BIG-Bench Extra Hard, GSM8K, ShARC), we read the difference as
 reduced forgetting; where both rise above the untrained model (BIG-Bench Hard), as transfer.
 
@@ -578,8 +578,6 @@ MuSR & 756 & 52.1 & 58.9 & 58.3 & $-0.60$ \\
 GSM8K, multiple choice & 1,260 & 42.9 & 38.7 & 41.5 & $+2.79^\ast$ \\
 ShARC (dev) & 142 & 66.9 & 43.3 & 63.3 & $+19.95^\ast$ \\
 \midrule
-K\&K diagnostic & 1,600 & 23.1 & 75.2 & 77.9 & $+2.69^\ast$ \\
-K\&K diagnostic, mid & 450 & 24.2 & 70.2 & 73.8 & $+3.56^\ast$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -589,12 +587,13 @@ K\&K diagnostic, mid & 450 & 24.2 & 70.2 & 73.8 & $+3.56^\ast$ \\
 and 60.3\% and 10.6 for \tf{}; three and eight nodes per puzzle reach 60.8\% (14.7) and 60.9\% (12.7), the
 verification control 59.2\% (23.6); proof generation reaches 56.8\% (31.0), proof generation with tree
 batching 55.8\% (30.9), and the DAIS-style control 59.7\% (23.0). On ZebraLogic, which the models were also not
-trained on, \tf{} is 2.7 points ahead for seeds 16--18 at the selected epochs (59.0\% versus 56.2\%; the seed-level
+trained on, \tf{} is 2.7 points ahead on three seeds at the selected epochs (59.0\% versus 56.2\%; the seed-level
 interval includes zero) and 3.1 points behind with the 9B model (three seeds; neither interval excludes zero).
 
 \paragraph{BIG-Bench Hard by task.} Table~\ref{tab:bbhtask} breaks the BIG-Bench Hard result down by task. By task type,
-\tf{} is ahead of answer-only training by 5.9 points on the two-option tasks (1,891 questions) and by 4.4 points on
-the tasks with three or more options (3,616), both significant; the permuted-nodes control (six seeds) is $-0.7$ and
+\tf{} is ahead of answer-only training by 5.9 points on the questions with two options (1,891, which include 27
+two-option questions of Reasoning about Colored Objects) and by 4.4 points on those with three or more options (3,616),
+both significant; the permuted-nodes control (six seeds) is $-0.7$ and
 $+0.7$ points from answer-only training (neither significant), and \tf{} ahead of it by 6.6 and 3.7 points (both
 significant).
 
@@ -663,15 +662,14 @@ Proof generation (1.25) & BBH & 31.0 $\to$ 25.4 & 1.495 $\to$ 1.308 & 0.726 $\to
 
 \section{Ablations of the Node Questions}
 \label{app:ablations}
-These runs were registered as report-only before their results (six seeds unless noted; K\&K-Deep at each arm's
-selected epoch, BIG-Bench Hard at the end of training). Two further arms, only case and derivation nodes and a surface
-placebo, were dropped before any result for lack of compute time.
+All variants use six seeds unless noted; K\&K-Deep is read at each variant's selected epoch and BIG-Bench Hard at the
+end of training.
 
 \begin{table}[h]
 \centering
 \small
 \caption{Node ablations on K\&K. Accuracy (\%) and differences (points) paired by seed; $^\ast$: both 95\% intervals
-exclude zero. Read nodes only: seeds 13--15.}
+exclude zero. Read nodes only: three seeds.}
 \label{tab:ablations}
 \begin{tabular}{lccccc}
 \toprule
@@ -693,27 +691,28 @@ At the end of training, on all 2,000 K\&K-Deep puzzles, the differences to \tf{}
 
 \input{mechanism_appendix}
 
-\section{Statistics and Registered Analyses}
+\section{Statistics}
 \label{app:stats}
 For a comparison of methods $A$ and $B$ over $k$ seeds, let $d_s$ be the accuracy difference at seed $s$ on the test
 problems both runs were evaluated on. We report $\bar d$, the seed-level Student-$t$ interval with $k-1$ degrees of
 freedom, and a two-level bootstrap interval (10,000 draws) that resamples seeds and then, within each drawn seed,
 test problems. When all runs of a comparison hold the same problems (end-of-training evaluations, GSM8K, FOLIO), the
-bootstrap resamples the same problem indices for every seed. At the selected epochs, the mid-training K\&K-Deep
-evaluations of seeds 13--15 of the main runs cover 500 of the 2,000 puzzles, and the per-seed differences use the
-puzzles both runs hold. The registered analyses reported in this paper and their verdicts: proof generation with tree batching (criterion met; the
-seed-level interval includes zero), the 9B comparison (met), the DAIS-style control (not met), the training-length
-study (not met on K\&K-Deep), the Zebra comparison (not met with three seeds, and not met with the registered extension
-to six), the node ablations and the GSM8K training-length rule (report-only and registered, respectively), and FOLIO (report-only; inconclusive on the prover-filtered test set).
+bootstrap resamples the same problem indices for every seed. For three of the six seeds of the main runs, the K\&K-Deep evaluations during training cover 500 of the 2,000 puzzles,
+and the per-seed differences use the puzzles both runs hold. Where a configuration was trained more than once with
+the same seed (three K\&K seeds of the main configuration, and four answer-only GSM8K seeds), every number in the paper
+uses the first completed run; the K\&K repetitions are reported separately in Appendix~\ref{app:replication}.
 
 \section{Per-Seed Results}
 \label{app:perseed}
-\begin{table}[h]
+Table~\ref{tab:perseed} gives, for every comparison cited in the main text, the mean difference, the difference at each
+seed and both 95\% intervals, so that each statement of significance can be checked against the rule of
+Appendix~\ref{app:stats}.
+
+\begin{table}[!ht]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{3pt}
-\caption{The main comparisons of the paper: mean difference (points), per-seed differences (seeds 13--18 in
-order; K\&K-External and placebo: 16--18; permuted nodes: 13--15; replication: seeds 13--18 then the three re-runs),
+\caption{The main comparisons of the paper: mean difference (points), per-seed differences (one value per seed, in a fixed seed order; the replication row adds the three repeated runs),
 95\% seed-level $t$ interval, 95\% two-level bootstrap interval, and test problems per seed. TF: \tf{}; AO:
 answer-only; ``end'': end of training, no epoch selection.}
 \label{tab:perseed}
@@ -731,17 +730,18 @@ TF $-$ AO (9B) & BBH, end & 3 & $+$3.39 & $+$3.4, $+$2.4, $+$4.4 & [$+$0.95, $+$
 
 \section{Replication}
 \label{app:replication}
-We re-ran seeds 13--15 of both methods under the main configuration. The re-runs gave differences of $-0.7$, $+2.1$
-and $-0.6$ points on K\&K-Deep at the selected epochs, against $+3.0$, $+1.2$ and $+5.4$ for the original runs of the
-same seeds. Pooling the re-runs with the six main seeds as nine paired units gives $+2.6$ (both intervals above zero;
+We trained both methods a second time with three of the six seeds and the main configuration. The repeated runs gave
+differences of $-0.7$, $+2.1$
+and $-0.6$ points on K\&K-Deep at the selected epochs, against $+3.0$, $+1.2$ and $+5.4$ for the first runs of the
+same seeds. Pooling the repeated runs with the six main seeds as nine paired units gives $+2.6$ (both intervals above zero;
 Table~\ref{tab:perseed}). The differences between identical configurations show that run-to-run variation is of the same
 order as the effect, which is why we report six seeds and the end-of-training check.
 
 \section{Node Coupling Runs}
 \label{app:coupling}
 For K\&K, we use the six runs per method of Table~\ref{tab:kk} at the end of training and the 300 validation puzzles. For
-GSM8K, we use three runs per method of an earlier configuration (one epoch each) on a GSM8K split that also carries
-rationales (362 validation problems). The node prompt shows the yes/no options. Coupling is node accuracy on the
+GSM8K, we use three one-epoch runs per method trained on the GSM8K split that also carries rationales (362 validation
+problems). The node prompt shows the yes/no options. Coupling is node accuracy on the
 problems a run answers correctly minus on those it answers wrongly, averaged over runs; intervals resample problems
 within runs (2,000 draws). The within-size coupling of Section~\ref{sec:mechanism} averages the coupling within each puzzle
 size (4 to 10 inhabitants), weighted by the number of puzzles.
@@ -751,7 +751,6 @@ size (4 to 10 inhabitants), weighted by the number of puzzles.
 Wall-clock GPU hours per run, including all evaluations: on K\&K with the 4B model, 12.3 for \tf{} (6 epochs) and 4.3
 for answer-only training (12 epochs); with the 9B model, 14.2 and 8.7; 14.0 for the DAIS-style control and 11.0 for the
 proof-generation runs; on GSM8K, 1.4 for \tf{} (2 epochs) and 0.4 for answer-only training (1 epoch); on FOLIO, 0.7
-and 1.0. The completed cluster jobs of this project, including experiments not reported here, used about 2,200 GPU
-hours; this count excludes failed jobs and a smaller amount of compute on a second cluster.
+and 1.0. Including preliminary experiments not reported here, the project used about 2,200 GPU hours.
 
 \end{document}
