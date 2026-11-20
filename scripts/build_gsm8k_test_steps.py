@@ -18,9 +18,9 @@ WRONG value passed the option / node constraints of their real row (null_no_wron
 as stored_null_no_wrong_value: 3 of 6,316). Their true lines are well defined, so a test problem with that pattern
 keeps its chain.
 
-  python3 scripts/build_gsm8k_test_steps.py      # system python3 (pandas, numpy); a few seconds
-  -> data/eval/gsm8k_mc_v2_steps.jsonl (every gsm8k_mc_v2 row, fields unchanged, plus worked_steps last)
-     data/eval/gsm8k_mc_v2_steps.summary.json
+ python3 scripts/build_gsm8k_test_steps.py # system python3 (pandas, numpy); a few seconds
+ -> data/eval/gsm8k_mc_v2_steps.jsonl (every gsm8k_mc_v2 row, fields unchanged, plus worked_steps last)
+ data/eval/gsm8k_mc_v2_steps.summary.json
 """
 from __future__ import annotations
 

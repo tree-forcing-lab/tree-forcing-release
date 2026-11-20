@@ -1,16 +1,16 @@
 """Step curriculum (train_student.py --curriculum-steps; arm GFPQC): K node stages by solution step, then the final
 questions, in the full-tree loop.
 - curriculum_stage / curriculum_item: a node's stage is its step with every step beyond K folded into stage K;
-  cumulative stage j keeps the nodes of steps <= j, exact stage j those of step j (every node in exactly one exact
-  stage, stage K cumulative = the whole tree), every other field is the item's, nodes without a step refused;
+ cumulative stage j keeps the nodes of steps <= j, exact stage j those of step j (every node in exactly one exact
+ stage, stage K cumulative = the whole tree), every other field is the item's, nodes without a step refused;
 - build_full_tree on a stage item: GFPQ's view (problem without its options) of exactly that stage's nodes, the
-  per-problem weight split over them;
+ per-problem weight split over them;
 - the training loop on a tiny random model (6 GSM8K items of tests/fixtures/gsm8k_si_items_v1.json, steps 1-5): stage
-  counts and views per stage (no final view in a node stage, finals only in the last; --curriculum-final-nodes: GFPQ's
-  groups there), epochs / (K + 1) per stage, stage-end evaluations, one schedule, an empty exact stage with no update,
-  --reset-optim, the argument checks;
+ counts and views per stage (no final view in a node stage, finals only in the last; --curriculum-final-nodes: GFPQ's
+ groups there), epochs / (K + 1) per stage, stage-end evaluations, one schedule, an empty exact stage with no update,
+ --reset-optim, the argument checks;
 - the existing loops (GFPQ, A2, A10 with stages and an optimizer reset, SIB) give CUR_BASE_REF's losses update for
-  update.
+ update.
 CPU only (CUDA_VISIBLE_DEVICES="")."""
 import json
 import math

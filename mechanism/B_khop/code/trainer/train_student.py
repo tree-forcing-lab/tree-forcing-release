@@ -1,15 +1,15 @@
 """Train one student arm and evaluate it on held-out sets (final question only).
 
 Example (HPC):
-  python scripts/train_student.py --model ~/cotd/models/Qwen3.5-2B-Base \
-      --train data/student/train.jsonl --eval val=data/student/val.jsonl \
-      --final teacher --subq cot --subq-target cot --out runs/A1S1-seed0 --seed 0
+ python scripts/train_student.py --model ~/cotd/models/Qwen3.5-2B-Base \
+ --train data/student/train.jsonl --eval val=data/student/val.jsonl \
+ --final teacher --subq cot --subq-target cot --out runs/A1S1-seed0 --seed 0
 
 Arms: --final {none,teacher,gold} x --subq {none,cot,random}. Writes metrics.json and preds_<set>.jsonl.
 
-Two GPUs, one job (--fsdp, FSDP2 data parallel; notes/next_round/scale12b/fsdp2.md):
-  python -m torch.distributed.run --standalone --nproc_per_node 2 scripts/train_student.py ... --precision bf16 \
-      --fsdp --fsdp-optim cpu-adamw|8bit-sr [--token-budget 4096]
+Two GPUs, one job:
+ python -m torch.distributed.run --standalone --nproc_per_node 2 scripts/train_student.py... --precision bf16 \
+ --fsdp --fsdp-optim cpu-adamw|8bit-sr [--token-budget 4096]
 Every update holds the same sequences as on one GPU, split across the ranks, gradients summed; rank 0 writes the files.
 """
 from __future__ import annotations
@@ -39,7 +39,7 @@ from cotdistill.student import (LOOP_SIDECAR, Example, LayerLoop, brier_loss, bu
 from cotdistill.depth_forcing import (DF_HEADS_FILE, DF_SIDECAR, DFSpec, DFWindow, DepthForcing, build_table,  # noqa: E402
                                       df_heads_state, no_operand_counts, param_groups, parse_df_layers,
                                       supervised_counts)
-from cotdistill import frontier as b3_lib  # noqa: E402  (card B3: frontier interchange, --b3-arm)
+from cotdistill import frontier as b3_lib  # noqa: E402  (frontier interchange, --b3-arm)
 
 
 # Arguments that do not change the training trajectory: a checkpoint may be resumed with different values.
@@ -83,7 +83,7 @@ def main() -> None:
     ap.add_argument("--model", required=True)
     ap.add_argument("--train", required=True)
     ap.add_argument("--extra-train", default="",
-                    help="CARD_khop_v1: comma list of jsonl files whose rows are appended to the --train rows before any "
+                    help="comma list of jsonl files whose rows are appended to the --train rows before any "
                          "filter, shuffle or order seed (e.g. data/eval/khop/train_kh.jsonl); a duplicate item_id is an "
                          "error; the row counts go to metrics.json extra_train; empty = off")
     ap.add_argument("--eval", nargs="*", default=[], help="name=path.jsonl")
@@ -330,7 +330,7 @@ def main() -> None:
                          "worked step's text; lens (v2.1) = slot j's c states at --slot-layer through the model's own "
                          "final norm + LM head (no second pass, no new parameters), position i predicting token i of "
                          "the step's VALUE ('6'), then '\\n' up to c; tsf = teacher-state slots with forced reading "
-                         "(TSF, notes/latent_comeback_memo_2026-10-21.md section 3: --slot-teacher, --slot-align-*, "
+                         "(TSF: --slot-teacher, --slot-align-*, "
                          "--slot-force-p, --slot-teacher-ce)")
     ap.add_argument("--slot-fill", default="none", choices=["none", "last", "answer"],
                     help="--slot-readout lens: slots after a shorter chain get no target (none), the chain's last value "
@@ -489,7 +489,7 @@ def main() -> None:
                          "projection), their own optimizer group with weight decay 0, scaled by the same schedule as "
                          "--lr; default: --lr (one group, as without the flag)")
     ap.add_argument("--b3-arm", default="", choices=["", "fsiit", "ssiit", "cfaug", "sham"],
-                    help="frontier interchange training (card B3; cotdistill.frontier): fsiit = every frontier value of a "
+                    help="frontier interchange training (cotdistill.frontier): fsiit = every frontier value of a "
                          "source item written into the receiver's layer-L residual at its frontier positions, letter CE "
                          "toward the counterfactual answer; ssiit = one value; cfaug = no write, the question's numbers "
                          "substituted and the answer recomputed; sham = the full write, the label cf(S) or the decoy "
@@ -509,11 +509,11 @@ def main() -> None:
                     "views, the share that are strictness views")
     ap.add_argument("--b3-lambda", type=float, default=1.0, help="--b3-arm: weight of the intervened views")
     ap.add_argument("--b3-max-nodes", type=int, default=4, help="--b3-arm: frontier nodes written at most")
-    ap.add_argument("--b3-block-all", action="store_true", help="--b3-arm (card B3 v2): the plain final example of every "
+    ap.add_argument("--b3-block-all", action="store_true", help="--b3-arm (v2): the plain final example of every "
                     "item with an intervened view gets that view's option block (gold, cf(S), cf(S'); the epoch's "
                     "coins), no write, label = the gold (mode blockplain), so the block composition carries no label "
                     "prior; items without a view keep their block")
-    ap.add_argument("--b3-rotate", action="store_true", help="--b3-arm: learned subspaces (card B3 v2 option (b)): the "
+    ap.add_argument("--b3-rotate", action="store_true", help="--b3-arm: learned subspaces (v2 option (b)): the "
                     "written slices become the row blocks of a learned map Q (2 x --b3-dim rows of the hidden size, "
                     "orthonormal, torch orthogonal parametrisation, initialised to the coordinate axes = the slice "
                     "write); the source's Q0 coordinates replace the receiver's Q0 (aligned) or Q1 (spare) component. "
@@ -1030,7 +1030,7 @@ def main() -> None:
                 "df_head_delta": delta, "df_head_gnorm": gnorm}
 
     train_items = read_jsonl(args.train)
-    extra_train: dict = {}           # --extra-train (CARD_khop_v1): path -> rows appended
+    extra_train: dict = {}           # --extra-train: path -> rows appended
     if args.extra_train:
         from collections import Counter
         seen = {it["item_id"] for it in train_items}
@@ -1750,7 +1750,7 @@ def main() -> None:
         parts = fsdp_lib.split_update(tok, upd, args.max_len, args.micro_bs, args.token_budget,
                                       args.token_budget_seqs, fs.world)
         n_df = (4 + 2 * df_spec.K) if df is not None else 0   # --df-layers: aux sum, micro-batches with pairs, skipped
-        #                                                        (no operand, truncated), [c, n] per k
+        #  (no operand, truncated), [c, n] per k
         n_b3 = b3_lib.STAT_LEN if b3 is not None else 0            # --b3-arm: the stats vector (frontier.stats_vector)
         acc = torch.zeros((6 if not slot_loss_on else 9) + (10 if teacher_cfg is not None else 0) + n_df + n_b3,
                           dtype=torch.float64,

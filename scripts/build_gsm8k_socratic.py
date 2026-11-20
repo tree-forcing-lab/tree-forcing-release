@@ -12,54 +12,54 @@ problem keeps its final question but gets no nodes (annotation error, e.g. train
 Problems whose gold (`#### n`) is not a step value (about 5%) are finals only (plan). The step that yields the gold
 is the final in disguise: it is not asked as a sub-question or an N1/N3 training row (only N4 targets it).
 
-Rows (item schema of data/student_v3f; train_student.py / evaluate() read them unchanged):
-  final   "Question: <q>\nOptions:\nA) ..." 5 numbers, one-hot `teacher`, distractor recipe per problem (plan §3.2.4,
-          drawn 40/30/30; a recipe without candidates falls back in the order inter, slip, qo2):
-          qo2   the frozen QO-v2 recipe of scripts/build_math_evals.py (qo_v2(), key "gsm8k_soc/<item_id>"; its
-                RECIPE_MD5 is recorded in summary.json);
-          inter one other step value + one QO-v2 partial result, then 2 perturbations;
-          slip  one planted-slip final (one step's operator swapped or one stated operand moved by 1, propagated
-                through the step graph) + one partial result, then 2 perturbations.
-          Perturbations (inter/slip/N1): an anchor drawn from {gold .4, primary 1 .3, primary 2 .3} (equal expected hub
-          score for gold and distractors), +-d keeping the anchor's parity and roundness. Distractors follow the
-          QO-v2 value rule (integer if the gold is, <= 10x gold). option_kinds and recipe are stored per row.
-          `subqs` (yes/no, exact truth, p_cot = truth) per non-final step: "Is the answer to "<sub-q>" <x>?" (N1 as a
-          value check, x = the value or one of its N1 distractors) and "Is the answer to "<sub-q>" more than <X>?"
-          (N2, X = v * r, r in {.5, .67} or {1.5, 2}, never within 1.25x); truths balanced within each problem; ids
-          s<j>v / s<j>m, depends_on = the parents' nodes of the same kind, node_depth = dependency level.
-  node    standalone multiple-choice rows (row_kind "node", node_type N1/N3/N4, weight 1 / node rows of the problem):
-          N1 "Intermediate question: <sub-q>" with 5 numbers (the value, one other step value, parents first, one
-          partial result, 2 perturbations); N3 "What is the last digit of the answer to "<sub-q>"?" (integer values
-          >= 10; 5 digits); N4 "Each option is a number computed while solving the problem. Which one answers the
-          question?" (the step values, 3-5 options). Asked plainly, no stated parents (plan §1.1).
+Rows (item schema of data/student_v3f; train_student.py / evaluate read them unchanged):
+ final "Question: <q>\nOptions:\nA)..." 5 numbers, one-hot `teacher`, distractor recipe per problem (plan §3.2.4,
+ drawn 40/30/30; a recipe without candidates falls back in the order inter, slip, qo2):
+ qo2 the frozen QO-v2 recipe of scripts/build_math_evals.py (qo_v2, key "gsm8k_soc/<item_id>"; its
+ RECIPE_MD5 is recorded in summary.json);
+ inter one other step value + one QO-v2 partial result, then 2 perturbations;
+ slip one planted-slip final (one step's operator swapped or one stated operand moved by 1, propagated
+ through the step graph) + one partial result, then 2 perturbations.
+ Perturbations (inter/slip/N1): an anchor drawn from {gold.4, primary 1.3, primary 2.3} (equal expected hub
+ score for gold and distractors), +-d keeping the anchor's parity and roundness. Distractors follow the
+ QO-v2 value rule (integer if the gold is, <= 10x gold). option_kinds and recipe are stored per row.
+ `subqs` (yes/no, exact truth, p_cot = truth) per non-final step: "Is the answer to "<sub-q>" <x>?" (N1 as a
+ value check, x = the value or one of its N1 distractors) and "Is the answer to "<sub-q>" more than <X>?"
+ (N2, X = v * r, r in {.5,.67} or {1.5, 2}, never within 1.25x); truths balanced within each problem; ids
+ s<j>v / s<j>m, depends_on = the parents' nodes of the same kind, node_depth = dependency level.
+ node standalone multiple-choice rows (row_kind "node", node_type N1/N3/N4, weight 1 / node rows of the problem):
+ N1 "Intermediate question: <sub-q>" with 5 numbers (the value, one other step value, parents first, one
+ partial result, 2 perturbations); N3 "What is the last digit of the answer to "<sub-q>"?" (integer values
+ >= 10; 5 digits); N4 "Each option is a number computed while solving the problem. Which one answers the
+ question?" (the step values, 3-5 options). Asked plainly, no stated parents (plan §1.1).
 
 Outputs (data/student_gsm8k_soc/):
-  train.jsonl        finals of every clean problem outside val + at most 2 sampled node rows per problem (N1 .5, N3 .25,
-                     N4 .25); every row has problem_id and pool_rank (a random permutation of problems): the
-                     <= 15%-of-math cap (lab 1.7k / release 2.5k / 4B 3k problems) is applied downstream by keeping
-                     pool_rank < N
-  nodes_pool.jsonl   every node row of the train problems (for resampling by the assembler); the final step's N3 views
-                     are only here, marked answer_component
-  val.jsonl          300 held-out GSM8K-train problems (S-math reserve): finals with subqs (never GSM8K test)
-  val_nodes.jsonl    all N1/N3/N4 rows of the val problems
-  summary.json       parse / verification / decontamination counts, audits, md5s
+ train.jsonl finals of every clean problem outside val + at most 2 sampled node rows per problem (N1.5, N3.25,
+ N4.25); every row has problem_id and pool_rank (a random permutation of problems): the
+ <= 15%-of-math cap (lab 1.7k / release 2.5k / 4B 3k problems) is applied downstream by keeping
+ pool_rank < N
+ nodes_pool.jsonl every node row of the train problems (for resampling by the assembler); the final step's N3 views
+ are only here, marked answer_component
+ val.jsonl 300 held-out GSM8K-train problems (S-math reserve): finals with subqs (never GSM8K test)
+ val_nodes.jsonl all N1/N3/N4 rows of the val problems
+ summary.json parse / verification / decontamination counts, audits, md5s
 
 Decontamination (problem level, all text fields: question, sub-questions, solution sentences); a problem flagged by
 any of these is dropped from train and val:
-  1. scripts/decontam.py (raw 13-gram vs every data/eval/*.jsonl), run on a per-problem file under --tmp;
-  2. raw 13-gram vs the external math targets below;
-  3. digit-masked 10-gram or masked word-set Jaccard >= .5 of the question (eval_protocol §4.1 tokenisation) vs GSM8K
-     test, GSM-Plus (question + seed), GSM-Symbolic main/p1/p2 (question + original), SVAMP, AQuA test, GSM1k (when
-     its data file exists) and every data/eval/*.jsonl prompt (Jaccard >= .6 counted too, as a report);
-  4. the GSM-Symbolic canary GUID;
-  5. the per-problem flags data/math_evals/gsm8k_train_flags.json of scripts/build_math_evals.py when it exists.
+ 1. scripts/decontam.py (raw 13-gram vs every data/eval/*.jsonl), run on a per-problem file under --tmp;
+ 2. raw 13-gram vs the external math targets below;
+ 3. digit-masked 10-gram or masked word-set Jaccard >=.5 of the question (eval_protocol §4.1 tokenisation) vs GSM8K
+ test, GSM-Plus (question + seed), GSM-Symbolic main/p1/p2 (question + original), SVAMP, AQuA test, GSM1k (when
+ its data file exists) and every data/eval/*.jsonl prompt (Jaccard >=.6 counted too, as a report);
+ 4. the GSM-Symbolic canary GUID;
+ 5. the per-problem flags data/math_evals/gsm8k_train_flags.json of scripts/build_math_evals.py when it exists.
 Target n-grams in >= 5 groups are boilerplate; a group is one problem template (copies of a test question across
 files and number-swapped variants share one), so converted copies in data/eval do not hide test n-grams.
 Audits (build_math_evals.py adversaries): 5-fold options-only conditional logit (plan §3.2 features, and its rich set),
 hub / largest / smallest / middle rules and the 1.5x magnitude oracle, per final recipe and on N1 rows; N4 largest
 pick; yes/no balance of subqs; gold letter balance.
 
-  python3 scripts/build_gsm8k_socratic.py
+ python3 scripts/build_gsm8k_socratic.py
 """
 from __future__ import annotations
 

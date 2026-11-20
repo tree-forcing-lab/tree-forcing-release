@@ -6,27 +6,27 @@ and metrics.json (args.seed, args.epochs). An arm is one or more run-dir pattern
 (optionally {ep} for an epoch variant and the glob wildcards * ?), or an explicit list of run dirs.
 
 Design (all differences are A - B, in accuracy points):
-  * Paired seeds only: a seed enters when both arms have it (minus --exclude-seeds, e.g. screening seeds).
-  * Items: the test sets are concatenated (default gsm8kv2+gsm1k) and keyed by "<set>:<item_id>". Every run
-    in the comparison must hold exactly the same keys with the same gold label (error otherwise).
-  * Per-seed difference d_s = acc_A,s - acc_B,s, its mean, and the seed-level paired Student-t interval
-    (df = k - 1, two-sided p; none when k = 1).
-  * Item-cluster bootstrap: resample test items once per iteration with the SAME indices for every seed and
-    both arms; statistic = mean over drawn items of the per-item seed-mean difference.
-  * Two-level bootstrap (primary): resample seeds, then items (shared indices); statistic = mean difference.
-  * "significant" only when the two-level interval AND the seed-t interval both exclude 0.
-  * Extras: top-1 ECE (15 equal-width bins, cotdistill.metrics.calibration) per arm on the test sets, accuracy
-    by depth group (gs2+gs3+gs4 vs gs5+gs6+gs7+gs8, when the files exist; gs5p is their union and is not
-    used), and any other set group passed with --sets.
-  * --select-by val: for an arm whose pattern has {ep}, pick the epoch variant with the highest seed-mean
-    val accuracy (preds_val.jsonl only; ties -> fewer epochs), over the seeds that could enter the paired
-    comparison. Test sets are never read during selection.
+ * Paired seeds only: a seed enters when both arms have it (minus --exclude-seeds, e.g. screening seeds).
+ * Items: the test sets are concatenated (default gsm8kv2+gsm1k) and keyed by "<set>:<item_id>". Every run
+ in the comparison must hold exactly the same keys with the same gold label (error otherwise).
+ * Per-seed difference d_s = acc_A,s - acc_B,s, its mean, and the seed-level paired Student-t interval
+ (df = k - 1, two-sided p; none when k = 1).
+ * Item-cluster bootstrap: resample test items once per iteration with the SAME indices for every seed and
+ both arms; statistic = mean over drawn items of the per-item seed-mean difference.
+ * Two-level bootstrap (primary): resample seeds, then items (shared indices); statistic = mean difference.
+ * "significant" only when the two-level interval AND the seed-t interval both exclude 0.
+ * Extras: top-1 ECE (15 equal-width bins, cotdistill.metrics.calibration) per arm on the test sets, accuracy
+ by depth group (gs2+gs3+gs4 vs gs5+gs6+gs7+gs8, when the files exist; gs5p is their union and is not
+ used), and any other set group passed with --sets.
+ * --select-by val: for an arm whose pattern has {ep}, pick the epoch variant with the highest seed-mean
+ val accuracy (preds_val.jsonl only; ties -> fewer epochs), over the seeds that could enter the paired
+ comparison. Test sets are never read during selection.
 
 Pairwise:
-  python scripts/paired_stats.py --a 'GFPQ-c{ep}lr3ch-Qwen3.5-4B-student_gsm8k_tf-s{seed}' --a-epochs 1,2 \
-      --b 'A2-c1lr3ch-Qwen3.5-4B-student_gsm8k_tf-s{seed}' --select-by val
+ python scripts/paired_stats.py --a 'GFPQ-c{ep}lr3ch-Qwen3.5-4B-student_gsm8k_tf-s{seed}' --a-epochs 1,2 \
+ --b 'A2-c1lr3ch-Qwen3.5-4B-student_gsm8k_tf-s{seed}' --select-by val
 Table (one baseline per table, arms as rows; YAML or JSON spec, see TABLE_SPEC_HELP):
-  python scripts/paired_stats.py --table spec.yaml --out notes/table.md
+ python scripts/paired_stats.py --table spec.yaml --out table.md
 """
 from __future__ import annotations
 

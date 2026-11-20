@@ -1,4 +1,4 @@
-"""scripts/build_kk_verify.py: the batch-28 verification control (statement truth under non-candidate assignments)."""
+"""scripts/build_kk_verify.py: the verification control (statement truth under non-candidate assignments)."""
 import collections
 import itertools
 import json

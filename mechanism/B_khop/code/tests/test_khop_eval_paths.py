@@ -1,4 +1,4 @@
-"""CARD_khop_v1 section 5 (Amendment 1, finding 8): the two eval paths of the family give the same prompt ids and the
+"""the k-hop design section 5: the two eval paths of the family give the same prompt ids and the
 same letter probabilities on khop rows. Path 1: the in-job eval of scripts/train_student.py (EXTRA_EVALS: 1-rank FSDP
 under torchrun, the FSDP2 batched readout, --eval-max-len at the trainer default 6144 because hpc/train_arm.sbatch passes
 none). Path 2: scripts/eval_student.py on the saved weights as cloud run_eval_b2.sh calls it (--max-len 1536 --bs 8,

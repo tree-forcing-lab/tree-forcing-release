@@ -5,7 +5,7 @@ distribution over letters, averaged over traces after mapping permuted orders ba
 p_cot = mean P(yes) with CoT in context, p_fresh = P(yes) without CoT, truth, span_minp, status),
 random_subqs (matched-count control questions with p_fresh). Split into train/val by item-id hash.
 
-  python3 scripts/build_student_data.py --runs hard1 hard2 --out data/student --val-frac 0.1
+ python3 scripts/build_student_data.py --runs hard1 hard2 --out data/student --val-frac 0.1
 """
 from __future__ import annotations
 

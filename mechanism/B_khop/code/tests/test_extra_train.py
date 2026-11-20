@@ -1,8 +1,8 @@
-"""--extra-train (CARD_khop_v1 section 1.4) in scripts/train_student.py and its smoke-stage subset in hpc/train_arm.sbatch.
+"""--extra-train in scripts/train_student.py and its smoke-stage subset in hpc/train_arm.sbatch.
 CPU, the tiny random Qwen3.5 text model (8 layers, hidden 64) with the GPT-2 tokenizer (tests/test_depth_forcing.py).
 Checks:
 - flag off: history (loss per logged row), eval metrics and predictions byte-identical to the untouched snapshot
-  (COTD_REF_REPO, default ../repo.base) and no "extra_train" key in metrics.json;
+  (COTD_REF_REPO, default../repo.base) and no "extra_train" key in metrics.json;
 - flag on: the rows are appended right after the --train rows are read, before any shuffle: the run equals the
   reference trainer on one file holding the --train rows then the extra rows (same losses, same predictions); the
   log lines "extra-train: <n> rows from <path> (sources {...})" and "extra-train: total training rows <N>"; metrics.json

@@ -5,8 +5,8 @@ asked several times, such as a logic-grid puzzle or an LSAT game setup, counts o
 13-grams are held in memory; training files are streamed. With --drop the evaluation file is rewritten without the
 overlapping items, and their ids go to <file>.overlap.json.
 
-  python scripts/eval_overlap.py data/eval/xkk.jsonl --train data/student_v4t/train.jsonl \\
-      data/student_v4tf/train.jsonl data/student_v3f/train.jsonl --drop
+ python scripts/eval_overlap.py data/eval/xkk.jsonl --train data/student_v4t/train.jsonl \\
+ data/student_v4tf/train.jsonl data/student_v3f/train.jsonl --drop
 """
 from __future__ import annotations
 

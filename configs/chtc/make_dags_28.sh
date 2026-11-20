@@ -1,9 +1,9 @@
 #!/bin/bash
-# Writes the batch-28 DAGs (README_28.md; Qwen3.5-4B K&K and GSM8K, code 5f925cb (branch cot) + the friend's
+# Writes the DAGs (Qwen3.5-4B K&K and GSM8K, code 5f925cb (branch cot) + the
 # 1-GPU patch): jobs28_4b.dag = the review ablations (2501-2533, priorities in joblist_28_4b.txt);
 # smoke28_4b.dag = SMOKE_ONLY of one job per distinct arm / data (2501 2504 2510 2516 2522 2525 2528 2531).
-# Lines of joblist_28_4b.txt: "<env file>, <priority>, <GPUs>" (1 = the friend's patch: 8 CPUs / 80 GB).
-#   bash make_dags_28.sh
+# Lines of joblist_28_4b.txt: "<env file>, <priority>, <GPUs>" (1 = the patch: 8 CPUs / 80 GB).
+#  bash make_dags_28.sh
 set -euo pipefail
 cd "$(dirname "$0")"
 list() { local f=$1; [ -f "$f" ] || f=../condor/$1; [ -f "$f" ] && echo "$f"; }

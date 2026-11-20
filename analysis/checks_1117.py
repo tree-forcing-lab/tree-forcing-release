@@ -1,5 +1,5 @@
-"""Advisor checks 11-17: (5) content control with the re-run tree runs; (6) BBH / ECE of the controls vs answer-only;
-(7) every held-out set the K&K runs were evaluated on; (8) K&K-External pooled with the batch-19 re-runs."""
+"""Checks 11-17: (5) content control with the re-run tree runs; (6) BBH / ECE of the controls vs answer-only;
+(7) every held-out set the K&K runs were evaluated on; (8) K&K-External pooled with the re-runs."""
 import sys
 from pathlib import Path
 import numpy as np

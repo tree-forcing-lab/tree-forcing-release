@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-"""Zebra cell questions with proof trees for Tree Forcing (CHTC batch 24, cloud/chtc/README_24.md).
+"""Zebra cell questions with proof trees for Tree Forcing.
 
-Hard puzzles of the batch-20r generator (zebra.generate with zebra.HARD_WEIGHTS, up to 80 clues: no clue places
+Hard puzzles of the generator (zebra.generate with zebra.HARD_WEIGHTS, up to 80 clues: no clue places
 anyone), each asked as ONE cell (zebra.make_cell_item: "What is the <attribute> of the person who lives in the k-th
 house?", the attribute's n values as options). Every train / val item carries a proof tree in the K&K subq format:
 zebra.proof_tree (one-level case splits refuted by propagation, max_cases=60 so that every 3x3-4x5 puzzle is solved),
 restricted to the ANCESTORS of the asked cell's placement node (the facts the answer depends on, closed under
 depends_on; node ids and order kept). zebra.audit_tree must return no error on the kept nodes of every item.
 
-  ~/.venvs/sev/bin/python scripts/build_zebra_cell_tf.py            # needs `tokenizers` for the token table
+ ~/.venvs/sev/bin/python scripts/build_zebra_cell_tf.py # needs `tokenizers` for the token table
 
 Writes
-  data/student_zebra_cell_tf/{train,val}.jsonl   train 300 / val 75 per size, sizes 3x3 3x4 4x4 4x5 (1,200 / 300)
-  data/eval/zebra_cell_in.jsonl                   in-range test, 150 per size of the train sizes (600)
-  data/eval/zebra_cell_ex.jsonl                   extrapolation test, 150 per size 5x5 5x6 6x6 (450), no trees
-  data/student_zebra_cell_tf/summary.json         counts, node / token tables, md5s, seeds, dedup
+ data/student_zebra_cell_tf/{train,val}.jsonl train 300 / val 75 per size, sizes 3x3 3x4 4x4 4x5 (1,200 / 300)
+ data/eval/zebra_cell_in.jsonl in-range test, 150 per size of the train sizes (600)
+ data/eval/zebra_cell_ex.jsonl extrapolation test, 150 per size 5x5 5x6 6x6 (450), no trees
+ data/student_zebra_cell_tf/summary.json counts, node / token tables, md5s, seeds, dedup
 Seeds: random.Random(base + 10000 * size_index + k), bases 3,000,000 (train), 4,000,000 (val), 5,000,000 (test); the
 cell is drawn with random.Random(7 * base + 10000 * size_index + k), the tree with random.Random(f"tree-{item_id}").
-Every puzzle is unique by zebra.canonical across all splits and against every batch-20p / 20q / 20r probe file.
+Every puzzle is unique by zebra.canonical across all splits and against every earlier probe file.
 CPU, deterministic.
 """
 from __future__ import annotations

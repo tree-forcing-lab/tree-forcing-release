@@ -1,11 +1,11 @@
 """Evaluate a model (untrained base control or a saved student) on eval sets, final question only.
 
-  python scripts/eval_student.py --model ~/cotd/models/Qwen3.5-2B-Base \
-      --eval jevbench=data/eval/jevbench_public.jsonl kk=data/eval/kk_heldout.jsonl --out runs/base-2B
+ python scripts/eval_student.py --model ~/cotd/models/Qwen3.5-2B-Base \
+ --eval jevbench=data/eval/jevbench_public.jsonl kk=data/eval/kk_heldout.jsonl --out runs/base-2B
 
 Writes metrics.json and preds_<set>.jsonl; scripts/score_preds.py gives per-group breakdowns.
 
---time (opt-in): forward-only seconds per item for a practicality table (e.g. StepFinder's seconds per trajectory):
+--time (opt-in): forward-only seconds per item for a practicality table:
 every item of every set alone (batch 1, the readout forward of evaluate, no generation), after one warm-up item,
 CUDA-synchronized wall time per item -> timing_<set>.json (mean, median, p90, max, total, prompt tokens, device).
 The predictions and metrics are written as without the flag.

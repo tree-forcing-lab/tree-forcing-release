@@ -1,5 +1,4 @@
-"""Batch 28 readout (cloud/chtc/README_28.md §2, written before any batch-28 result; arms cd / placebo dropped before
-any result). Report-only; wording rule: significant only if seed-t and two-level intervals both exclude 0."""
+"""Readout of the review ablations (arms cd / placebo dropped before any result). Report-only; wording rule: significant only if seed-t and two-level intervals both exclude 0."""
 import sys
 from pathlib import Path
 import numpy as np, statistics as st

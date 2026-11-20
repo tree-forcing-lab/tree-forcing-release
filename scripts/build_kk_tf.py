@@ -1,14 +1,14 @@
 """Single-domain Knights & Knaves data for Tree Forcing: data/student_kk_tf, in the layout of the other *_tf sets
 (data/student_numgen_tf, student_pronto_tf, student_gsm8k_tf), so the K&K runs share the one-domain design of the
 math / PrOntoQA / GSM8K runs instead of the 9-source mixture data/student_v3sl (K&K 995 of 7,207 train items, trees
-on K&K only). notes/next_round/tree_forcing/kk_tf.md.
+on K&K only).
 
 Puzzles: the repo's generator (cotdistill.sources.knights_knaves with its defaults, as scripts/build_items.py made
 data/bench/train_kk: p_compound 0.7, 6 options = the solution + 5 near-miss distractors in shuffled letter order, the
 training name pool), one people count per call, 4-10 inhabitants (the training range). Seeds: train 60000 + k, val
 61000 + k for k inhabitants, disjoint from training (100 + k), kk_heldout (9000 + k), kk_deep (30000 + k), diag_kk
 (50000 + k) and kk_audit_pairs (71000 + k). The generator is prefix-stable (the first m puzzles of a seed do not depend
-on how many are asked for) and the files list the sizes round-robin (4, 5, ..., 10, 4, ...), so any prefix of
+on how many are asked for) and the files list the sizes round-robin (4, 5,..., 10, 4,...), so any prefix of
 train.jsonl is size-balanced (counts differ by at most one) and --n M writes exactly the first M lines of a larger
 build.
 Augmentation as for data/student_v2 / v3f / v3sl (scripts/build_v2.py inject_none, its rates and its rewriting):
@@ -44,8 +44,8 @@ N within the budget, 1000 = 0.61x).
 summary.json: sizes, md5s, people-count / gold-position / augmentation counts (v3sl K&K alongside), node statistics,
 cleaning and sufficiency counters (v3sl's names), dedup counts, format check.
 
-  ~/.venvs/sev/bin/python scripts/build_kk_tf.py                          # data/student_kk_tf + tokens.json
-  ~/.venvs/sev/bin/python scripts/build_kk_tf.py --n 4000 --out data/student_kk_tf_n4000 --no-tokens
+ ~/.venvs/sev/bin/python scripts/build_kk_tf.py # data/student_kk_tf + tokens.json
+ ~/.venvs/sev/bin/python scripts/build_kk_tf.py --n 4000 --out data/student_kk_tf_n4000 --no-tokens
 CPU only, about 4 min and < 0.3 GB for the default grid (8,300 puzzles solved and tokenised).
 """
 from __future__ import annotations

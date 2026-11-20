@@ -1,13 +1,13 @@
-"""Batch 25 readout (cloud/chtc/README_25.md section 4, written 2026-11-10 before any batch-25 result): K&K on
+"""Readout: K&K on
 Qwen3.5-9B, GFPS 6 epochs vs A2 12 epochs, seeds 13-15, with the 4B control of the same recipe next to it.
 
-Rule (README_21 section 3, the same for both models): per arm, the eval point (mid epochs 1..E-1 or the end) with
+Rule: per arm, the eval point (mid epochs 1..E-1 or the end) with
 the best seed-mean val accuracy, ties to fewer epochs. Primary: kkdeep (2,000 items) GFPS - A2, seed-paired, seed t
-and the two-level bootstrap of scripts/paired_stats.py. Gate "trees help at 9B": mean >= +1.5, every seed > 0,
+and the two-level bootstrap of scripts/paired_stats.py. Criterion "trees help at 9B": mean >= +1.5, every seed > 0,
 two-level lower bound > 0. Also kk, xkk, zebra at the selected points; bbh500 / bbh at the end of training (they are
-evaluated only then). The 4B side reads the batch-16 runs at the same seeds (13-15, tags c6lr3ch / c12lr3ch) and,
+evaluated only then). The 4B side reads the runs at the same seeds (13-15, tags c6lr3ch / c12lr3ch) and,
 for reference, the 9-run control of analysis/b21_readout.py (printed by that script, not here).
-  python3 analysis/b25_readout.py runs_archive/runs
+ python3 analysis/b25_readout.py runs_archive/runs
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ R = Path(sys.argv[1] if len(sys.argv) > 1 else __import__("os").environ.get("RUN
 SEEDS = (13, 14, 15)
 MID_SETS = ("kkdeep", "kk", "xkk", "zebra")
 END_SETS = ("bbh500", "bbh")
-MODELS = {"9B": ("Qwen3.5-9B", "c6lr3ch", "c12lr3ch"), "4B (batch 16)": ("Qwen3.5-4B", "c6lr3ch", "c12lr3ch")}
+MODELS = {"9B": ("Qwen3.5-9B", "c6lr3ch", "c12lr3ch"), "4B (three seeds)": ("Qwen3.5-4B", "c6lr3ch", "c12lr3ch")}
 
 
 def run_dir(arm, tag, model, s):
@@ -85,7 +85,7 @@ for label, (model, tt, ta) in MODELS.items():
         gate = ""
         if name == "kkdeep":
             ok = r["mean"] >= 0.015 and all(x > 0 for x in r["d"]) and lo > 0
-            gate = f"  GATE {'PASS' if ok else 'FAIL'} (mean >= +1.5, every seed > 0, 2L lower > 0)"
+            gate = f"  criterion {'met' if ok else 'not met'} (mean >= +1.5, every seed > 0, 2L lower > 0)"
         print(f"  {name:7s} GFPS {100 * np.mean(r['acc_a']):.1f} A2 {100 * np.mean(r['acc_b']):.1f}  diff {100 * r['mean']:+.2f} "
               f"seeds {', '.join(f'{100 * x:+.1f}' for x in r['d'])}  2L [{100 * lo:+.2f}, {100 * hi:+.2f}]  "
               f"seed-t p {r['t']['p'] if r['t']['p'] is None else round(r['t']['p'], 3)}{gate}")

@@ -12,7 +12,7 @@ Rendering follows the typed-decision evaluation layout ("State:", question, lett
 Targets are the source's label distribution (annotator votes where it has them), stored as the "teacher" field the
 student code reads. Items carry no tree nodes.
 
-  python scripts/build_v4_tasksource.py      # -> data/v4/tasksource_{train,heldout}.jsonl
+ python scripts/build_v4_tasksource.py # -> data/v4/tasksource_{train,heldout}.jsonl
 """
 from __future__ import annotations
 

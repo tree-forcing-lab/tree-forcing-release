@@ -1,10 +1,10 @@
 """Numbers of the paper that build on the six-seed permuted control and the written-reasoning references:
 (1) BIG-Bench Hard with the permuted control at six seeds: two-option vs more-option split, per-task accuracy,
-    temperature scaling (T fitted on each run's K&K validation predictions);
+ temperature scaling (T fitted on each run's K&K validation predictions);
 (2) GSM8K Tree Forcing (1 epoch) vs the surface placebo (seeds 16-18) and the calibration of the GSM8K arms;
 (3) written-reasoning references: generation accuracy of the proof-generation runs on K&K-Held-out and of the
-    rationale-generation runs on the cue-free GSM8K sets.
-  RUNS=runs_archive/runs python3 analysis/extras.py"""
+ rationale-generation runs on the cue-free GSM8K sets.
+ RUNS=runs_archive/runs python3 analysis/extras.py"""
 import collections, json, math, statistics as st, sys
 from pathlib import Path
 import numpy as np

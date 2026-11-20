@@ -1,16 +1,16 @@
-"""Do the intermediate values that Tree Forcing installs reach the one-pass answer? (zero-GPU readout, 2026-11-11)
+"""Do the intermediate values that Tree Forcing installs reach the one-pass answer? (zero-GPU readout,
 
 For every run: the end-of-training node probes (preds_subq.jsonl: yes/no questions on the val problems' tree nodes,
 `correct` per question) and the end-of-training val answers (preds_val.jsonl). Per run:
-  node_acc      mean `correct` over all node questions
-  coupling      mean node accuracy on val items the run answered right minus on items it answered wrong
-  pair_order    share of (true, false) node pairs with the same stem where p_yes(true) > p_yes(false) (GSM8K value nodes)
-  by_depth      node accuracy by the node's depth in the tree (K&K: subqs node_depth; GSM8K: the step of the node)
+ node_acc mean `correct` over all node questions
+ coupling mean node accuracy on val items the run answered right minus on items it answered wrong
+ pair_order share of (true, false) node pairs with the same stem where p_yes(true) > p_yes(false) (GSM8K value nodes)
+ by_depth node accuracy by the node's depth in the tree (K&K: subqs node_depth; GSM8K: the step of the node)
 Aggregated over the runs of an arm (mean, run SD) with a 95% item bootstrap (items resampled within each run, B=2000).
-Run sets: K&K = the 6-seed control pool (batch 16 s13-15 c12lr3ch / c6lr3ch, batch 21 s16-18 c12lr3chv / c6lr3chv);
-GSM8K = batch 22 at the registered epochs (A2 1, GFPQ 1, A7 3, rl 2; 3 seeds each).
+Run sets: K&K = the 6-seed control pool (s13-15 c12lr3ch / c6lr3ch, s16-18 c12lr3chv / c6lr3chv);
+GSM8K = the runs at the epochs (A2 1, GFPQ 1, A7 3, rl 2; 3 seeds each).
 Caveat: the node-probe prompt shows the answer options (student.py node-probe eval). Observational: no causal claim.
-  python3 -I analysis/node_coupling.py runs_archive/runs"""
+ python3 -I analysis/node_coupling.py runs_archive/runs"""
 import collections
 import glob
 import json

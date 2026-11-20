@@ -2,20 +2,20 @@
 """Build the OPC (oracle-prefix capacity) eval sets: cue-free GSM8K items (gsm8k_mc_v2_xprob) with the first k worked
 steps written into the prompt as the repo's "Worked steps:" block (student.chain_block + insert_chain), plus controls.
 
-    PYTHONPATH=<repo>/src python build_hint_evals.py --steps <repo>/data/eval/gsm8k_mc_v2_steps.jsonl \
-        --x <repo>/data/eval/gsm8k_mc_v2_xprob.jsonl --out data/eval/hint [--seed 20261021]
+ PYTHONPATH=<repo>/src python build_hint_evals.py --steps <repo>/data/eval/gsm8k_mc_v2_steps.jsonl \
+ --x <repo>/data/eval/gsm8k_mc_v2_xprob.jsonl --out data/eval/hint [--seed 20261021]
 
 Items: x items whose steps item (same test index) has n >= 2 worked steps. Sets written (one jsonl each):
-  hint_plain            the item unchanged                                   (n >= 2 items)
-  hint_true_r<r>        first k = n - r true steps shown, r = 1 .. 6 remaining (r = 1: n >= 2 items, ...)
-  hint_full             all n steps shown (the answer step included): sanity ceiling
-  hint_other_r<r>       k lines from another item's chain (student.teacher_partners), r in {1, 2}
-  hint_placebo_r<r>     k sentences of the item's own question text (student._pl_sentences), r in {1, 2, 3, 4}
-  hint_wrongres_r<r>    a CONSISTENT wrong chain: every result wrong and at least one tier away from the truth (an
-                        operator slip when it gives a clean number, else +-max(2, 10%)), and every operand that comes
-                        from an earlier step (a_from / b_from) rewritten to that step's wrong value, r in {1, 2}.
-                        No true result of steps 1..k appears in the block. The M3 control.
-  hint_wrongres_near_r<r> the old near-miss control: true operands kept, results off by +-1 .. +-2 (secondary)
+ hint_plain the item unchanged (n >= 2 items)
+ hint_true_r<r> first k = n - r true steps shown, r = 1.. 6 remaining (r = 1: n >= 2 items,...)
+ hint_full all n steps shown (the answer step included): sanity ceiling
+ hint_other_r<r> k lines from another item's chain (student.teacher_partners), r in {1, 2}
+ hint_placebo_r<r> k sentences of the item's own question text (student._pl_sentences), r in {1, 2, 3, 4}
+ hint_wrongres_r<r> a CONSISTENT wrong chain: every result wrong and at least one tier away from the truth (an
+ operator slip when it gives a clean number, else +-max(2, 10%)), and every operand that comes
+ from an earlier step (a_from / b_from) rewritten to that step's wrong value, r in {1, 2}.
+ No true result of steps 1..k appears in the block. The M3 control.
+ hint_wrongres_near_r<r> the old near-miss control: true operands kept, results off by +-1.. +-2 (secondary)
 Every row keeps item_id, labels, gold_label, gold_probs, label_order, option_kinds, depth of the x item and adds
 n, r, k, kind, shown (the lines), shown_equals_option (a shown value equals an option text), partner (other).
 Prints a manifest (counts, md5) and writes it to <out>/MANIFEST.json.

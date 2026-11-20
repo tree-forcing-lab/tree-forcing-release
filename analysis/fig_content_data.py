@@ -1,6 +1,6 @@
 """Data of the content-control figure (paper Figure 2): for each training variant, its K&K-Deep accuracy minus that of
 answer-only training, paired by seed, each method at its selected epoch, on the items both runs of a seed hold.
-Writes analysis/fig_content.json; analysis/fig_content.py draws it.   RUNS=runs_archive/runs python3 analysis/fig_content_data.py"""
+Writes analysis/fig_content.json; analysis/fig_content.py draws it. RUNS=runs_archive/runs python3 analysis/fig_content_data.py"""
 import json
 import sys
 from pathlib import Path

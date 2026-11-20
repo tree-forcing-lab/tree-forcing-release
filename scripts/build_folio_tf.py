@@ -1,40 +1,40 @@
 #!/usr/bin/env python3
-"""FOLIO as a Tree Forcing source with prover-verified nodes (CHTC batch 27, cloud/chtc/README_27.md).
+"""FOLIO as a Tree Forcing source with prover-verified nodes.
 
 Input: data/raw/folio/folio_v2_{train,validation}.jsonl (FOLIO v2, CC BY-SA 4.0): natural-language premises and
 conclusion, their first-order-logic annotations (premises-FOL, conclusion-FOL) and the label True / False / Uncertain.
 
 1. Parse every FOL string (connectives ¬ ∧ ∨ ⊕ → ↔, quantifiers ∀ ∃ (scope: Parser), = and ≠, predicates over
-   constants and bound variables) into z3 over one uninterpreted sort. A string that does not parse is retried once
-   after counted mechanical repairs (repair(): a trailing comma, unbalanced parentheses); one that still does not
-   parse completely drops its item (reported).
+ constants and bound variables) into z3 over one uninterpreted sort. A string that does not parse is retried once
+ after counted mechanical repairs (repair: a trailing comma, unbalanced parentheses); one that still does not
+ parse completely drops its item (reported).
 2. Prover label: premises |= conclusion -> True; premises |= not conclusion -> False; else Uncertain (z3 unknown or a
-   timeout drops the item; unsatisfiable premises drop it). Only items whose prover label equals the gold label are
-   kept (FOLIO's FOL annotations contain errors; the agreement rate and every drop reason go to summary.json).
-3. Nodes (the tree): ground atoms P(c1, ..) obtained by instantiating each predicate occurrence of the item's
-   formulas with the item's constants (bound variables -> every constant; arity 1 or 2). A node is kept when the
-   premises entail the atom (truth True) or its negation (truth False); undetermined atoms are not asked. An atom
-   logically equivalent to the conclusion or to its negation is dropped (it would state the answer). Items with an
-   unbound variable letter u-z (an annotation slip; it would be read as a constant "x") are dropped. Node fields
-   as the K&K subqs the trainer reads (question, opposite, truth, p_cot, type, id, depends_on [], node_depth 0,
-   source_tree); type "parse" when the atom or its negation is a conjunct of a premise, else "derive". Question
-   'Is it true that <c> has the property "<p>"?' / 'Is it true that <a> stands in the relation "<p>" to <b>?' (a
-   frame well-formed for any predicate name), or "Is it false that ..." (truth follows the wording). Which atoms are
-   asked in which wording: balance_nodes, so that the wording does not predict the answer (over each split
-   P(Yes | true wording) = P(Yes | false wording) = P(Yes) = 1/2); a question-only logistic regression
-   (shortcut_baseline) is reported in summary.json.
+ timeout drops the item; unsatisfiable premises drop it). Only items whose prover label equals the gold label are
+ kept (FOLIO's FOL annotations contain errors; the agreement rate and every drop reason go to summary.json).
+3. Nodes (the tree): ground atoms P(c1,..) obtained by instantiating each predicate occurrence of the item's
+ formulas with the item's constants (bound variables -> every constant; arity 1 or 2). A node is kept when the
+ premises entail the atom (truth True) or its negation (truth False); undetermined atoms are not asked. An atom
+ logically equivalent to the conclusion or to its negation is dropped (it would state the answer). Items with an
+ unbound variable letter u-z (an annotation slip; it would be read as a constant "x") are dropped. Node fields
+ as the K&K subqs the trainer reads (question, opposite, truth, p_cot, type, id, depends_on [], node_depth 0,
+ source_tree); type "parse" when the atom or its negation is a conjunct of a premise, else "derive". Question
+ 'Is it true that <c> has the property "<p>"?' / 'Is it true that <a> stands in the relation "<p>" to <b>?' (a
+ frame well-formed for any predicate name), or "Is it false that..." (truth follows the wording). Which atoms are
+ asked in which wording: balance_nodes, so that the wording does not predict the answer (over each split
+ P(Yes | true wording) = P(Yes | false wording) = P(Yes) = 1/2); a question-only logistic regression
+ (shortcut_baseline) is reported in summary.json.
 4. Items, K&K style: a preamble paragraph, the premises as "- <statement>" lines, then one paragraph "Question: Based
-   on the statements, is the following conclusion true, false, or uncertain? Conclusion: <conclusion>", fixed options
-   A) True B) False C) Uncertain, one-hot teacher, source "folio_tf" (treeplan.FINAL_QUESTION["folio_tf"] on branch
-   folio cuts the statement block: preamble + statements, without the conclusion).
-   Splits: FOLIO v2 train grouped by story_id, 15% of the stories to val (seed 0, no story in both); test = FOLIO
-   v2 validation (no story shared with train), the items whose prover label equals the gold label; also the whole
-   validation set in the same format, FOLIO gold, no nodes (data/eval/folio_tf_test_all.jsonl, report only).
+ on the statements, is the following conclusion true, false, or uncertain? Conclusion: <conclusion>", fixed options
+ A) True B) False C) Uncertain, one-hot teacher, source "folio_tf" (treeplan.FINAL_QUESTION["folio_tf"] on branch
+ folio cuts the statement block: preamble + statements, without the conclusion).
+ Splits: FOLIO v2 train grouped by story_id, 15% of the stories to val (seed 0, no story in both); test = FOLIO
+ v2 validation (no story shared with train), the items whose prover label equals the gold label; also the whole
+ validation set in the same format, FOLIO gold, no nodes (data/eval/folio_tf_test_all.jsonl, report only).
 Writes data/student_folio_tf/{train,val}.jsonl, data/eval/folio_tf_test{,_all}.jsonl, data/student_folio_tf/summary.json.
 A rebuild gives the same bytes.
 
-  ~/.venvs/sev/bin/python scripts/build_folio_tf.py                     # needs z3-solver
-  ~/.venvs/sev/bin/python scripts/build_folio_tf.py --token-stats <tokenizer dir>
+ ~/.venvs/sev/bin/python scripts/build_folio_tf.py # needs z3-solver
+ ~/.venvs/sev/bin/python scripts/build_folio_tf.py --token-stats <tokenizer dir>
 """
 from __future__ import annotations
 

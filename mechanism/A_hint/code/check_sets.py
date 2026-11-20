@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-"""Independent check of the 18 hint sets that jobs 500-513 evaluated (standard library only, no torch).
+"""Independent check of the 18 hint sets (standard library only, no torch).
 
-    python3 code/check_sets.py            # from the A_hint folder; prints a report, exit 1 on any failure
+ python3 code/check_sets.py # from the A_hint folder; prints a report, exit 1 on any failure
 
 It re-derives every set rule from the two source files and never imports the builder:
-  data/source/gsm8k_mc_v2_xprob.jsonl   cue-free GSM8K test items (options are other problems' answers)
-  data/source/gsm8k_mc_v2_steps.jsonl   the same test items with their worked steps (atomic binary operations)
+ data/source/gsm8k_mc_v2_xprob.jsonl cue-free GSM8K test items (options are other problems' answers)
+ data/source/gsm8k_mc_v2_steps.jsonl the same test items with their worked steps (atomic binary operations)
 Checks:
-  1. Item choice: the 1,129 items are exactly the x items whose steps row has >= 2 worked steps, in file order.
-  2. r_k: for every row, n = len(worked_steps), k = n - r, len(shown) = k; for true and full rows
-     shown == [step text for the first k steps]. plain has k = 0 (r = n), full has k = n (r = 0).
-  3. Prompt: every prompt equals the x prompt with "\\n\\nWorked steps:\\nStep 1: ..." inserted before the last
-     "\\nOptions:\\n" (student.chain_block + insert_chain at 994ff50); options and gold label unchanged.
-  4. Controls: placebo lines are sentences of the item's own question; other lines are the first k lines of the
-     partner's chain (partner != item); far-wrong (wrongres) blocks hold no true result of steps 1..k; near-miss
-     (wrongres_near) lines keep the true left side and change the result to the first of +1, -1, +2, -2, x2, /2,
-     +10 that is no option text and no true step value (so mostly +-1 or +-2, a few larger).
-  5. The depth field is not n (reported, since the first author's reading may use depth).
+ 1. Item choice: the 1,129 items are exactly the x items whose steps row has >= 2 worked steps, in file order.
+ 2. r_k: for every row, n = len(worked_steps), k = n - r, len(shown) = k; for true and full rows
+ shown == [step text for the first k steps]. plain has k = 0 (r = n), full has k = n (r = 0).
+ 3. Prompt: every prompt equals the x prompt with "\\n\\nWorked steps:\\nStep 1:..." inserted before the last
+ "\\nOptions:\\n" (student.chain_block + insert_chain at 994ff50); options and gold label unchanged.
+ 4. Controls: placebo lines are sentences of the item's own question; other lines are the first k lines of the
+ partner's chain (partner != item); far-wrong (wrongres) blocks hold no true result of steps 1..k; near-miss
+ (wrongres_near) lines keep the true left side and change the result to the first of +1, -1, +2, -2, x2, /2,
+ +10 that is no option text and no true step value (so mostly +-1 or +-2, a few larger).
+ 5. The depth field is not n (reported).
 """
 import collections, json, os, sys
 

@@ -1,11 +1,11 @@
-# Apptainer image for the Qwen3.5-4B jobs of batch 3 (README_4b.md): cotd.sif (the 12B image: torch 2.11.0+cu128,
+# Apptainer image for the Qwen3.5-4B jobs: cotd.sif (the 12B image: torch 2.11.0+cu128,
 # transformers 5.17.0, unchanged) + flash-linear-attention / fla-core 0.5.2, the version of the HPC 4B runs.
 # Qwen3.5's Gated DeltaNet layers use fla's chunk_gated_delta_rule when fla is installed; without it transformers falls
 # back to the reference PyTorch implementation (same maths, more than an order of magnitude slower on an H100), which
 # cotd.sif would do because Gemma never needed fla. --no-deps: nothing of cotd.sif is upgraded (fla needs einops,
 # torch >= 2.7, triton >= 3.3, transformers >= 4.45, all there). causal-conv1d is not installed: the PyTorch fallback is
 # used for the short convolution (same maths; the kernel only changes speed).
-# Build (interactive build job, cotd.sif copied into the working directory first):  apptainer build cotd_4b.sif cotd_4b.def
+# Build (interactive build job, cotd.sif copied into the working directory first): apptainer build cotd_4b.sif cotd_4b.def
 Bootstrap: localimage
 From: cotd.sif
 

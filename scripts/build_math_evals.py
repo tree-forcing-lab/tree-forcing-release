@@ -1,32 +1,32 @@
-"""Math evaluation files for the data-expansion round (plan notes/next_round/data_expansion/plan.md §2 row 1, §3.2).
+"""Math evaluation files for the data-expansion round.
 
 Converted sets (free-number answers turned into 5-way multiple choice with the QO-v2 recipe):
-  data/eval/gsm8k_mc_v2.jsonl     GSM8K test (the problems of gsm8k_mc.jsonl v1, new options; ids gsm8k_v2-test-<i>,
-                                  orig_id gsm8k-test-<i> = the row of the GSM8K test parquet, as in v1)
-  data/eval/gsm1k_mc.jsonl        GSM1k (ScaleAI); no solutions, so its depth stratum is a stated-number proxy
-  data/eval/svamp_mc.jsonl        SVAMP (ChilleD split), --svamp-splits (default test, 300; train adds 700)
-  data/eval/gsm_plus_mc.jsonl     GSM-Plus test, the 7 numeric perturbation types (critical thinking has no number);
-                                  orig_id = its GSM8K test seed, matched by question text
-  data/eval/gsm_symbolic_mc.jsonl GSM-Symbolic main / p1 / p2; orig_id = original_id (checked: = GSM8K test row)
+ data/eval/gsm8k_mc_v2.jsonl GSM8K test (the problems of gsm8k_mc.jsonl v1, new options; ids gsm8k_v2-test-<i>,
+ orig_id gsm8k-test-<i> = the row of the GSM8K test parquet, as in v1)
+ data/eval/gsm1k_mc.jsonl GSM1k (ScaleAI); no solutions, so its depth stratum is a stated-number proxy
+ data/eval/svamp_mc.jsonl SVAMP (ChilleD split), --svamp-splits (default test, 300; train adds 700)
+ data/eval/gsm_plus_mc.jsonl GSM-Plus test, the 7 numeric perturbation types (critical thinking has no number);
+ orig_id = its GSM8K test seed, matched by question text
+ data/eval/gsm_symbolic_mc.jsonl GSM-Symbolic main / p1 / p2; orig_id = original_id (checked: = GSM8K test row)
 Native multiple choice (published options, order reshuffled with a per-item seed, prefixes stripped; duplicate
 handling as in scripts/build_eval_logic.py):
-  data/eval/aqua_test.jsonl       AQuA-RAT test
-  data/eval/mathqa_test.jsonl     MathQA test (MathQA.zip json; the HF loader script cannot run offline)
+ data/eval/aqua_test.jsonl AQuA-RAT test
+ data/eval/mathqa_test.jsonl MathQA test (MathQA.zip json; the HF loader script cannot run offline)
 Converted sets drop golds <= 0 and golds that are not decimals (GSM-Plus fractions such as "3/5").
 
 QO-v2 (plan §3.2) uses only the question text and the gold number, so it applies unchanged to sets without solutions:
 - stated numbers: digit numbers (commas, decimals; p% also gives p/100) and number words ("five", "dozen", "half");
 - 2 partial results drawn without replacement, weight 1 per "a op b" candidate (one +, -, x or exact / on two stated
-  numbers) and PARAMS["w_goldn"] per "gold op n" candidate (n stated); candidates are positive, not the gold, at most
-  10x the gold, and integer whenever the gold is (else at most 2 decimals);
+ numbers) and PARAMS["w_goldn"] per "gold op n" candidate (n stated); candidates are positive, not the gold, at most
+ 10x the gold, and integer whenever the gold is (else at most 2 decimals);
 - 2 perturbations, each of an anchor drawn from {gold, partial 1, partial 2} (PARAMS["anchor"], uniform), by +d or
-  -d with d in {1, 2, 5, 10} x 10^k, k = the anchor's trailing zeros (at most 3);
+ -d with d in {1, 2, 5, 10} x 10^k, k = the anchor's trailing zeros (at most 3);
 - every random choice comes from random.Random(f"qo2/<item_id>"), so an item's options do not depend on which other
-  items are built; option order from random.Random(f"order/<item_id>").
+ items are built; option order from random.Random(f"order/<item_id>").
 RECIPE_MD5 = md5 of PARAMS, the number words and pattern, and the source of the recipe functions; it is printed,
 stored in data/math_evals/audit.json and in every converted item ("recipe"). Any edit to the recipe changes it.
 
-How it was frozen (2026-10-05; GSM8K train only, never an evaluation set). GSM8K train is split once (seed 0) into
+How it was frozen; GSM8K train only, never an evaluation set). GSM8K train is split once (seed 0) into
 fit 1/2, tune 1/4 and final 1/4. The options-only adversary is a conditional logit (softmax over an item's options)
 on the plan's features: hub score (number of other options at +-{1,2,5,10}, x2 or /2), magnitude rank, parity,
 roundness, digit count, max/min; fitted on fit, scored on tune. About 300 settings were read: anchor weights
@@ -34,25 +34,25 @@ roundness, digit count, max/min; fitted on fit, scored on tune. About 300 settin
 unscaled or scaled to the anchor, partial preference for the gold's roundness / digit count / magnitude, a lower
 bound on partials, a layout that puts the gold on a random place of the perturbation graph, a uniform target rank
 for the gold, and keeping, of k drawn option sets, the one whose gold a frozen logit rates closest to chance. All
-landed at .25-.30 on the tune slice (SE about .010 per read). The frozen setting (uniform anchors, w_goldn .5, x2
-and /2 weight 0, d scaled) reads .261 averaged over 4 recipe seeds (sd .011), the hub rule .210 (worst
-deterministic tie-break .221);
+landed at.25-.30 on the tune slice (SE about.010 per read). The frozen setting (uniform anchors, w_goldn.5, x2
+and /2 weight 0, d scaled) reads.261 averaged over 4 recipe seeds (sd.011), the hub rule.210 (worst
+deterministic tie-break.221);
 the final slice is in the audit (.260; read after freezing twice, before and after a correctness fix that keeps
-near-zero values from becoming a "0" option; both .260). **The plan's <= .25 was not reached reliably**: the residual
-cue is roundness and size (logit .20 on golds with no trailing zero, .30 with one, .53 with two or more;
-.11 / .23 / .35 / .49 for golds < 10 / < 100 / < 1000 / >= 1000): GSM8K golds are rounder than one-step results of
+near-zero values from becoming a "0" option; both.260). **The plan's <=.25 was not reached reliably**: the residual
+cue is roundness and size (logit.20 on golds with no trailing zero,.30 with one,.53 with two or more;
+.11 /.23 /.35 /.49 for golds < 10 / < 100 / < 1000 / >= 1000): GSM8K golds are rounder than one-step results of
 the stated numbers, and the gold's own perturbations inherit its roundness. Deviations from the §3.2 wording: d is
-scaled to the anchor, "gold op n" candidates weigh .5, and the x2 / /2 perturbations have weight 0 (gold x2 and
+scaled to the anchor, "gold op n" candidates weigh.5, and the x2 / /2 perturbations have weight 0 (gold x2 and
 gold / 2 still occur as "gold op n" partials when the question states 2, "half", "twice" or "double").
 
-Every item has the evaluate() fields of data/eval/gsm8k_mc.jsonl (item_id, source, group, type, prompt, labels,
+Every item has the evaluate fields of data/eval/gsm8k_mc.jsonl (item_id, source, group, type, prompt, labels,
 label_order, gold_label, label_names, gold_probs) plus depth, mag, nq (stated-number count), orig_id and, for
 converted sets, level (GSM8K: dependency level of the gold), variant and option_kinds (gold / partial_ab /
 partial_gn / perturb_gold / perturb_p1 / perturb_p2) for pick analysis. label_names maps letters to o0..o4 (o0 =
 gold), as in v1; native sets map letters to option texts. group = "<source>[/<variant>]/<depth>/<magnitude>":
 - depth d<k> = solution steps (GSM8K: calculator notes, as in v1; GSM-Plus: those of its GSM8K seed; GSM-Symbolic:
-  "= number" computations in its solution; SVAMP: operators in Equation; MathQA: operations in linear_formula),
-  capped at d6+; q<k> = stated-number count for GSM1k and AQuA (no machine-readable solution), capped at q8+;
+ "= number" computations in its solution; SVAMP: operators in Equation; MathQA: operations in linear_formula),
+ capped at d6+; q<k> = stated-number count for GSM1k and AQuA (no machine-readable solution), capped at q8+;
 - magnitude m1 < 10 <= m2 < 100 <= m3 < 1000 <= m4 (absolute gold value); mx when the gold option is not a number.
 
 Audits (data/math_evals/audit.json, also printed): options-only baselines per file (the logit fitted on GSM8K-train
@@ -61,7 +61,7 @@ with expected credit on ties and its worst deterministic tie-break; largest / sm
 sets, longest / shortest option and the numeric rules on items with 5 numeric options) and the magnitude oracle
 (knows the gold within 1.5x). Overlap of every evaluation item with every data/student_*/train.jsonl (prompt,
 rationale, sub-questions): raw 13-gram as in scripts/eval_overlap.py, digit-masked 10-gram and masked word-set
-Jaccard >= .5 (the detectors of eval_protocol.md §4.1); n-grams in >= 5 distinct problems of a file are its
+Jaccard >=.5 (the detectors of eval_protocol.md §4.1); n-grams in >= 5 distinct problems of a file are its
 boilerplate. Raw 13-gram hits in sets models were trained on are dropped and listed in
 data/eval/<file>.jsonl.overlap.json (the existing convention); the masked detectors, and every detector on this
 round's builds (--round: still being written, to be cleaned against data/eval by their own builders), are reported
@@ -73,9 +73,9 @@ Licences: GSM1k has no licence (evaluation only, no redistribution); GSM-Plus is
 use; GSM-Symbolic is CC BY-NC-ND 4.0 (its canary GUID is kept in each item's "canary" field, outside the prompt);
 GSM8K MIT; SVAMP MIT; AQuA-RAT and MathQA Apache-2.0. These files are internal evaluation only.
 
-  python3 scripts/build_math_evals.py --tune       # the 4-seed tune-slice check of the frozen recipe (writes nothing)
-  python3 scripts/build_math_evals.py              # build the 7 files and run the audits (~15 min, CPU)
-  python3 scripts/decontam.py data/math_evals/gsm8k_train.jsonl   # GSM8K train vs all of data/eval, 13-gram
+ python3 scripts/build_math_evals.py --tune # the 4-seed tune-slice check of the frozen recipe (writes nothing)
+ python3 scripts/build_math_evals.py # build the 7 files and run the audits (~15 min, CPU)
+ python3 scripts/decontam.py data/math_evals/gsm8k_train.jsonl # GSM8K train vs all of data/eval, 13-gram
 """
 from __future__ import annotations
 
@@ -108,7 +108,7 @@ CANARY = "This document should not appear in training corpora. canary GUID 731c0
 
 # ---------------------------------------------------------------------------------------------------- QO-v2 recipe
 
-PARAMS = {                             # frozen 2026-10-05 after the GSM8K-train search in the module docstring
+PARAMS = {                             # frozen after the GSM8K-train search in the module docstring
     "max_ratio": 10.0,                 # partial results at most this multiple of the gold
     "w_goldn": 0.5,                    # weight of one "gold op stated number" candidate vs one "a op b" candidate
     "anchor": {"gold": 1.0, "partial_ab": 1.0, "partial_gn": 1.0},   # perturbation anchor weight by kind

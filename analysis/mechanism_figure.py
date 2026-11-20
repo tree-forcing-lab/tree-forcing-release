@@ -1,6 +1,6 @@
 """Figure for the mechanism section: (a) one-pass accuracy on synthetic arithmetic chains by hop count; (b) GSM8K
 accuracy on the 332 test problems with at least five steps as true intermediate steps are written into the prompt
-(Stage 2 hint test, seeds 16-18).  python3 analysis/mechanism_figure.py SCRATCH"""
+(the hint test, seeds 16-18). python3 analysis/mechanism_figure.py SCRATCH"""
 import json
 import statistics as st
 import sys

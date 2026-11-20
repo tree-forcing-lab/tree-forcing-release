@@ -1,10 +1,10 @@
 """CPU-offloaded AdamW with fp32 master weights for bf16 (or fp32) GPU parameters.
 
 Layout per trainable parameter p (on the GPU, usually bf16):
-  master  fp32 CPU copy of p (the weights the optimizer really updates)
-  acc     fp32 CPU gradient accumulator (= master.grad; summed over gradient-accumulation micro-steps)
-  m, v    fp32 CPU AdamW moments (held by an inner torch.optim.AdamW over the master tensors)
-  stage   CPU buffer in p's dtype, pinned when p is on CUDA: grad D2H target, then the weight H2D source
+ master fp32 CPU copy of p (the weights the optimizer really updates)
+ acc fp32 CPU gradient accumulator (= master.grad; summed over gradient-accumulation micro-steps)
+ m, v fp32 CPU AdamW moments (held by an inner torch.optim.AdamW over the master tensors)
+ stage CPU buffer in p's dtype, pinned when p is on CUDA: grad D2H target, then the weight H2D source
 
 Backward: a post-accumulate-grad hook on p copies p.grad into stage on a side CUDA stream (non-blocking), lets the
 allocator free p.grad once the copy is done (record_stream + p.grad = None), and hands the fp32 accumulation
@@ -12,7 +12,7 @@ allocator free p.grad once the copy is done (record_stream + p.grad = None), and
 overlaps the rest of the backward. The number of gradient bytes in flight on the GPU is capped (max_inflight_bytes):
 when PCIe falls behind, the hook waits, which throttles backward instead of letting grads pile up until an OOM.
 
-step(): drain the pending adds, then bucket by bucket run torch's AdamW (fused CPU kernel when available, else
+step: drain the pending adds, then bucket by bucket run torch's AdamW (fused CPU kernel when available, else
 foreach, else for-loop) on the fp32 masters with num_threads intra-op threads, cast the bucket's masters into the
 stage buffers and copy them H2D on the side stream, so the transfer of bucket k overlaps the CPU update of bucket
 k + 1. The default stream then waits on the side stream (no host sync), so the next forward sees the new weights.
@@ -21,7 +21,7 @@ The training loop must replace torch.nn.utils.clip_grad_norm_(params, c) by opt.
 hooks, p.grad is None on the GPU, so the torch call would silently see no gradients and clip nothing.
 
 Works with torch.optim.lr_scheduler (this is an Optimizer subclass; param_groups hold the GPU params and 'lr').
-state_dict() holds the masters, moments and step counts (the bf16 model weights are derivable from the masters).
+state_dict holds the masters, moments and step counts (the bf16 model weights are derivable from the masters).
 """
 from __future__ import annotations
 

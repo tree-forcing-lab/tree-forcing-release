@@ -1,17 +1,17 @@
 """Build training items (for teacher labelling) and held-out eval sets from the raw data.
 
-  bash scripts/fetch_data.sh && python3 scripts/build_items.py
+ bash scripts/fetch_data.sh && python3 scripts/build_items.py
 
-data/bench/train_kk.jsonl, train_jl.jsonl   training items (labelled by scripts/run_pilot.py)
-data/eval/kk_heldout.jsonl                  K&K, 4-12 people x 50 (11-12 are beyond the training range)
-data/eval/jl_heldout.jsonl                  JustLogic validation split, depth 1-7 x 150
-data/eval/jevbench_public.jsonl             JevBench public tiers (evaluation only)
-data/eval/typed_decisions_test.jsonl        Typed Decisions test, one record per decision (evaluation only)
-data/eval/bbeh.jsonl                        BBEH closed-answer tasks, 1,920 items (evaluation only; hard for the teacher too)
-data/eval/bbeh_sub.jsonl                    the first 50 per task in a fixed shuffle, for teacher (System 2) runs
+data/bench/train_kk.jsonl, train_jl.jsonl training items (labelled by scripts/run_pilot.py)
+data/eval/kk_heldout.jsonl K&K, 4-12 people x 50 (11-12 are beyond the training range)
+data/eval/jl_heldout.jsonl JustLogic validation split, depth 1-7 x 150
+data/eval/jevbench_public.jsonl JevBench public tiers (evaluation only)
+data/eval/typed_decisions_test.jsonl Typed Decisions test, one record per decision (evaluation only)
+data/eval/bbeh.jsonl BBEH closed-answer tasks, 1,920 items (evaluation only; hard for the teacher too)
+data/eval/bbeh_sub.jsonl the first 50 per task in a fixed shuffle, for teacher (System 2) runs
 data/bench/train_{policy,sharc,folio}.jsonl second training batch (decision formats): 500 / 400 / 300
-data/eval/{policy_heldout,sharc_dev,folio_val}.jsonl  their in-family held-out sets (policy: unseen domains;
-                                            ShARC: official dev, no shared rules; FOLIO: official validation)
+data/eval/{policy_heldout,sharc_dev,folio_val}.jsonl their in-family held-out sets (policy: unseen domains;
+ ShARC: official dev, no shared rules; FOLIO: official validation)
 """
 from __future__ import annotations
 
@@ -74,7 +74,7 @@ def main() -> None:
         "policy_heldout": [to_eval(r, "policy") for r in generate(300, HELDOUT_DOMAINS, seed=9001)],
         "sharc_dev": [to_eval(r, "sharc") for r in S.sharc(str(RAW / "sharc/sharc_dev.json"), n=300, seed=9000)],
         "folio_val": [to_eval(r, "folio") for r in S.folio(str(RAW / "folio/folio_v2_validation.jsonl"), seed=9000)],
-        # held-out TEST sets (frozen 2026-09-30: never used for error analysis or data decisions)
+        # held-out TEST sets (frozen: never used for error analysis or data decisions)
         "bbh": E.bbh(str(RAW / "bbh")),
         "musr": E.musr(str(RAW / "musr")),
         "bbeh_sub": E.bbeh(str(RAW / "bbeh"), n_per_task=50, seed=1),

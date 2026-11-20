@@ -1,4 +1,4 @@
-"""Cue-free validation set for epoch selection (batch-14 confirmation): the 393 GSM8K validation finals of
+"""Cue-free validation set for epoch selection (confirmation runs): the 393 GSM8K validation finals of
 data/student_gsm8k_tf_si/val.jsonl (the same finals as data/student_gsm8k_tf_vt/val.jsonl) with the 4 wrong options
 replaced by final answers of OTHER problems, built exactly as scripts/build_mc_xprob.py builds the test sets
 (exchangeable ratio-2 window on u = ln(x + 5), rank and letter quotas, per-item seeded draws), so that the epoch
@@ -13,10 +13,10 @@ Each row is the validation row (same fields, so the val loader reads it) with pr
 option_kinds and teacher rebuilt; the node fields (subqs, random_subqs, value_nodes) are dropped and worked_steps kept
 (the TSF use detector reads them). New field xprob {src, window_ratio, gold_rank}.
 
-  data/eval/gsm8k_val_xprob.jsonl
-  data/eval/gsm8k_val_xprob.summary.json
+ data/eval/gsm8k_val_xprob.jsonl
+ data/eval/gsm8k_val_xprob.summary.json
 
-  python3 scripts/build_val_xprob.py          # system python3; a second
+ python3 scripts/build_val_xprob.py # system python3; a second
 """
 from __future__ import annotations
 

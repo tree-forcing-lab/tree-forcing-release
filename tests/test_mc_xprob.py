@@ -1,9 +1,9 @@
 """Other-problem test sets (scripts/build_mc_xprob.py: data/eval/gsm8k_mc_v2_xprob.jsonl, data/eval/gsm1k_mc_xprob.jsonl):
 - construction units on a synthetic file: 4 distinct distractors per item, none equal to the gold, each the answer of
-  another item, exact rank quotas and letter balance, determinism, the item audit;
+ another item, exact rank quotas and letter balance, determinism, the item audit;
 - the built files (skipped when absent): md5s, the same items / question texts / golds in the same order as the
-  originals, no duplicate options, uniform gold rank and letter, a rebuild reproduces the files byte for byte, and the
-  options-only adversaries of the summary near chance.
+ originals, no duplicate options, uniform gold rank and letter, a rebuild reproduces the files byte for byte, and the
+ options-only adversaries of the summary near chance.
 CPU only, numpy; data-backed tests read data/ of this checkout, or COTD_DATA_DIR when set."""
 import collections
 import hashlib

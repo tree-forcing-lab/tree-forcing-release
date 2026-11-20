@@ -1,10 +1,4 @@
 # path (relative to data/) | md5 of the shipped file | md5 of the content (= the file the jobs read; for .gz the uncompressed file) | rows | bytes shipped
-eval/gsm/gsm1k_mc.jsonl | df2f83837642b96fd6db105dc8ebee22 | df2f83837642b96fd6db105dc8ebee22 | 1205 | 1097169
-eval/gsm/gsm1k_mc_xprob.jsonl | f3d35073fcf474911892d1b2210f3c75 | f3d35073fcf474911892d1b2210f3c75 | 1205 | 1269984
-eval/gsm/gsm8k_mc.jsonl | 45537cb1d9dfa0f855af0244f599632a | 45537cb1d9dfa0f855af0244f599632a | 1260 | 758305
-eval/gsm/gsm8k_mc_v2.jsonl | 047acac20ec4fa67a2a93f519e3f297e | 047acac20ec4fa67a2a93f519e3f297e | 1317 | 1123279
-eval/gsm/gsm8k_mc_v2_xprob.jsonl | 802f87738aac9e0e535416d044c488d4 | 802f87738aac9e0e535416d044c488d4 | 1317 | 1354675
-eval/gsm/gsm8k_val_xprob.jsonl | c1b2cd4b14567a7c4523ccc4d269628c | c1b2cd4b14567a7c4523ccc4d269628c | 393 | 885643
 eval/hint/hint_plain.jsonl | 86021ac4b6ee204e630fc270da6f33e4 | 86021ac4b6ee204e630fc270da6f33e4 | 1129 | 902334
 eval/hint/hint_true_r1.jsonl | 31b12bd5660be3a833eaf0f80985bd3f | 31b12bd5660be3a833eaf0f80985bd3f | 1129 | 1043210
 eval/hint/hint_true_r2.jsonl | 6ba51e3ca953a4631b0a2b1af466690b | 6ba51e3ca953a4631b0a2b1af466690b | 877 | 804531
@@ -12,7 +6,7 @@ eval/hint/hint_true_r3.jsonl | 4e6ec21f674fb178028afb81270db949 | 4e6ec21f674fb1
 eval/hint/hint_true_r4.jsonl | bea435b8b6c2012c085066e76ae39d9d | bea435b8b6c2012c085066e76ae39d9d | 332 | 311563
 eval/hint/hint_true_r5.jsonl | 380ac040b18496443b28472c7c892476 | 380ac040b18496443b28472c7c892476 | 158 | 149932
 eval/hint/hint_true_r6.jsonl | 4eca31951280ff31b463c0dce9782fe0 | 4eca31951280ff31b463c0dce9782fe0 | 75 | 73657
-eval/khop/build_report.json | 33e94aff1632e69f929b89533c49e35e | 33e94aff1632e69f929b89533c49e35e |  | 97138
+eval/khop/build_report.json | c0f741e24a3a04035ce72a6a1904b5c9 | c0f741e24a3a04035ce72a6a1904b5c9 |  | 97138
 eval/khop/khop_blind.jsonl | b58f7284e1b1d88197a44d0b54eba2ae | b58f7284e1b1d88197a44d0b54eba2ae | 324 | 313772
 eval/khop/khop_ca_fwd.jsonl | 171f097c2f0f55ae4505d37365d95491 | 171f097c2f0f55ae4505d37365d95491 | 1100 | 1432993
 eval/khop/khop_ca_fwd_qs.jsonl | 38cf266ea1490f0c42f6378baa85f4e4 | 38cf266ea1490f0c42f6378baa85f4e4 | 900 | 1131833
@@ -22,19 +16,14 @@ eval/khop/khop_vb_fwd.jsonl | 046c6ad382d66c02f1315ce7f8c7577d | 046c6ad382d66c0
 eval/khop/khop_vb_rev.jsonl | 2279c09f4adb666196bdbbe636b53646 | 2279c09f4adb666196bdbbe636b53646 | 1100 | 1316950
 eval/khop/khop_wp_fwd.jsonl | c58c93ffa4d3912cfdbfd848f6eb9fb9 | c58c93ffa4d3912cfdbfd848f6eb9fb9 | 1100 | 2002995
 eval/khop/khop_wp_rev.jsonl | bdad8780cc64e94e3fcdd0148833a4d7 | bdad8780cc64e94e3fcdd0148833a4d7 | 1100 | 2002995
-eval/khop/train_k1.jsonl | 4bb15f66c8d8843013eb0410c6a87e48 | 4bb15f66c8d8843013eb0410c6a87e48 | 3000 | 3830923
-eval/khop/train_kd.jsonl | 2ed4ecc377e4638e35b12e8b22e37461 | 2ed4ecc377e4638e35b12e8b22e37461 | 9000 | 11442581
-eval/khop/train_kh.jsonl | a16b1520f0fb8b24ffd8fa57ef696de0 | a16b1520f0fb8b24ffd8fa57ef696de0 | 3000 | 3812901
-eval/khop2/build_report.json | 048941d3a848f2cd9ba6e28c764a7c3a | 048941d3a848f2cd9ba6e28c764a7c3a |  | 58891
+eval/khop2/build_report.json | 6e0cce11551ff813cfc2f3333509596e | 6e0cce11551ff813cfc2f3333509596e |  | 58891
 eval/khop2/train_kd27.jsonl.gz | 19e3c8595917745bb0c4ed7eb529f354 | 92545dd42ca451c39e0e7c104aa78d1e | 27000 | 3959252
 eval/khop2/train_kd_x3.jsonl.gz | 5e5651772ffd76681de3b052a6c06967 | f3404df79fca62d379d2754f2553e48d | 27000 | 3965191
-eval/khop2/train_kh_x3.jsonl | 265c96cd3a8c50c3e804db39da99d386 | 265c96cd3a8c50c3e804db39da99d386 | 9000 | 11456703
-eval/khop3/build_report.json | 0d1c75608f19a14fa3e99d979c28557c | 0d1c75608f19a14fa3e99d979c28557c |  | 6465
+eval/khop3/build_report.json | 41592ef63d1a1ed4f875bb121f6464ce | 41592ef63d1a1ed4f875bb121f6464ce |  | 6465
 eval/khop4/build_report.json | ace50a741a4b3bc93673e925da33d8cb | ace50a741a4b3bc93673e925da33d8cb |  | 1621
-student_gsm8k_tf_vt/train.jsonl.gz | 3483c37f5ffee924c55f6276eb061667 | 28298610aa972d9ea6d472dbd80138c3 | 5923 | 4151817
-student_gsm8k_tf_vt/val.jsonl | 9f55fec541246e41401a7b5fa6c5510a | 9f55fec541246e41401a7b5fa6c5510a | 393 | 3053883
 student_khop3_k1x/train.jsonl.gz | f1629204d0069046171429406d38960e | d7cc9716e5785461d16ec92156104261 | 27000 | 3924368
 # Files the jobs read that are byte copies of a shipped file (not shipped twice):
-student_khop3_c27/train.jsonl = student_khop4_c27/train.jsonl = eval/khop2/train_kd27.jsonl (92545dd42ca451c39e0e7c104aa78d1e, 27000 rows)
-student_khop4_k1x/train.jsonl = student_khop3_k1x/train.jsonl (d7cc9716e5785461d16ec92156104261, 27000 rows)
-student_khop{3,4}_{c27,k1x}/val.jsonl = student_gsm8k_tf_vt/val.jsonl (9f55fec541246e41401a7b5fa6c5510a, 393 rows)
+eval/khop/train_k1.jsonl.gz | 14908ee27b9bee3fa9e3c42710da2ef3 | 4bb15f66c8d8843013eb0410c6a87e48 | 3000 | 437732
+eval/khop/train_kd.jsonl.gz | 87b720884320e85936386ed4f9feb588 | 2ed4ecc377e4638e35b12e8b22e37461 | 9000 | 1322835
+eval/khop/train_kh.jsonl.gz | 2ff8b704559212fc5ee6c211379001b0 | a16b1520f0fb8b24ffd8fa57ef696de0 | 3000 | 441778
+eval/khop2/train_kh_x3.jsonl.gz | badcdadc64b7617bc52109498282f224 | 265c96cd3a8c50c3e804db39da99d386 | 9000 | 1323799

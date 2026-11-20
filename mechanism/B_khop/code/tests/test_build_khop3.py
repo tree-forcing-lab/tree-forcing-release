@@ -1,4 +1,4 @@
-"""scripts/build_khop3.py (CARD_khop_v3 1.2, 2.5 D1 / D2, section 5) and the two-stage A2 path of the curriculum.
+"""scripts/build_khop3.py and the two-stage A2 path of the curriculum.
 Real-file tests (the parent files: KHOP_EVAL_DIR, KHOP2_EVAL_DIR, GSMVT_DIR; defaults next to E/src/data):
 - refusals: a changed train_kd27, train_k1, val.jsonl or khop parent file, and --out-root / --report equal to an input
   directory, each stop the build (SystemExit) before anything is written;
@@ -9,12 +9,12 @@ Real-file tests (the parent files: KHOP_EVAL_DIR, KHOP2_EVAL_DIR, GSMVT_DIR; def
   independent walk here), the option rule holds (ca / wp), vb options are the five roots; gold shares within the bars;
   eval prompt-hash overlap 0; item_ids distinct; the report values recomputed from the files equal the report;
   deterministic (two builds byte-equal, and equal to the files in the data dir when they exist); the parent files are
-  unchanged (md5 before and after, against the card's values).
+  unchanged (md5 before and after, against the design values).
 - the two-stage tiny run (the tests/test_extra_train.py 1-rank FSDP pattern: torchrun --local-addr 127.0.0.1, cpu-adamw,
-  --eval-value-render vt, label smoothing 0.1, --token-budget 4096): stage 1 on 18 khop rows with --save, stage 2 with
-  --model set to the saved weights on 6 GSM rows, one extra eval set and --eval-at 0.5 (Amendment 1 finding 8). A test
+  --eval-value-render vt, label smoothing 0.1, --token-budget 4096): stage 1 on 18 khop rows with --save, the with
+  --model set to the saved weights on 6 GSM rows, one extra eval set and --eval-at 0.5. A test
   wrapper (written to a temp dir; the trainer is not changed) records the examples of every training kl_loss call
-  (item_id, text with the option order, labels, target, weight). Stage 2 equals the reference A2 runs from the same
+  (item_id, text with the option order, labels, target, weight). the equals the reference A2 runs from the same
   stage-1 weights without the extra set (with and without --eval-at): same examples per micro-batch, same per-update
   losses (exact), same final weights; the stage-2 examples also equal an A2 run from the base tiny model; final steps
   ceil(18 / 4) = 5 and ceil(6 / 4) = 2; losses finite.
@@ -55,7 +55,7 @@ GSMVT = Path(os.environ.get("GSMVT_DIR") or KHOP2.parents[1] / "student_gsm8k_tf
 DATA_ROOT = KHOP2.parents[1]
 HAVE_DATA = all((p / f).exists() for p, f in ((KHOP2, "train_kd27.jsonl"), (KHOP, "train_k1.jsonl"),
                                               (KHOP, "build_report.json"), (GSMVT, "val.jsonl")))
-# card 1.1 / 1.2 md5s (khop2 build_report.json, khop Amendment 2 table)
+# the design 1.1 / 1.2 md5s
 CARD_MD5 = {"train_kd27": "92545dd42ca451c39e0e7c104aa78d1e", "train_k1": "4bb15f66c8d8843013eb0410c6a87e48",
             "val": "9f55fec541246e41401a7b5fa6c5510a"}
 ENV = {**os.environ, "CUDA_VISIBLE_DEVICES": "", "OMP_NUM_THREADS": "2"}
@@ -253,7 +253,7 @@ class TestReplayAndRefusals(unittest.TestCase):
     def test_last_call_wins(self):
         """A redrawn khop2 row (row() called again for the same id after a prompt-hash clash) maps to the accepted Item:
         the recorded Item renders the kept row's statements."""
-        # on the real streams no row was redrawn after row() (every redraw was a value-key redraw), so the rule is moot
+        # on the real streams no row was redrawn after row (every redraw was a value-key redraw), so the rule is moot
         # here; the check below would catch a first-call-wins mapping if one did happen
         self.assertEqual(sum(v > 1 for v in self.calls.values()), 0)
         bad = []

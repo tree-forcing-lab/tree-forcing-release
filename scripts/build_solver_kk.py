@@ -10,7 +10,7 @@ their first occurrence (dependencies remapped). About half of the nodes are aske
 flipped), as tree_item does for teacher trees. Targets are the program's answers (truth, p_cot 1/0); node_depth is
 recomputed on the cleaned graph; tree_fix is set so the full-tree planner uses the post-audit matching.
 
-  python scripts/build_solver_kk.py --out data/student_v3s
+ python scripts/build_solver_kk.py --out data/student_v3s
 """
 from __future__ import annotations
 

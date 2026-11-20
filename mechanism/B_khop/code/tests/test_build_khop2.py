@@ -1,4 +1,4 @@
-"""scripts/build_khop2.py (CARD_khop_v2 sections 1.2, 2.5 D1-D6, 5) and one A2 step on a 3-copy extra file.
+"""scripts/build_khop2.py and one A2 step on a 3-copy extra file.
 Generator level (no data needed): the copy rule (copy 1 byte for byte, copy c with item_id + "-r<c>" and nothing else
 changed, a reverted copy re-serializes to the parent line), copies_ok refuses a changed field, row_key (parsed from the
 prompt) equals build_khop.value_key on generated items.
@@ -35,7 +35,7 @@ KHOP = Path(os.environ.get("KHOP_EVAL_DIR") or ROOT.parents[1] / "src/data/eval/
 KHOP2 = Path(os.environ.get("KHOP2_EVAL_DIR") or ROOT.parents[1] / "src/data/eval/khop2")
 HAVE_PARENT = (KHOP / "build_report.json").exists()
 HAVE_REAL = (KHOP2 / "build_report.json").exists() and HAVE_PARENT
-# CARD_khop_v1 Amendment 2 table (E/src_khop/BUILD_REPORT.md, "Data (rebuilt 2026-10-26 00:22 CDT)")
+# the k-hop design table (E/src_khop/BUILD_REPORT.md, "Data (rebuilt ")
 PARENT_MD5 = {"khop_ca_fwd": "171f097c2f0f55ae4505d37365d95491", "khop_ca_rev": "2f2bc7b6fc1cfd45f24451741f0e4105",
               "khop_wp_fwd": "c58c93ffa4d3912cfdbfd848f6eb9fb9", "khop_wp_rev": "bdad8780cc64e94e3fcdd0148833a4d7",
               "khop_vb_fwd": "046c6ad382d66c02f1315ce7f8c7577d", "khop_vb_rev": "2279c09f4adb666196bdbbe636b53646",

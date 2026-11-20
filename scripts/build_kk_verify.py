@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""K&K verification control (CHTC batch 28, arm "vf"): the training puzzles of data/student_kk_tf with each puzzle's
+"""K&K verification control (arm "vf"): the training puzzles of data/student_kk_tf with each puzzle's
 tree nodes replaced by the SAME NUMBER of correct yes/no questions that do not come from the solver's tree, namely
 the truth of one inhabitant's statement under a full role assignment:
 
-  If Alice were a knave, Karen a knight, Henry a knave and Grace a knight, would the statement by Henry,
-  "Karen is a knight and Alice is a knave.", be true?
+ If Alice were a knave, Karen a knight, Henry a knave and Grace a knight, would the statement by Henry,
+ "Karen is a knight and Alice is a knave.", be true?
 
 (the wording of the K&K case nodes, with a full assignment instead of one hypothesis). The assignments are drawn
 uniformly from those that are neither the puzzle's solution nor any of its options' assignments, so no question states
@@ -19,7 +19,7 @@ Checks (exit 1 on failure): every statement of every training puzzle parses; bru
 exactly one consistent assignment, which is the gold option's (or, for "None of the above" golds, none of the options);
 every question's truth is re-derived from its own text.
 
-  python3 scripts/build_kk_verify.py          # -> data/student_kk_tf_vrf
+ python3 scripts/build_kk_verify.py # -> data/student_kk_tf_vrf
 """
 from __future__ import annotations
 

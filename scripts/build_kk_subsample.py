@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""K&K Tree Forcing data with a FIXED subset of k tree nodes per training puzzle (CHTC batch 28, the node-density
+"""K&K Tree Forcing data with a FIXED subset of k tree nodes per training puzzle (the node-density
 ablation): data/student_kk_tf_n<k>/{train,val}.jsonl from data/student_kk_tf.
 
 Train: every puzzle keeps k of its subqs (all of them when it has at most k), drawn without replacement by a generator
@@ -14,8 +14,8 @@ questions and never adds text to a prompt. The loss convention (--tree-node-weig
 over a problem's views; treeplan / student full-tree groups) gives every puzzle the same total node weight as in the
 full arm, spread over fewer questions.
 
-  python3 scripts/build_kk_subsample.py --k 3      # -> data/student_kk_tf_n3
-  python3 scripts/build_kk_subsample.py --k 8      # -> data/student_kk_tf_n8
+ python3 scripts/build_kk_subsample.py --k 3 # -> data/student_kk_tf_n3
+ python3 scripts/build_kk_subsample.py --k 8 # -> data/student_kk_tf_n8
 """
 from __future__ import annotations
 

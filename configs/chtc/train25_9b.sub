@@ -1,6 +1,6 @@
-# One batch-25 training job (README_25.md), Qwen3.5-9B on K&K, 2 GPUs (2-rank FSDP, no 1-GPU patch): = train21_4b.sub with
+# One training job, Qwen3.5-9B on K&K, 2 GPUs (2-rank FSDP, no 1-GPU patch): = train21_4b.sub with
 # the code tarball cotd_code_data_25_9b.tgz, 60 GB disk (the 19.3 GB model is unpacked into the scratch dir, as train5_9b.sub)
-# and the log logs/train25_9b.log. The model is read from $(STAGING)/Qwen3.5-9B.tar (batch 4, fetch_model_9b.sh).
+# and the log logs/train25_9b.log. The model is read from $(STAGING)/Qwen3.5-9B.tar (fetch_model_9b.sh).
 include : chtc_settings.inc
 universe = vanilla
 container_image = file://$(STAGING)/cotd_4b.sif

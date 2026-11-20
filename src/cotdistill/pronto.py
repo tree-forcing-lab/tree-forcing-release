@@ -6,35 +6,35 @@ fictional ontology (nonsense "-pus" concept nouns, PrOntoQA's 13 property famili
 PrOntoQA's three surface forms ("Every X is a Y." / "Each X is a Y." / "Xes are Ys.", negated with "not"), rules in
 random order with the entity facts last, and a query "True or false: E is (not) P." whose answer is False by negating
 the proven conclusion (as upstream). Only the modus-ponens rule type (PrOntoQA-OOD's "ModusPonens"); hops k = number
-of rule applications in the proof of the query: E's fact "E is a c_0", k - 1 concept rules c_0 -> c_1 -> ... ->
+of rule applications in the proof of the query: E's fact "E is a c_0", k - 1 concept rules c_0 -> c_1 ->... ->
 c_{k-1}, and the property rule "every c_{k-1} is (not) P".
 
 Distractors (upstream: a second fact puts the entity on a distractor chain, and "every D is not A" contradicts the
 query predicate). Here, per problem:
-  - main pair: E's chain C = c_0..c_{k-1} and a twin chain D = d_0..d_{k-1} of a second entity F ("F is a d_0"), same
-    length, whose last concept carries the query property with the OPPOSITE polarity; so the property appears in two
-    rules of opposite sign and only tracing E's chain decides which one applies;
-  - distractor pair: X (E's second fact) and Y (F's second fact), equal length L in [1, k + 1], never the query
-    property;
-  - side branches ("every c is an s", s with a property; p = side_p per chain concept), and one property per concept
-    with probability prop_p (each adjective at most once per problem, so no entity can derive p and not p);
-  - twin negatives (our extension, not in PrOntoQA): for every pair (A, B) and level i >= 1, "every a_{i-1} is not a
-    b_i" and "every b_{i-1} is not an a_i". They make the No nodes below provable in one step with the same surface
-    form as the Yes nodes ("Is E a d_i?"), so "not" in a node question never predicts its answer, and they appear on
-    both pairs so they do not single out the chain pair that matters. They derive only negative memberships, which
-    no rule takes as a premise, so the query's shortest proof stays exactly k steps (checked by build_pronto_tf.py).
-  - width (OOD file): extra pairs whose first chain hangs off E and second off F, and side_p .5.
+ - main pair: E's chain C = c_0..c_{k-1} and a twin chain D = d_0..d_{k-1} of a second entity F ("F is a d_0"), same
+ length, whose last concept carries the query property with the OPPOSITE polarity; so the property appears in two
+ rules of opposite sign and only tracing E's chain decides which one applies;
+ - distractor pair: X (E's second fact) and Y (F's second fact), equal length L in [1, k + 1], never the query
+ property;
+ - side branches ("every c is an s", s with a property; p = side_p per chain concept), and one property per concept
+ with probability prop_p (each adjective at most once per problem, so no entity can derive p and not p);
+ - twin negatives (our extension, not in PrOntoQA): for every pair (A, B) and level i >= 1, "every a_{i-1} is not a
+ b_i" and "every b_{i-1} is not an a_i". They make the No nodes below provable in one step with the same surface
+ form as the Yes nodes ("Is E a d_i?"), so "not" in a node question never predicts its answer, and they appear on
+ both pairs so they do not single out the chain pair that matters. They derive only negative memberships, which
+ no rule takes as a premise, so the query's shortest proof stays exactly k steps (checked by build_pronto_tf.py).
+ - width (OOD file): extra pairs whose first chain hangs off E and second off F, and side_p.5.
 
 Proof tree (subqs; fields as data/student_numgen_tf; every truth exact: a Yes node's statement is in the deductive
 closure of the problem, a No node's negation is; node_depth = proof depth):
-  read    r0 "Is E a c_0?" (Yes), local_lines = [E's fact sentence]
-  parse   for i = 1..k-1: p{i} "Is every c_{i-1} a c_i?" (Yes) / p{i}x "Is every c_{i-1} not a c_i?" (No), q{i} "Is
-          every c_{i-1} not a d_i?" (Yes) / q{i}x "Is every c_{i-1} a d_i?" (No), each with local_lines = [the rule's
-          sentence]; and pP / pPx the property rule of c_{k-1} as stated (Yes) and with its polarity flipped (No)
-  derive  for i = 1..k-1: m{i} "Is E a c_i?" (Yes) and n{i} "Is E a d_i?" (No), both depends_on [m{i-1} (r0 for
-          i = 1), p{i}, q{i}] (shared parents, as numgen's v/n pair: the local view is the same and the asked concept
-          must be matched to the right rule)
-  not built: the last step "Is E (not) P?" (the final question in disguise).
+ read r0 "Is E a c_0?" (Yes), local_lines = [E's fact sentence]
+ parse for i = 1..k-1: p{i} "Is every c_{i-1} a c_i?" (Yes) / p{i}x "Is every c_{i-1} not a c_i?" (No), q{i} "Is
+ every c_{i-1} not a d_i?" (Yes) / q{i}x "Is every c_{i-1} a d_i?" (No), each with local_lines = [the rule's
+ sentence]; and pP / pPx the property rule of c_{k-1} as stated (Yes) and with its polarity flipped (No)
+ derive for i = 1..k-1: m{i} "Is E a c_i?" (Yes) and n{i} "Is E a d_i?" (No), both depends_on [m{i-1} (r0 for
+ i = 1), p{i}, q{i}] (shared parents, as numgen's v/n pair: the local view is the same and the asked concept
+ must be matched to the right rule)
+ not built: the last step "Is E (not) P?" (the final question in disguise).
 """
 from __future__ import annotations
 

@@ -4,7 +4,7 @@ surface question about the problem text (a name / number / word / sentence that 
 correct answer, keyed by the seed and the item (never the training rng). Checked on real numgen_tf, gsm8k_tf, kk_tf,
 pronto_tf and lean items (those built): same count, weights and views as GFPS / GFPQ; answers by string search in the
 statement block (placebo_text) and, for "no", in the whole prompt; no derived value asked; yes rate per problem; length;
-seeding; the default and shuffled paths unchanged against PLACEBO_BASE_REF; flags; main(); the GFPSX / GFPQX arm lines.
+seeding; the default and shuffled paths unchanged against PLACEBO_BASE_REF; flags; main; the GFPSX / GFPQX arm lines.
 CPU only, tiny random Qwen2 with the GPT-2 tokenizer."""
 import copy
 import dataclasses

@@ -1,19 +1,19 @@
 #!/bin/bash
-# Executable of the batch-16 submit file (train16_4b.sub) = run_train8.sh with one change: an eval-only job (ARMS empty,
+# Executable of the submit file (train16_4b.sub) = run_train8.sh with one change: an eval-only job (ARMS empty,
 # EVAL_BASE=1: train_arm.sbatch evaluates the untrained $MODEL into runs/base-<model>) packs that dir.
 # run_train8.sh's header follows.
-# Executable of the batch-8 submit file (train8_4b.sub) = run_train5.sh (batches 5-7) with one change: the run dir that
+# Executable of the submit file (train8_4b.sub) = run_train5.sh with one change: the run dir that
 # goes into results_<name>.tgz. run_train5.sh packs runs/<ARMS>-<TAG>-<model>-<data>-s<seed>, but train_arm.sbatch
 # (cb0e84f) names the latent-slot arms' dirs with their knobs (runs/LS-sc2-c2lr3ch-..., -sk/-sc/-sl/-sp from SLOTK /
 # SLOTC / SLOTLAM / SLOTPLACE; also -sf<f> / -nw<w> for XARGS --subq-filter / NODEW), so a variant's metrics would be
 # left out. Here the dir is the one the sbatch logs ("=== <arm> -> runs/..."), else the same formula as the sbatch;
-# it is written to the job log ("== results dir ..."). Everything else as run_train5.sh, whose header follows:
-#   run_train8.sh <env file in the bundle> <name>
-# Executable of the batch-5 submit files (train5_4b.sub, train5_9b.sub, train5_12b.sub), inside the job's image:
-#   run_train5.sh <env file in the bundle> <name>
-# = run_train.sh (md5 e61eff1e, batches 1-4; unchanged below the preflight) + a GPU preflight before anything is unpacked:
+# it is written to the job log ("== results dir..."). Everything else as run_train5.sh, whose header follows:
+#  run_train8.sh <env file in the bundle> <name>
+# Executable of the submit files (train5_4b.sub, train5_9b.sub, train5_12b.sub), inside the job's image:
+#  run_train5.sh <env file in the bundle> <name>
+# = run_train.sh (md5 e61eff1e; unchanged below the preflight) + a GPU preflight before anything is unpacked:
 # a CUDA context, a small kernel and >= 90% free memory on every GPU the job was given, and at least NGPU_REQ GPUs
-# (the DAG's ngpu). Jobs 70-73 (2026-10-18 01:15-01:20) all matched one slot on gpu2008.chtc.wisc.edu whose A100
+# (the DAG's ngpu). Four early jobs all matched one slot whose A100
 # refused a CUDA context ("CUDA-capable device(s) is/are busy or unavailable" at torch.cuda.set_device) and died in
 # 4 s each, so the slot took the next job at once. A failed preflight exits 86 within seconds (the result tgz holds the
 # log); the submit file then retries the job (max_retries) away from the machines it already failed on.
@@ -75,7 +75,7 @@ rc=$?
 o=$(sed -n 's/^=== [A-Za-z0-9]* -> \(runs\/[^ ]*\) .*/\1/p' "logs/$NAME.out" | tail -n 1)   # the dir the sbatch used
 [ -z "$o" ] || [ "$o" = "$OUTD" ] || echo "== note: the sbatch wrote $o, not $OUTD (packing $o)" >> "logs/$NAME.out"
 OUTD=${o:-$OUTD}
-[ -n "${ARMS:-}" ] || [ -z "${EVAL_BASE:-}" ] || OUTD="runs/base-$(basename "$MODEL")"   # batch 16: eval-only job
+[ -n "${ARMS:-}" ] || [ -z "${EVAL_BASE:-}" ] || OUTD="runs/base-$(basename "$MODEL")"   # eval-only job
 echo "== results dir $OUTD" >> "logs/$NAME.out"
 echo "== exit $rc $(date)" >> "logs/$NAME.out"
 if [ -n "${SAVE:-}" ] && [ -z "$SMOKE" ] && [ "$rc" = 0 ] && [ -d "$OUTD/model" ]; then   # SAVE=1: weights -> /staging

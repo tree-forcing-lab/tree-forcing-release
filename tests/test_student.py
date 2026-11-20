@@ -523,7 +523,7 @@ class TestPlaceboGradient(unittest.TestCase):
 
 @unittest.skipUnless(HAVE, "needs torch")
 class TestTreeTransitions(unittest.TestCase):
-    # n1 n2 -> n3 -> n5 ; n4 independent ; n6 depends on n4
+    # n1 n2 -> n3 -> n5; n4 independent; n6 depends on n4
     NODES = [{"id": "n1", "question": "q1?", "p_cot": 0.9, "depends_on": []},
              {"id": "n2", "question": "q2?", "p_cot": 0.1, "depends_on": []},
              {"id": "n3", "question": "q3?", "p_cot": 0.9, "depends_on": ["n1", "n2"]},
@@ -626,7 +626,7 @@ class TestAuxSources(unittest.TestCase):
 
 @unittest.skipUnless(HAVE, "needs torch")
 class TestFullTree(unittest.TestCase):
-    # n1 n2 -> n3 -> n5 ; n4 -> n6 ; n7 depends on n5 and is the near-answer sink at max depth
+    # n1 n2 -> n3 -> n5; n4 -> n6; n7 depends on n5 and is the near-answer sink at max depth
     NODES = [{"id": "n1", "question": "q1?", "p_cot": 0.9, "depends_on": []},
              {"id": "n2", "question": "q2?", "p_cot": 0.1, "depends_on": []},
              {"id": "n3", "question": "q3?", "p_cot": 0.9, "depends_on": ["n1", "n2"]},

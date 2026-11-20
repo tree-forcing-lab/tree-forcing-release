@@ -1,23 +1,23 @@
-"""k-hop symbolic chains for CARD_khop_v1 (family khop, idea #4): eval sets, training files and build_report.json.
+"""k-hop symbolic chains for the k-hop design (family khop, idea #4): eval sets, training files and build_report.json.
 
     python3 scripts/build_khop.py --out <E>/src/data/eval/khop [--tokenizer <Qwen3.5-4B tokenizer dir>]
 
 Every item is a 5-option multiple-choice prompt in the GSM eval layout ("Question: <statements> <query>\\nOptions:\\nA) v
 ..."; the trainer and eval_student.py add "\\n\\nAnswer:"). Five chains per item (target T = chain 0, distractors D1..D4),
 each of k hops. Tasks:
-  ca   chained arithmetic, "bo = 7." then "ki = bo + 5." / "ki = bo − 3." / "ki = bo × 2." / "ki = bo × 3."; values in
+  ca chained arithmetic, "bo = 7." then "ki = bo + 5." / "ki = bo − 3." / "ki = bo × 2." / "ki = bo × 3."; values in
        [1, 99], roots in [2, 60], addends in [2, 9]
-  cag  ca with GSM-sized numbers (values [10, 999], roots [10, 400], addends [11, 99]); fwd only, reported only
-  wp   the ca structure in words ("Mia has 7 marbles." / "Leo has 5 more marbles than Mia." / "... 3 fewer ..." /
-       "... twice as many marbles as Mia." / "... three times as many ..."), one noun per item
-  vb   pointer chasing, "bo = 47." (distinct roots in [10, 99]) then copies "ki = bo."; options = the five roots
-ca / wp / cag (Amendment 2, build critic finding 1): the five chains share one skeleton, one root value r and one
+  cag ca with GSM-sized numbers (values [10, 999], roots [10, 400], addends [11, 99]); fwd only, reported only
+  wp the ca structure in words ("Mia has 7 marbles." / "Leo has 5 more marbles than Mia." / "... 3 fewer..." /
+       "... twice as many marbles as Mia." / "... three times as many..."), one noun per item
+  vb pointer chasing, "bo = 47." (distinct roots in [10, 99]) then copies "ki = bo."; options = the five roots
+ca / wp / cag: the five chains share one skeleton, one root value r and one
 op-kind sequence; only the constants differ. Hop 1 is + or - (five distinct constants, drawn without replacement), hops
 2..k are uniform over the kinds that keep every chain in range, each chain draws its own constant. So the queried
 chain's root and kinds are the same for all five options, and a policy that chases to the root and applies the kinds
 without reading the constants is at chance by symmetry. The whole item is resampled when, for the final-value set or
 for the hop-1 set, two options are equal, an option equals an integer written in the statements (roots, constants and
-the multipliers 2 / 3 of "× 2" / "× 3"), or one option is 2x or 3x another. The additive part of the Amendment 1 rule
+the multipliers 2 / 3 of "× 2" / "× 3"), or one option is 2x or 3x another. The additive part of the rule
 (|g - h| in [lo, hi]) is dropped: options that differ only by the constants cannot meet it. 10,000 resamples of one
 item stop the build (about 2 draws per item are needed).
 Premise order: fwd = a uniformly random interleaving of the five chains (a uniform linear extension: every statement after
@@ -63,7 +63,7 @@ KINDS = ["+", "-", "*2", "*3"]
 GLYPH = {"+": "+", "-": "−", "*2": "×", "*3": "×"}
 RANGES = {"ca": (1, 99, 2, 60, 2, 9), "wp": (1, 99, 2, 60, 2, 9), "cag": (10, 999, 10, 400, 11, 99)}
 VB_LO, VB_HI = 10, 99
-MAX_RESAMPLE = 10_000             # card 1.1 (Amendment 2: the shared-skeleton rule needs about 2 draws per item)
+MAX_RESAMPLE = 10_000             # the shared-skeleton rule needs about 2 draws per item
 CONS = "bcdfghjklmnprstvwyz"                     # 19 consonants
 EXCLUDE = {"be", "by", "do", "fa", "go", "ha", "he", "hi", "ho", "la", "lo", "ma", "me", "mu", "no", "nu", "pa", "pi",
            "re", "so", "ta", "ti", "to", "we", "ye", "yo", "ya", "wo", "is", "us", "ok", "oh"}
@@ -71,7 +71,7 @@ SYLLABLES = sorted(c + v for c in CONS for v in "aeiou" if c + v not in EXCLUDE)
 PEOPLE = ["Mia", "Leo", "Ava", "Ben", "Zoe", "Max", "Ivy", "Sam", "Eli", "Amy", "Kai", "Nora", "Owen", "Ruby", "Finn",
           "Lily", "Jack", "Ella", "Noah", "Iris", "Theo", "Maya", "Luke", "Rosa", "Hugo", "Cleo", "Adam", "Tara", "Omar",
           "Gwen", "Paul", "Vera", "Ezra", "Dina", "Carl", "Lena", "Ivan", "Jade", "Kurt", "Faye", "Seth", "Hana", "Dev",
-          "Yara", "Neil", "Beth", "Raul", "Gina", "Troy", "Wren", "Abel", "Uma", "Joel", "Kira", "the second author", "Pia", "Reid",
+          "Yara", "Neil", "Beth", "Raul", "Gina", "Troy", "Wren", "Abel", "Uma", "Joel", "Kira", "Milo", "Pia", "Reid",
           "Sara", "Vito", "Zara"]
 NOUNS = ["marbles", "stickers", "apples", "coins", "cards", "shells", "stamps", "pencils", "books", "beads", "buttons",
          "cookies", "crayons", "pebbles", "balloons", "candles", "ribbons", "tickets", "magnets", "acorns"]
@@ -80,8 +80,8 @@ EVAL_K = {k: (150 if k <= 6 else 100) for k in range(1, 9)}
 BLIND_N = 18
 BARS = {"cell": 0.33, "pooled": 0.25, "gold_lo": 0.17, "gold_hi": 0.23, "max_tokens": 1536}
 BASELINES = ("max", "min", "median", "closest_lit", "first_lit", "last_lit", "unwritten", "qop_pair", "qop_consistent",
-             "one_op_parent", "chase_mult", "chase_sign")         # barred on every set but khop_blind (Amendment 2)
-EVAL_BARRED = ("qop_avoid",)                    # barred on the eval sets, reported on the training files (Amendment 2)
+             "one_op_parent", "chase_mult", "chase_sign")         # barred on every set but khop_blind
+EVAL_BARRED = ("qop_avoid",)                    # barred on the eval sets, reported on the training files
 REPORTED = ("chase_last1", "chase_drop1", "chase_droplast", "drop_one_best", "hard")   # no bar: partial-composition lines
 ALL_LINES = BASELINES + EVAL_BARRED + REPORTED
 GSMVT_KEYS = ("item_id", "source", "group", "type", "prompt", "labels", "gold_label", "teacher", "options",
@@ -125,8 +125,8 @@ def mult_pair(h: int, g: int) -> bool:
 
 
 def option_set_ok(opts, lits) -> bool:
-    """Amendment 2 option rule: distinct, no option equals a written number, no option 2x or 3x another. The additive
-    part of the Amendment 1 rule (|g - h| in [lo, hi]) is dropped: on a shared skeleton the five options differ only by
+    """Option rule: distinct, no option equals a written number, no option 2x or 3x another. The additive
+    part of an earlier rule (|g - h| in [lo, hi]) is dropped: on a shared skeleton the five options differ only by
     the constants, so it cannot be met (BUILD_REPORT, fix round)."""
     if len(set(opts)) < len(opts) or any(o in lits for o in opts):
         return False
@@ -142,7 +142,7 @@ def chain_literals(ops) -> set:
 
 
 def draw_arith_item(task: str, k: int, rng, stats: Counter):
-    """Five chains of an arithmetic task (ca / wp / cag) on one shared skeleton (Amendment 2): one root value r and one
+    """Five chains of an arithmetic task (ca / wp / cag) on one shared skeleton: one root value r and one
     op-kind sequence for all five chains; only the constants differ between chains. Hop 1 is + or - (uniform over the
     kinds whose constant range holds 5 distinct values), with 5 distinct hop-1 constants drawn without replacement; hops
     2..k are uniform over the kinds that keep every chain's value in range, each chain's constant drawn on its own. The
@@ -410,7 +410,7 @@ def baselines(row: dict) -> dict:
     else:
         r["qop_pair"] = r["qop_consistent"] = r["qop_avoid"] = pick([])
     r["one_op_parent"] = pick([i for i in range(5) if any(j != i and one_op(opts[j], opts[i], clo, chi) for j in range(5))])
-    # Amendment 2 (build critic finding 1): magnitude policies that chase the queried chain to its root and read its op
+    #  (build critic finding 1): magnitude policies that chase the queried chain to its root and read its op
     # kinds but not (all of) its constants; a constant not read is replaced by the mean constant (lo + hi) / 2.
     # Barred: chase_mult (x2 / x3 only), chase_sign (every constant at the mean). Reported (partial composition, no bar):
     # chase_last1 (only the queried statement's constant exact), chase_drop1 (all exact but hop 1), chase_droplast (all
@@ -455,7 +455,7 @@ def chase_est(root: int, qops, exact: set, mean_c: float) -> float:
 
 def hard_item(row: dict):
     """True when every constant of the queried chain is needed (no drop-one estimate puts the gold among its nearest
-    options); None for vb and blind rows. Used by readout/khop_table.py for the hard-subset accuracy (Amendment 2)."""
+    options); None for vb and blind rows. Used by readout/khop_table.py for the hard-subset accuracy."""
     h = baselines(row)["hard"]
     return None if h is None else bool(h)
 

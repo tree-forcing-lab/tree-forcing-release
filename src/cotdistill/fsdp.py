@@ -1,19 +1,19 @@
 """FSDP2 data parallelism for scripts/train_student.py --fsdp (one rank per GPU, launched by torchrun).
 
-Design notes: notes/next_round/scale12b/fsdp2.md. In short:
-  - every decoder layer is its own fully_shard unit; the root is Readout, which holds the HF model and runs the
-    unchanged student.label_logits inside its forward, so the root's parameters (tied embedding / head, final norm)
-    are unsharded while the letter rows are read. Modules with only frozen parameters (vision towers) are separate
-    units that never run, so they are never all-gathered.
-  - gradients are SUMMED over the ranks (gradient divide factor 1, sum reductions): the ranks process disjoint parts
-    of one update, each sequence with the single-GPU loss scale, so the summed gradient is the single-GPU update's.
-  - split_update cuts one update's sequences into micro-batches (micro_bs chunks or token-budget batches, exactly as
-    student.micro_batches) and deals them to the ranks with equal counts (FSDP collectives need the same number of
-    forward/backward calls on every rank).
-  - two optimizer setups (ShardedOptim): "8bit-sr" = torchao AdamW8bit with bf16 stochastic rounding on plain-tensor
-    aliases of the local shards (GPU); "cpu-adamw" = ShardCPUAdamW, fp32 master + AdamW of the local shard on the CPU
-    with one gradient D2H and one weight H2D per update.
-  - Readout.batched splits evaluation batches across the ranks and gathers the logits in the original order.
+Design notes: In short:
+ - every decoder layer is its own fully_shard unit; the root is Readout, which holds the HF model and runs the
+ unchanged student.label_logits inside its forward, so the root's parameters (tied embedding / head, final norm)
+ are unsharded while the letter rows are read. Modules with only frozen parameters (vision towers) are separate
+ units that never run, so they are never all-gathered.
+ - gradients are SUMMED over the ranks (gradient divide factor 1, sum reductions): the ranks process disjoint parts
+ of one update, each sequence with the single-GPU loss scale, so the summed gradient is the single-GPU update's.
+ - split_update cuts one update's sequences into micro-batches (micro_bs chunks or token-budget batches, exactly as
+ student.micro_batches) and deals them to the ranks with equal counts (FSDP collectives need the same number of
+ forward/backward calls on every rank).
+ - two optimizer setups (ShardedOptim): "8bit-sr" = torchao AdamW8bit with bf16 stochastic rounding on plain-tensor
+ aliases of the local shards (GPU); "cpu-adamw" = ShardCPUAdamW, fp32 master + AdamW of the local shard on the CPU
+ with one gradient D2H and one weight H2D per update.
+ - Readout.batched splits evaluation batches across the ranks and gathers the logits in the original order.
 """
 from __future__ import annotations
 

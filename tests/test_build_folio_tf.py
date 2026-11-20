@@ -1,6 +1,6 @@
-"""scripts/build_folio_tf.py (CHTC batch 27): the FOL parser, the prover labels, the verified atom nodes, the item
+"""scripts/build_folio_tf.py: the FOL parser, the prover labels, the verified atom nodes, the item
 format, the story-grouped splits and a byte-identical rebuild. Needs z3-solver (~/.venvs/sev).
-  ~/.venvs/sev/bin/python -m unittest tests/test_build_folio_tf.py"""
+ ~/.venvs/sev/bin/python -m unittest tests/test_build_folio_tf.py"""
 import hashlib
 import json
 import re

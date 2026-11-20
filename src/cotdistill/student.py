@@ -790,7 +790,7 @@ _PL_NUMX = {1: "once single", 2: "twice double doubled half halves pair pairs", 
             4: "quarter quarters", 12: "dozen dozens", 100: "hundred", 1000: "thousand", 10 ** 6: "million"}
 _PL_NUMWORDS = frozenset(_PL_ONES + _PL_ORD + list(_PL_TENS.values()) + [w[:-1] + "ieth" for w in _PL_TENS.values()]
                          + " ".join(_PL_NUMX.values()).split() + ["billion", "percent", "hundredth", "thousandth"])
-# Names with no other English reading (Will, Max, Grace, Rose, Mark, Bill, ... left out): numgen, K&K (sources.NAMES and
+# Names with no other English reading (Will, Max, Grace, Rose, Mark, Bill,... left out): numgen, K&K (sources.NAMES and
 # scripts/build_kk_deep.py's EXTRA_NAMES), PrOntoQA's entities and frequent GSM8K names.
 _PL_NAME_X = ("Quinn Rosa Sam Tina Umar Vera Yara John Mary Mike Peter Sarah Jerry Martha Harry Lisa Steve Janet Joe "
               "Kevin Carl Jill Ryan Michael Jim Jason Carla Jenny Ben Andrew Anna Jane Jimmy Billy Tony Julia Adam Emily "
@@ -2315,7 +2315,7 @@ def evaluate_local(model, tok, items: list[dict], max_len: int, bs: int, cache: 
 
 
 # ---- latent node slots (--latent-slots; arms LS / LSU / LSR / LSY; opt-in, nothing below runs on the default path) ---
-# Tree Forcing v2, design (a) of notes/latent_primer_zh_2026-10-19.md: K x c existing reserved tokens in the final
+# Tree Forcing v2, design (a) of: K x c existing reserved tokens in the final
 # question's prompt; at training only, the final-layer states of slot j are fed as the first input embeddings of a short
 # separate sequence through the same network and head, which must continue with the j-th worked step ("4 + 2 = 6").
 # The deployed model is the same network read out the same way in one forward pass over the prompt with the slots.
@@ -3456,7 +3456,7 @@ def slot_evals(model, tok, evals: dict, results: dict, out, *, modes: list[str],
 
 
 # ---- teacher-state slots (TSF) and answer-position self-distillation (PTAD) ------------------------------------------
-# notes/latent_comeback_memo_2026-10-21.md: §3 TSF (arms TSF / TSFN / TSFR / TSFX / TSF6; --slot-readout tsf) and §4
+# : §3 TSF (arms TSF / TSFN / TSFR / TSFX / TSF6; --slot-readout tsf) and §4
 # PTAD, the zero-latent CODI backup (PTAD / PTADR / PTADX; --answer-teacher). All opt-in: nothing below runs on any
 # other arm's path. A teacher view through the same weights, the final question with the item's worked steps written
 # before its options (SI stage 0: insert_chain + chain_block; no slot line), gives (i) regression targets, its residual
@@ -3466,7 +3466,7 @@ def slot_evals(model, tok, evals: dict, results: dict, out, *, modes: list[str],
 # memo's small-batch variant of CODI's batch std), mean over hidden dims, layers (and the c tokens), weight x lambda /
 # supervised slots per problem (TSF) or x lambda (PTAD); (ii) TSF only, forced reading: in a micro-batch whose coin
 # (keyed by seed, update and the micro-batch's items: tsf_coin) falls below p, the student's layer-L slot states are
-# REPLACED by the teacher's layer-L vectors before layers L + 1 .. n - 1 compute the letter CE; the align loss is taken
+# REPLACED by the teacher's layer-L vectors before layers L + 1.. n - 1 compute the letter CE; the align loss is taken
 # on the states before the replacement, so one student pass + one teacher pass per micro-batch. The teacher view also
 # trains the letter CE at weight teacher_ce x the example's weight. Deployed: LSL's prompt (TSF) / A2's (PTAD).
 TEACHER_KINDS = ("steps", "shuffled", "placebo")

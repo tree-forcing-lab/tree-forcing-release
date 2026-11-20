@@ -1,12 +1,12 @@
 """scripts/build_kk_tf.py (single-domain K&K Tree Forcing data): a small build (--n 14, --val-n 7, no tokens) into a
 temporary directory, run twice, checked for
 - format: the builder's own check against the v3sl K&K items, plus a direct comparison with a v3sl K&K item (item key
-  list, node key list per type, value types); prompt shape; one-hot teacher on the gold letter; the solver's answer;
-  the GFP-S statement block; "None of the above" exactly 4 wrong + 1 right per 50 positions;
+ list, node key list per type, value types); prompt shape; one-hot teacher on the gold letter; the solver's answer;
+ the GFP-S statement block; "None of the above" exactly 4 wrong + 1 right per 50 positions;
 - disjointness: no prompt, statement block or statement-line set of a new item occurs in data/bench/train_kk.jsonl,
-  data/student_v3sl or any data/eval/*kk*.jsonl / diag*.jsonl file; seeds outside every other K&K builder's block;
+ data/student_v3sl or any data/eval/*kk*.jsonl / diag*.jsonl file; seeds outside every other K&K builder's block;
 - entailment: every derived node follows from its stated parents over all role assignments, re-solved here from the
-  written prompt (solver masks), and every node's stored truth is its proposition under the unique solution;
+ written prompt (solver masks), and every node's stored truth is its proposition under the unique solution;
 - determinism: identical md5 over two runs; --n 7 writes the first 7 lines of --n 14; val does not depend on --n;
 - balance: people counts of every train prefix differ by at most one.
 Needs the solver (teacher_cache/) and data/ (not in git): skipped without them. CPU only, stdlib."""

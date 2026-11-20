@@ -233,7 +233,7 @@
   "tol": 0.05
  },
  {
-  "name": "Hint test (registered), gain with the last step left, answer-only 1 epoch",
+  "name": "Hint test, gain with the last step left, answer-only 1 epoch",
   "paper": 36.4,
   "file": "mechanism_check.md",
   "regex": "- A2-c1: H = true_r1 - plain ([+-][\\d.]+)",

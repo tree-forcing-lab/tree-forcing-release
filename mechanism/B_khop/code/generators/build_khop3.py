@@ -1,22 +1,22 @@
-"""Training directories of CARD_khop_v3 (family khop3, parent khop2): the curriculum stage-1 files for the arms CUR and
-K1X, and data/eval/khop3/build_report.json. No chain item is drawn anew (card 1.2, Amendment 1 finding 1).
+"""Training directories of the k-hop design (family khop3, parent khop2): the curriculum stage-1 files for the arms CUR and
+K1X, and data/eval/khop3/build_report.json. No chain item is drawn anew.
 
     python3 scripts/build_khop3.py --khop2 <E>/src/data/eval/khop2 --khop <E>/src/data/eval/khop \\
         --gsm-dir <E>/src/data/student_gsm8k_tf_vt --out-root <E>/src/data --report <E>/src/data/eval/khop3
 
-This script imports scripts/build_khop.py and scripts/build_khop2.py and edits neither. Steps (card 1.2):
+This script imports scripts/build_khop.py and scripts/build_khop2.py and edits neither. Steps (the design 1.2):
 1. Inputs. train_kd27.jsonl (--khop2) must have the md5 of the khop2 build_report.json and 92545dd4...; train_k1.jsonl
    (--khop) the khop2 report's parent_md5 and 4bb15f66...; the gsmvt val.jsonl (--gsm-dir) 9f55fec5... and 393 rows;
-   the 12 CARD_khop_v1 files the md5s of the khop build_report.json (build_khop2.check_parent). Any other value is a
+   the 12 the k-hop design files the md5s of the khop build_report.json (build_khop2.check_parent). Any other value is a
    SystemExit. --out-root, --report or an output directory equal to an input directory is a SystemExit.
 2. student_khop3_c27/train.jsonl = train_kd27.jsonl byte for byte; student_khop3_c27/val.jsonl = the gsmvt val.jsonl
    byte for byte (train_arm.sbatch always evaluates $DATA/val.jsonl).
 3. student_khop3_k1x/train.jsonl: line i = the K1 twin of line i of train_kd27.
-   a. Replay (replay()): build_khop.Item.row is wrapped to record the Item of every rendered item_id (the last call per
+   a. Replay (replay): build_khop.Item.row is wrapped to record the Item of every rendered item_id (the last call per
       item_id wins, so a redrawn row maps to the accepted item). build_khop.build_train(random.Random(<khop seeds.train>),
       ..., n_kh, n_kd_extra) and build_khop2.new_rows(<khop2 seed>, <new_per_task>, forbid_keys, forbid_hash, cycle0)
       run with the parameters the two parent reports record and the inputs build_khop2.build computes from the 12
-      parent files. check_replay() stops the build unless the replayed rows, in kd27 order, are dict-equal to the 27,000
+      parent files. check_replay stops the build unless the replayed rows, in kd27 order, are dict-equal to the 27,000
       train_kd27 rows and the replayed K1 rows are dict-equal to the 3,000 train_k1 rows.
    b. Rows 0..2,999 (KH) get the train_k1 line byte for byte. Rows 3,000..26,999: it.row(item_id + "-k1", order,
       layout(i1, k, rng1), hop=1, group=<the kd27 row's group>), rng1 = random.Random(f"khop3-k1-{item_id}"), i1 = the
@@ -29,7 +29,7 @@ This script imports scripts/build_khop.py and scripts/build_khop2.py and edits n
    eval prompt-hash overlap, kd27 prompt-hash overlap (reported; only k = 1 rows may share), distinct item_ids, one-hot
    teachers, the 32 gsmvt keys, token totals of K1X and kd27 with the tokenizer the khop2 report records (characters
    when none is recorded; a recorded tokenizer that does not load is a SystemExit), K1X within 1% of kd27).
-   d_fail lists every failed line; d_pass is true only when it is empty. main() exits 2 on a failed line.
+   d_fail lists every failed line; d_pass is true only when it is empty. main exits 2 on a failed line.
 """
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ KD27_MD5 = "92545dd42ca451c39e0e7c104aa78d1e"
 K1_MD5 = "4bb15f66c8d8843013eb0410c6a87e48"
 VAL_MD5 = "9f55fec541246e41401a7b5fa6c5510a"
 N_KD27, N_K1, N_VAL = 27000, 3000, 393
-SHARE = (0.18, 0.22)              # card 1.2 step 4: gold letter shares of K1X
+SHARE = (0.18, 0.22)              # gold letter shares of K1X
 TOK_TOL = 0.01                    # K1X token total within 1% of kd27
 DIRS = {"c27": "student_khop3_c27", "k1x": "student_khop3_k1x"}
 OUT_FILES = ("train.jsonl", "val.jsonl")
@@ -93,13 +93,13 @@ def check_inputs(khop2: Path, khop: Path, gsm: Path) -> dict:
     got = md5_file(kd27)
     if got != (rep2.get("md5") or {}).get("train_kd27.jsonl") or got != KD27_MD5:
         raise SystemExit(f"build_khop3: md5 of {kd27} is {got}; the khop2 report says "
-                         f"{(rep2.get('md5') or {}).get('train_kd27.jsonl')}, the card {KD27_MD5}")
-    rep1 = B2.check_parent(khop)            # the 12 CARD_khop_v1 files = the khop report (SystemExit otherwise)
+                         f"{(rep2.get('md5') or {}).get('train_kd27.jsonl')}, expected {KD27_MD5}")
+    rep1 = B2.check_parent(khop)            # the 12 khop files = the khop report (SystemExit otherwise)
     k1 = khop / "train_k1.jsonl"
     got = md5_file(k1)
     if got != (rep2.get("parent_md5") or {}).get("train_k1.jsonl") or got != K1_MD5:
         raise SystemExit(f"build_khop3: md5 of {k1} is {got}; the khop2 report's parent_md5 says "
-                         f"{(rep2.get('parent_md5') or {}).get('train_k1.jsonl')}, the card {K1_MD5}")
+                         f"{(rep2.get('parent_md5') or {}).get('train_k1.jsonl')}, expected {K1_MD5}")
     for s in B2.PARENT_FILES:
         if (rep2.get("parent_md5") or {}).get(f"{s}.jsonl") != rep1["md5"][f"{s}.jsonl"]:
             raise SystemExit(f"build_khop3: the khop2 report's parent_md5 of {s}.jsonl differs from the khop report")
@@ -108,7 +108,7 @@ def check_inputs(khop2: Path, khop: Path, gsm: Path) -> dict:
         raise SystemExit(f"build_khop3: no {val}")
     got, n = md5_file(val), len(lines_of(val))
     if got != VAL_MD5 or n != N_VAL:
-        raise SystemExit(f"build_khop3: {val} has md5 {got} and {n} rows; the card says {VAL_MD5}, {N_VAL} rows")
+        raise SystemExit(f"build_khop3: {val} has md5 {got} and {n} rows; expected {VAL_MD5}, {N_VAL} rows")
     return {"khop": rep1, "khop2": rep2}
 
 
@@ -166,7 +166,7 @@ def check_replay(rep_kd27: list, rep_k1: list, kd27: list, k1: list) -> dict:
            "k1_rows_equal": eq_k1, "k1_rows": len(k1), "k1_replayed": len(rep_k1)}
     if not (len(rep_kd27) == len(kd27) == eq_kd == N_KD27 and len(rep_k1) == len(k1) == eq_k1 == N_K1):
         raise ReplayError(f"build_khop3: the replay does not reproduce the parent files {res}; no other generator is "
-                          "chosen after the fact (a new amendment is needed)")
+                          "chosen after the fact (a design change is needed)")
     return res
 
 
@@ -354,7 +354,7 @@ def build(khop2: Path, khop: Path, gsm: Path, out_root: Path, report_dir: Path, 
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--khop2", default="data/eval/khop2", help="train_kd27.jsonl and the khop2 build_report.json")
-    ap.add_argument("--khop", default="data/eval/khop", help="the 12 CARD_khop_v1 files and their build_report.json")
+    ap.add_argument("--khop", default="data/eval/khop", help="the 12 khop files and their build_report.json")
     ap.add_argument("--gsm-dir", default="data/student_gsm8k_tf_vt", help="the gsmvt dir (val.jsonl)")
     ap.add_argument("--out-root", default="data", help="student_khop3_c27 / student_khop3_k1x are written here")
     ap.add_argument("--report", default="data/eval/khop3")

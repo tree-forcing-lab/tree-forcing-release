@@ -1,13 +1,13 @@
 """Teacher pipeline: solve with CoT, self-extract sub-questions, answer them, read logprobs.
 
 One item = one case record from `policygen.generate`. For each item we
-  1. sample K thinking-mode solutions (CoT + answer-token logprobs + reasoning-token logprobs);
-  2. ask the teacher (non-thinking, JSON) to list the yes/no judgements its first CoT made,
-     including ones it revised, each anchored by a verbatim quote;
-  3. ask the teacher (non-thinking) each sub-question once per trace with that trace's CoT in
-     context, and once fresh without any CoT; read P(yes) from the answer-letter logprobs
-     (Yes/No letters are shuffled);
-  4. (evaluation only) map each sub-question to the rule engine's checkable predicates.
+ 1. sample K thinking-mode solutions (CoT + answer-token logprobs + reasoning-token logprobs);
+ 2. ask the teacher (non-thinking, JSON) to list the yes/no judgements its first CoT made,
+ including ones it revised, each anchored by a verbatim quote;
+ 3. ask the teacher (non-thinking) each sub-question once per trace with that trace's CoT in
+ context, and once fresh without any CoT; read P(yes) from the answer-letter logprobs
+ (Yes/No letters are shuffled);
+ 4. (evaluation only) map each sub-question to the rule engine's checkable predicates.
 """
 from __future__ import annotations
 

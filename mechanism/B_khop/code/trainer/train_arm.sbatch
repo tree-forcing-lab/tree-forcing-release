@@ -8,7 +8,7 @@
 #SBATCH --time=06:00:00
 #SBATCH --output=logs/%x-%j.out
 # Student arms, run one after another inside one job (SLURM_COORD: one cotd- job in the system at a time).
-# From ~/cotd:  ARMS="A2 A3 A4 A1" DATA=data/student_tree EVAL_BASE=1 sbatch repo/hpc/train_arm.sbatch
+# From ~/cotd: ARMS="A2 A3 A4 A1" DATA=data/student_tree EVAL_BASE=1 sbatch repo/hpc/train_arm.sbatch
 # JEFF=1 evaluates Jeff with its own serving path (scripts/eval_jeff.py); BASE_SUBQ=1 scores the untrained base on
 # the val sub-questions. Every arm is scored on the sub-questions of $DATA/val.jsonl (--eval-subq). DUMP=val,kk,...
 # saves the readout hidden states of those eval sets (probing); PERM / BRIER / SUBQK / SUBQW set --permute-final /
@@ -17,10 +17,10 @@
 # adapter and the merged weights. MODEL picks the
 # student backbone (default Qwen3.5-2B-Base; e.g. MODEL=$HOME/cotd/models/Qwen3.5-2B for the post-trained release).
 # Before submitting, dry-run the shell logic on the login node (Python is only echoed):
-#   DRY_RUN=1 ARMS="A2 A3" DATA=data/student_tree EVAL_BASE=1 bash repo/hpc/train_arm.sbatch
+#  DRY_RUN=1 ARMS="A2 A3" DATA=data/student_tree EVAL_BASE=1 bash repo/hpc/train_arm.sbatch
 # SMOKE_ONLY=1 stops after the smoke stage (checks a new account or environment in a few minutes).
 # The job starts with a smoke stage (every arm on 16 items for about 2 steps, plus a 20-item eval) and exits
-# at once if any of it fails. Defaults from check job 677208: fp32 master weights + AdamW, micro-batch 2 x
+# at once if any of it fails. Defaults from a check job: fp32 master weights + AdamW, micro-batch 2 x
 # grad-accum 16 (peak 32 GiB on the 4g.40gb slice). EVAL_BASE=1 also evaluates the untrained $MODEL (models are
 # downloaded on the login node beforehand; compute nodes have no /userScripts).
 # Arms: A1 gold answer only · A2 teacher answer only · A3 teacher + CoT sub-questions (ours) · A4 teacher +
@@ -48,7 +48,7 @@
 # TFE/TFME/GFE: TF/TFM/GF restricted to the eligible node views (--tree-eligible-only; ablation rung R3, every asked view
 # differs between TFE and TFME); GFC: full tree with the control questions (--tree-full control, with G4's --subq random
 # --subq-target fresh; GF + XARGS="--tree-full control" trains the same views but records --subq cot --subq-target cot).
-# Decision chains (TB-C, DATA=data/student_chain; notes/next_round/tbc_readme.md): G3P2 = G3 asking only the checks of
+# Decision chains: G3P2 = G3 asking only the checks of
 # the chain the final reads (--subq-filter path; the "G3 (path)" arm of the notes), G3M2 = the same on the mirror chain
 # the final never reads (the "G4 (mirror)" content control), G3P2X/G3M2X = the same without the chain's top check
 # (--aux-answer exclude; the path top is the final's decision bit). Plain G3 there asks both chains; chain-data G4 asks
@@ -57,7 +57,7 @@
 # the run directory then gets "-sf<filter>" after the arm name, so it never overwrites the unfiltered run.
 # REPO: code checkout the job runs (default repo; ablation jobs use a frozen checkout, e.g. REPO=$HOME/cotd/repo-abl);
 # its commit (with -dirty if tracked files differ) goes into the job log and metrics.json args (code_commit).
-# 4B / long runs (full-tree arms only; notes/next_round/sev4b_plan.md §6-§7): PREC=bf16 OPTIM=adamw8bit-sr = torchao 8-bit
+# 4B / long runs: PREC=bf16 OPTIM=adamw8bit-sr = torchao 8-bit
 # AdamW with bf16 stochastic rounding (needs torchao in the env); TOKBUDGET=3072 = length-sorted micro-batches of at most
 # 3072 padded tokens (--token-budget, same gradient as MBS; MBS/GA are then unused); STOPH=H = planned stop H hours after
 # the JOB start (smoke and base evals included; leave room for the final evals and one checkpoint write): the arm writes
@@ -69,7 +69,7 @@
 # before the checkpoint is deleted. With STOPH or CKPTMIN every arm must be a full-tree arm, and the smoke stage also
 # runs a checkpoint round trip (stop after update 1, resume) on the first arm. No relay resubmits after exit 3 yet
 # (plan §7: same job again with --dependency=afterany); SLURM records the job as FAILED with exit code 3.
-# Tree Forcing (notes/next_round/tree_forcing/impl.md; DATA=data/student_v3sl, built by scripts/build_local_kk.py): every
+# Tree Forcing: every
 # K&K node every epoch (--tree-cap 0), only K&K items get node views (--tree-sources knights_knaves; the other families
 # train their final question only), the final view unchanged. TFL = each node asked WITHOUT the problem: preamble + its
 # parents' results (parse nodes: their statement line) · TFA = the same with every ancestor's result, shallow to deep ·
@@ -79,7 +79,7 @@
 # question, no options; rng lockstep with GFP) · TFLN = TFL with nothing stated (parse nodes still see their line,
 # derived nodes only the preamble; rng lockstep with TFL). Same knobs (NODEW, LOCAL_EVAL, run dir runs/<ARM>...).
 # Premise extraction (impl.md section 9): TFLP = TFL with the parse nodes asked in the GFPS view (the whole statement
-# block instead of their own line) · MIX = every node asked once per epoch, in the GFPS view with probability .5 (a
+# block instead of their own line) · MIX = every node asked once per epoch, in the GFPS view with probability.5 (a
 # coin per seed, epoch, item and node), else in its TFL view. Both in rng lockstep with TFL (same nodes, order, targets
 # and weights as TFL and GFPS); same knobs; no new upper-case knob. Another MIX share: XARGS="--tree-mix-p P" with
 # TAG=mp<P> (the run dir does not show P otherwise).
@@ -132,7 +132,7 @@
 # evaluation (EVALMID sets) at the end of every stage but the last, so EVALAT stays empty. Knobs: XARGS="--curriculum-mode
 # exact" (stage j = the steps == j), "--curriculum-final-nodes" (the last stage = GFPQ's groups), "--reset-optim" (with
 # TAG). No STOPH / CKPTMIN; relays must put CSTEPS in their reset list.
-# Latent node slots (Tree Forcing v2, design (a) of notes/latent_primer_zh_2026-10-19.md; DATA=data/student_gsm8k_tf_si*,
+# Latent node slots (Tree Forcing v2, design (a) of; DATA=data/student_gsm8k_tf_si*,
 # whose worked_steps give the targets; XARGS="--tree-sources gsm8k_tf" as for GFPQ): every final question gets a line of
 # SLOTK (default 6) x SLOTC (default 1) reserved tokens (<|box_start|> on Qwen3.5) between the problem and its options
 # (SLOTPLACE=after-options: after the options), in training and in every evaluation (one forward pass, the same letter
@@ -164,7 +164,7 @@
 # metrics slot_readout (exact value match per slot) and slot_pilot (pass: value readout >= 45% and mean-ablation
 # acc_drop >= 2 points). Run dirs: -sk/-sc/-sl/-sp as LS, plus -sL<SLOTL> -sF<SLOTFILL> -sT<SLOTTOK>; relays must put
 # SLOTL SLOTFILL SLOTTOK SLOTDECSET in their reset list too.
-# Batch 12 diagnostics (notes/latent_slots_v21_audit_2026-10-20.md), v2.1 arms: SLOTPADW=W (--slot-pad-weight: weight
+# Diagnostics, v2.1 arms: SLOTPADW=W (--slot-pad-weight: weight
 # of a slot's "\n" padding positions in its lens CE, 0 = the value's own tokens only, renormalised over the counted
 # positions) and SLOTOV=truncate (--slot-overflow: a chain longer than SLOTK keeps its FIRST SLOTK steps; SLOTK=1
 # SLOTOV=truncate SLOTFILL=none supervises only the first worked step's value); run dirs -sW<W> -sO<ov>.
@@ -174,13 +174,13 @@
 # PROBE_N, default 3000, items of $DATA/train.jsonl; held-out PROBE_HELDOUT, default "val=$DATA/val.jsonl
 # gsm8kv2=data/eval/gsm8k_mc_v2_steps.jsonl"), the probe outputs go to $OUT/probe/ and the weights are deleted (an
 # EXIT trap deletes them too). With SAVE=1 as well, $OUT/model is probed and kept. The run dir gets -pr before the TAG
-# (a probed rerun never shares a dir with the run it repeats, e.g. batch 11's LSL). PROBE_ONLY=1 with MODEL: no
+# (a probed rerun never shares a dir with the run it repeats, e.g. LSL). PROBE_ONLY=1 with MODEL: no
 # training; the untrained MODEL is probed with the slot line of each v2.1 arm in ARMS (its SLOTK / SLOTC / SLOTTOK /
 # SLOTPLACE / SLOTL / SLOTFILL / SLOTOV / SLOTPADW knobs, defaults as LSL; PROBE_SPEC=<run dir | json>: that run's
 # latent_slots.json instead) into runs/PROBE-<arm><knobs>-<model>-<data> (logged as "=== PROBE -> <dir>"). PROBE_ARGS:
 # more probe_slots.py options. The smoke stage probes the smoke model (PROBE_ONLY: MODEL) on 16 + 4 items. Relays must
 # put SLOTPADW SLOTOV PROBE PROBE_ONLY PROBE_N PROBE_HELDOUT PROBE_SPEC PROBE_TMP PROBE_ARGS in their reset list.
-# Teacher-state slots with forced reading (TSF; notes/latent_comeback_memo_2026-10-21.md section 3; DATA=
+# Teacher-state slots with forced reading (TSF;; DATA=
 # data/student_gsm8k_tf_si*, XARGS="--tree-sources gsm8k_tf" as for LSL): the deployed prompt is LSL's with SLOTK
 # (default 2) slots of 2 distinct reserved tokens before the options, final views only. In training a teacher view of
 # the same weights (the final question with worked-step lines before its options, SI stage 0, no slot line) gives
@@ -209,19 +209,19 @@
 # $DATA/val.jsonl if that file has local fields (any arm), and LOCAL_EVAL=0 turns it off.
 # NODEW also names the run dir (-nw<w> after the arm), so a dose variant never shares a dir with the default run;
 # relays that compute the run dir as their skip key must add the same suffix.
-# Two slices, one job (notes/next_round/scale12b/fsdp2.md): NGPU=2 runs every train_student call (smoke included) under
+# Two slices, one job: NGPU=2 runs every train_student call (smoke included) under
 # torchrun with one rank per 4g.40gb slice (--fsdp: FSDP2, the same sequences per update as on one slice, split across
 # the ranks, gradients summed; rank 0 writes the outputs), PREC defaults to bf16, OMP threads = CPUs / 2 per rank.
 # FSDP_OPTIM picks the optimizer: cpu-adamw (default; fp32 master + AdamW of each rank's shard on the CPU, the only
 # setup that fits 12B; no checkpoints, so no STOPH/CKPTMIN) or 8bit-sr (torchao AdamW8bit on the GPU shards, as
 # OPTIM=adamw8bit-sr; resumable; does not fit 12B). TOKBUDGET then works for every arm (A2/G3 too). The #SBATCH lines
-# above ask for one slice: `NGPU=2 ... bash repo/hpc/train_arm.sbatch [sbatch options]` on the login node submits this
+# above ask for one slice: `NGPU=2... bash repo/hpc/train_arm.sbatch [sbatch options]` on the login node submits this
 # script with --gres=gpu:4g.40gb:2 --cpus-per-task=12 --mem=220G (96G for 8bit-sr) --time=24:00:00 plus the options
 # given (e.g. --dependency=afterany:<job>); a plain `sbatch` with NGPU=2 must pass those itself (the job checks that it
 # holds two GPUs and exits at once otherwise). 12B: MODEL=$HOME/cotd/models/gemma-4-12B TOKBUDGET=4096
 # XARGS="--eval-bs 16". Planned stops under torchrun leave $OUT/planned_stop (torchrun reports exit 3 as 1).
 # Relay scripts: TOKBUDGET STOPH CKPTMIN CKPTONE NODEW LOCAL_EVAL NGPU FSDP_OPTIM belong in the reset list (relay44's
-# reset() lacks OPTIM too), so a 4B, Tree Forcing or two-slice setting never leaks into the next submission (le, tr,
+# reset lacks OPTIM too), so a 4B, Tree Forcing or two-slice setting never leaks into the next submission (le, tr,
 # fs, pr, ng, mem are internal, lower case).
 set -euo pipefail
 JOB_T0=$(date +%s)
@@ -258,7 +258,7 @@ if [ "$ng" = 2 ]; then
     { echo "STOPH/CKPTMIN with NGPU=2 need FSDP_OPTIM=8bit-sr (cpu-adamw state, 143 GB at 12B, is not saved)"; exit 1; }
   echo "two slices: torchrun, 2 ranks, ${FSDP_OPTIM:-cpu-adamw}, OMP_NUM_THREADS=$OMP_NUM_THREADS per rank"
 elif [ "$ng" = 1 ] && [ -n "${FSDP_OPTIM:-}" ]; then
-  # One GPU, the two-slice recipe unchanged (CHTC 2026-10-17: two-GPU slots are scarce, single L40S slots are not).
+  # One GPU, the two-slice recipe unchanged (CHTC: two-GPU slots are scarce, single L40S slots are not).
   # torchrun with one rank: --fsdp on a one-device mesh, so every update holds the same micro_bs x grad_accum
   # sequences as the two-rank run, bf16 shards (here the whole model), fp32 master + AdamW on the CPU. Only the order
   # of the bf16 gradient summation differs (two half-sums vs one sum), the same class as run-to-run GPU noise.
@@ -432,7 +432,7 @@ echo "=== smoke stage $(date +%T)"
 SM=$(mktemp -d)
 head -n 16 "$DATA/train.jsonl" > "$SM/train.jsonl"
 head -n 20 data/eval/kk_heldout.jsonl > "$SM/eval.jsonl"
-SMX=${XARGS:-}                          # --extra-train (CARD_khop_v1): the smoke trains on the first 16 rows of each file
+SMX=${XARGS:-}                          # --extra-train: the smoke trains on the first 16 rows of each file
 if [[ " $SMX " == *" --extra-train"[\ =]* ]]; then   # (all of them at 0.5 epoch and GA 2 would be ~380-1,130 updates)
   ex=$(sed -n 's/.*--extra-train[ =]\([^ ]*\).*/\1/p' <<< "$SMX")
   : > "$SM/extra_train.jsonl"

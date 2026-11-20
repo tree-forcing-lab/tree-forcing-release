@@ -2,14 +2,14 @@
 student.build_full_tree (--node-format value / yesno+value, --node-render op / qop / opsel, --tree-view bare; arms
 GFPQV, GFPQVQ, GFPQO, GFPVB, GFPQVM):
 - builder units: exact numbers, atomic splitting in evaluation order, percent / fraction / division / decimal
-  rendering, reduced expressions, skips (final operation, trivial, gold-valued), option tiers, uniqueness, rank and
-  gold-letter balance, operation-selection designs, the item audit;
+ rendering, reduced expressions, skips (final operation, trivial, gold-valued), option tiers, uniqueness, rank and
+ gold-letter balance, operation-selection designs, the item audit;
 - the built files (skipped when absent): audit clean, rows byte-identical to data/student_gsm8k_tf but for value_nodes,
-  subsets with the same ids and order, md5s, gold-letter balance;
+ subsets with the same ids and order, md5s, gold-letter balance;
 - with torch: value-node examples (prompt text, labels, one-hot target, per-problem weights), the bare view, GFPQVM's
-  yes/no views and half weights, the yes/no arms (GFPQ / GFPS / GFP / GFPQR) byte-identical to the examples the code
-  before value nodes built (tests/fixtures/gsm8k_tf_yesno_examples_v1.json, commit in the file), guards,
-  evaluate_subq on value nodes, and the trainer end to end on a tiny random model.
+ yes/no views and half weights, the yes/no arms (GFPQ / GFPS / GFP / GFPQR) byte-identical to the examples the code
+ before value nodes built (tests/fixtures/gsm8k_tf_yesno_examples_v1.json, commit in the file), guards,
+ evaluate_subq on value nodes, and the trainer end to end on a tiny random model.
 CPU only. Data-backed tests read data/ of this checkout, or COTD_DATA_DIR when set."""
 import ast
 import collections

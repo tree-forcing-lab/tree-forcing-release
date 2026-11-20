@@ -7,7 +7,7 @@ label), and gold_probs (letter -> probability) where the set ships a soft gold.
 - jevbench: JevBench public tiers (MIT; original / easy / hard jsonl from the repo).
 - typed_decisions: Typed Decisions test split (Apache-2.0); one record per (case, question), soft gold.
 - bbeh: BIG-Bench Extra Hard (Apache-2.0) tasks with a closed answer set, as lettered choices. Hard for
-  reasoning models too (DeepSeek R1 averages 37% on BBEH mini), so the teacher is not an oracle here.
+ reasoning models too (DeepSeek R1 averages 37% on BBEH mini), so the teacher is not an oracle here.
 """
 from __future__ import annotations
 

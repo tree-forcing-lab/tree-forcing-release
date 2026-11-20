@@ -1,10 +1,10 @@
 """GSM8K Tree Forcing data (scripts/build_gsm8k_tf.py, source gsm8k_tf) and its treeplan branch:
 - treeplan: problem_no_options (GFPQ) for every gsm8k_tf prompt, statement_block only on bare final questions, shape
-  refusals; every other source byte-identical to BASE_REF (git show of treeplan.py; fixtures and every local item of the
-  files below);
+ refusals; every other source byte-identical to BASE_REF (git show of treeplan.py; fixtures and every local item of the
+ files below);
 - builder units on synthetic Socratic solutions: nodes, wrong values, blocks and drops, the item audit;
 - the built files (skipped when absent): every node re-verified (audit_item), Yes/No balance, splits, le4 view,
-  per-step evaluation files, dedup, finals byte-identical to data/student_gsm8k_soc but for the tree fields;
+ per-step evaluation files, dedup, finals byte-identical to data/student_gsm8k_soc but for the tree fields;
 - with torch: the GFPQ views of build_full_tree are the problem views with the prompt cut before its options.
 CPU only. Data-backed tests read data/ of this checkout, or COTD_DATA_DIR when set."""
 import importlib.util
@@ -27,7 +27,7 @@ from cotdistill.treeplan import GSM8K_TF, gsm8k_question_cut, problem_no_options
 
 DATA = Path(os.environ.get("COTD_DATA_DIR") or ROOT / "data")
 BASE_REF = "2509b67"          # the commit before the gsm8k_tf branch (pinned: HEAD would compare the branch with itself;
-#                               move the pin when another source's branch of treeplan.py changes)
+#  move the pin when another source's branch of treeplan.py changes)
 
 try:
     import numpy  # noqa: F401

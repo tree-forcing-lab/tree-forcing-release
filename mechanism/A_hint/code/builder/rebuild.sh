@@ -1,7 +1,7 @@
 #!/bin/bash
 # Rebuild the 18 hint sets from data/source with the recovered builder and compare md5 with data/hint/MANIFEST.json.
 # Needs a Python with torch (cotdistill.student imports it at load time; the builder itself uses no GPU).
-#   bash code/builder/rebuild.sh /path/to/python-with-torch      (run from the A_hint folder)
+#  bash code/builder/rebuild.sh /path/to/python-with-torch (run from the A_hint folder)
 set -euo pipefail
 PY=${1:?python with torch}
 T=$(mktemp -d)

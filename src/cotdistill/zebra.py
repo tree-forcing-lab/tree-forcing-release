@@ -2,14 +2,14 @@
 full-arrangement multiple-choice items (the K&K format: the options are complete answers, the distractors are wrong
 arrangements that break the fewest clues).
 
-A puzzle has N houses in a row (1..N, left to right) and M categories (name, house color, pet, ...), each with N
+A puzzle has N houses in a row (1..N, left to right) and M categories (name, house color, pet,...), each with N
 values; the solution assigns every value of every category to one house, a permutation per category. An entity is a
 (category, value) pair. Clues (all true of the solution, together they fix it uniquely):
-  found(X, k)      X lives in house k                     notfound(X, k)   X does not live in house k
-  same(X, Y)       X is Y (one person; X, Y of different categories)        notsame(X, Y)    X is not Y
-  left(X, Y)       X lives somewhere to the left of Y     right(X, Y)      X lives somewhere to the right of Y
-  dleft(X, Y)      X lives directly to the left of Y      next(X, Y)       X and Y live next to each other
-  gap1(X, Y)       exactly one house lies between X and Y
+ found(X, k) X lives in house k notfound(X, k) X does not live in house k
+ same(X, Y) X is Y (one person; X, Y of different categories) notsame(X, Y) X is not Y
+ left(X, Y) X lives somewhere to the left of Y right(X, Y) X lives somewhere to the right of Y
+ dleft(X, Y) X lives directly to the left of Y next(X, Y) X and Y live next to each other
+ gap1(X, Y) exactly one house lies between X and Y
 The solver (count_solutions) propagates the clues and the one-value-per-house rule on bitmask domains and branches;
 it is exact (checked against brute force in tests/test_zebra.py)."""
 from __future__ import annotations
@@ -548,15 +548,15 @@ def make_cell_item(p: dict, rng: random.Random, item_id: str, source: str = "zeb
 # ------------------------------------------------------------------------------------------------------- proof trees
 # A deduction engine with justifications. Facts: ("at", e, h) = entity e lives in house h; ("not", e, h) = it does not.
 # Rules (the fact's "rule"; "prem" = the facts it follows from, "clue" = the clue it reads):
-#   found / notfound   a position clue read off the text (no premise)
-#   placed             e is placed in house h, so e is in no other house       (folded into "at" in the tree)
-#   taken              e' is placed in house h, so no other value of e's category is in house h   (folded too)
-#   clue               a relation clue rules a house out for X: no house left for Y satisfies the relation with it
-#                      (prem: the facts that ruled out Y's compatible houses)
-#   only_house         every other house is ruled out for e
-#   only_person        house h is ruled out for every other value of e's category
-#   case               assuming e in house h leads to a contradiction (prem: the hypothetical chain)
-#   hyp                the assumption itself (inside a case)
+#  found / notfound a position clue read off the text (no premise)
+#  placed e is placed in house h, so e is in no other house (folded into "at" in the tree)
+#  taken e' is placed in house h, so no other value of e's category is in house h (folded too)
+#  clue a relation clue rules a house out for X: no house left for Y satisfies the relation with it
+#  (prem: the facts that ruled out Y's compatible houses)
+#  only_house every other house is ruled out for e
+#  only_person house h is ruled out for every other value of e's category
+#  case assuming e in house h leads to a contradiction (prem: the hypothetical chain)
+#  hyp the assumption itself (inside a case)
 # Contradictions: ("none", e) no house left for e; ("empty", category, h) no value of the category left for house h.
 
 class Deducer:

@@ -4,12 +4,12 @@ proof graph.
 
 Added fields (nothing else changes: finals, other families, ids, node order and every existing field are kept; the
 script checks that removing the new keys gives back the v3s records exactly):
-  item["local_preamble"]       the prompt text before the first statement line (the island rules and the head count)
-  subq["local_lines"]          parse nodes only: the speaker's statement line as the prompt renders it, e.g.
-                               '- Frank says: "Alice is a knight."' (a parse node reads exactly one statement)
-  subq["local_trivial"]        derived nodes only: True when the node's answer holds in every role assignment, i.e. the
-                               question's own hypothesis decides it and no stated result is needed (the local-step
-                               probe reports these apart)
+ item["local_preamble"] the prompt text before the first statement line (the island rules and the head count)
+ subq["local_lines"] parse nodes only: the speaker's statement line as the prompt renders it, e.g.
+ '- Frank says: "Alice is a knight."' (a parse node reads exactly one statement)
+ subq["local_trivial"] derived nodes only: True when the node's answer holds in every role assignment, i.e. the
+ question's own hypothesis decides it and no stated result is needed (the local-step
+ probe reports these apart)
 
 Sufficiency audit: every K&K puzzle is re-solved with the solver that built the trees
 (teacher_cache/solver_kk_v3f/build_reasoning_trees.py, deterministic; its node list must equal the stored tree), which
@@ -20,7 +20,7 @@ its stated parents (plus the preamble's rules, which hold in every assignment) a
 flipped node states the same proposition with the opposite answer. The script counts the nodes that lost or had a parent
 remapped in cleaning, by cause, and exits non-zero if any node is not entailed.
 
-  python scripts/build_local_kk.py --base data/student_v3s --out data/student_v3sl
+ python scripts/build_local_kk.py --base data/student_v3s --out data/student_v3sl
 """
 from __future__ import annotations
 

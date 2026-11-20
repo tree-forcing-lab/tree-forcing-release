@@ -1,5 +1,5 @@
-"""scripts/build_khop.py (CARD_khop_v1 sections 1.1, 1.2, 2.4 D-lines, 5). Standard library only.
-Generator level (a small build in a temp dir): determinism by seed; the Amendment 2 option rule and the shared
+"""scripts/build_khop.py. Standard library only.
+Generator level (a small build in a temp dir): determinism by seed; the option rule and the shared
 skeleton (one root value and one op-kind sequence for the five chains, hop 1 + / - with five distinct constants); the
 parser on hand-written rows; the baselines' uniform-pick convention, the chase lines and the hard flag on a hand row;
 row_rule_ok refuses a row whose chains do not share the skeleton.
@@ -55,7 +55,7 @@ class TestGenerator(unittest.TestCase):
         self.assertFalse(B.one_op(10, 11, 2, 9) or B.one_op(10, 25, 2, 9) or B.one_op(20, 10, 2, 9))
         self.assertFalse(B.option_set_ok([10, 20, 34, 46, 58], set()))          # 20 = 2 x 10
         self.assertFalse(B.option_set_ok([11, 23, 33, 47, 59], set()))          # 33 = 3 x 11
-        self.assertTrue(B.option_set_ok([11, 13, 15, 16, 18], set()))           # Amendment 2: 2-9 apart is allowed
+        self.assertTrue(B.option_set_ok([11, 13, 15, 16, 18], set()))           # 2-9 apart is allowed
         self.assertFalse(B.option_set_ok([11, 23, 35, 47, 59], {35}))           # a written number
         self.assertFalse(B.option_set_ok([11, 11, 35, 47, 59], set()))
         stats = defaultdict(Counter)

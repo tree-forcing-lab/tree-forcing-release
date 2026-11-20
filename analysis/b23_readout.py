@@ -1,10 +1,10 @@
-"""Batch 23 readout (cloud/chtc/README_23.md section 3, written 2026-11-10 before any result).
-Arms: A2 and GFPS = the 6-seed control pool (batch 16 s13-15 c12lr3ch / c6lr3ch, batch 21 s16-18 c12lr3chv / c6lr3chv);
+"""Readout of the proof-generation arms on K&K.
+Arms: A2 and GFPS = the 6-seed control pool (s13-15 c12lr3ch / c6lr3ch, s16-18 c12lr3chv / c6lr3chv);
 A7 (c12lr3ch, data student_kk_tf_rat) and rn (GFPS c12lr3chrn, data student_kk_tf_rat_nonodes), seeds 13-18.
 Epoch per arm: best seed-mean one-pass val over the arm's available runs, ties to fewer. One-pass kkdeep (2,000).
 Primary: GFPS - rn, claim if mean >= +1.5, at least 5 of 6 seeds > 0, two-level lower bound > 0 (seeds resampled,
 items resampled within the paired difference). Report: GFPS - A7, A7 - A2, rn - A2, rn - A7; kk; generation (A7, rn).
-Interim when rn has fewer than 6 seeds (no claim).   python3 -I analysis/b23_readout.py runs_archive/runs"""
+Interim when rn has fewer than 6 seeds (no claim). python3 -I analysis/b23_readout.py runs_archive/runs"""
 import json, math, random, statistics as st, sys
 from pathlib import Path
 R = Path(sys.argv[1] if len(sys.argv) > 1 else __import__("os").environ.get("RUNS", str(Path(__file__).resolve().parents[1] / "runs_archive/runs"))); S = (13, 14, 15, 16, 17, 18)

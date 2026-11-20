@@ -1,4 +1,4 @@
-"""Advisor checks 11-15: (a) K&K transfer / calibration at MATCHED training length (batch 19 separate runs, 4 and 8
+"""Checks 11-15: (a) K&K transfer / calibration at MATCHED training length (separate runs, 4 and 8
 epochs, seeds 13-15, end of training); (b) GSM8K one-epoch Tree Forcing (the cue-free validation pick on seeds 13-15)
 vs one-epoch answer-only; (c) K&K node coupling within people-count strata of val."""
 import collections, json, statistics as st, sys

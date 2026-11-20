@@ -10,7 +10,7 @@ allenai/ZebraLogicBench copy of mc_mode ships no answers. Each item is rendered 
 the grid_mode "size" field, read from the -NxM- part of the source id. Items whose size, answer or choices cannot be
 parsed are dropped and counted.
 
-  python3 scripts/build_eval_zebra.py        # -> data/eval/zebra.jsonl
+ python3 scripts/build_eval_zebra.py # -> data/eval/zebra.jsonl
 """
 from __future__ import annotations
 

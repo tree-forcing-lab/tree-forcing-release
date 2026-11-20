@@ -1,12 +1,12 @@
 """Minimal DeepSeek chat client (stdlib only) with logprobs, retries and cost accounting.
 
-Facts checked on 2026-09-29 (api-docs.deepseek.com):
+Facts checked on (api-docs.deepseek.com):
 - models: deepseek-flash (V4.1), deepseek-v4-pro; thinking mode is on by default,
-  disabled with {"thinking": {"type": "disabled"}}; effort via "reasoning_effort".
+ disabled with {"thinking": {"type": "disabled"}}; effort via "reasoning_effort".
 - top_logprobs <= 20; tokens outside the top-20 come back as -9999 (treat as censored).
 - thinking mode returns logprobs for both reasoning and answer tokens.
 - in multi-turn chats without tools, earlier reasoning_content is ignored, so a CoT that
-  should condition a later call must be passed as plain text.
+ should condition a later call must be passed as plain text.
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ import urllib.request
 
 API_URL = "https://api.deepseek.com/chat/completions"
 
-# USD per 1M tokens, off-peak list prices read 2026-09-29 (peak hours cost 2x).
+# USD per 1M tokens, off-peak list prices read (peak hours cost 2x).
 PRICES = {                          # off-peak USD per 1M tokens; peak hours cost twice as much
     "deepseek-flash": {"hit": 0.003, "miss": 0.15, "out": 0.60},
     "deepseek-v4-pro": {"hit": 0.022, "miss": 0.66, "out": 1.98},

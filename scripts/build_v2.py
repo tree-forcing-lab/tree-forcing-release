@@ -2,12 +2,12 @@
 reasoning tree is ready also carry CoT sub-questions (and matched controls). Augmentations from the v1 error
 analysis (hedge-option bias, prose-only states):
 - K&K and ARC items: a "None of the above" option is added as a wrong option (8%) or replaces the gold option
-  as the right answer (2%), so a hedge option is not a safe default;
+ as the right answer (2%), so a hedge option is not a safe default;
 - policy-generator items: half render the case facts as a JSON object.
 
-  python3 scripts/build_v2.py --out data/student_v2
-  python3 scripts/build_v2.py --out data/student_v3f                  # v3 trees after the tree audit fixes
-  python3 scripts/build_v2.py --out data/student_v3 --no-tree-fix     # the original v3
+ python3 scripts/build_v2.py --out data/student_v2
+ python3 scripts/build_v2.py --out data/student_v3f # v3 trees after the tree audit fixes
+ python3 scripts/build_v2.py --out data/student_v3 --no-tree-fix # the original v3
 """
 from __future__ import annotations
 

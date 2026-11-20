@@ -1,6 +1,6 @@
 """Tree Forcing data for a real-world reasoning domain: GSM8K, with trees read off its existing annotations (the
 `socratic` sub-questions and the <<a*b=c>> calculator notes), so no new labelling is needed
-(notes/next_round/tree_forcing/gsm8k_tf.md).
+.
 
 Finals: the multiple-choice finals of data/student_gsm8k_soc (scripts/build_gsm8k_socratic.py: GSM8K train, 5 numeric
 options, decontaminated against GSM8K test / GSM-Plus / GSM-Symbolic / SVAMP / AQuA / GSM1k / data/eval) of problems
@@ -10,36 +10,36 @@ is byte-identical except the tree fields (CHANGED): source "gsm8k_tf", group "gs
 number of calculator notes, as data/eval/gsm8k_mc*.jsonl count them), subqs, has_tree, tree_source.
 
 Nodes (each a yes/no question with an exact truth; p_cot = truth, node_depth = the step's dependency level):
-  per solution step j that is not the gold step: "s<j>v" "<sub-question> Is it <value>?" (Yes) and "s<j>n" the same
-  with a wrong value (No), so every item, depth and step is exactly 50% Yes. The sub-question is the Socratic
-  annotation's own text (verbatim; "?" appended when it has no end mark); "opposite" holds the reversed wording ("Is it
-  different from <x>?"). The wrong value is above or below the value 50/50 and comes from a planted slip of the step
-  (an operator of it or of an ancestor swapped, or a stated operand moved by 1, propagated through the graph; .5), another
-  step's value (.25) or a perturbation keeping parity and roundness (.25), each among those available on that side;
-  it is positive, has the value's integer-ness, at most 2 decimals, is within 10x of the value and is never the gold.
-  depends_on = the "v" nodes of the step's parents (earlier steps whose result is an operand of its note, the
-  certain edges of build_gsm8k_socratic.parse_problem; an operand that is both an earlier result and a unit constant /
-  number word / question number gets no edge and the flag parents_uncertain / ambiguous_q). Only Yes nodes are parents.
+ per solution step j that is not the gold step: "s<j>v" "<sub-question> Is it <value>?" (Yes) and "s<j>n" the same
+ with a wrong value (No), so every item, depth and step is exactly 50% Yes. The sub-question is the Socratic
+ annotation's own text (verbatim; "?" appended when it has no end mark); "opposite" holds the reversed wording ("Is it
+ different from <x>?"). The wrong value is above or below the value 50/50 and comes from a planted slip of the step
+ (an operator of it or of an ancestor swapped, or a stated operand moved by 1, propagated through the graph;.5), another
+ step's value (.25) or a perturbation keeping parity and roundness (.25), each among those available on that side;
+ it is positive, has the value's integer-ness, at most 2 decimals, is within 10x of the value and is never the gold.
+ depends_on = the "v" nodes of the step's parents (earlier steps whose result is an operand of its note, the
+ certain edges of build_gsm8k_socratic.parse_problem; an operand that is both an earlier result and a unit constant /
+ number word / question number gets no edge and the flag parents_uncertain / ambiguous_q). Only Yes nodes are parents.
 Not built (counted in summary.json):
-  - the gold step (the final question in disguise) and any step whose value equals the gold, and every step downstream
-    of such a step (its probe would pin the gold: a parent edge, or an operand equal to such a step's result that
-    parse_problem left unlinked as uncertain), and steps after the gold step;
-  - steps whose sub-question text is shared with another step of a different value (the Socratic annotation reuses a
-    sub-question for a partial result, e.g. "How many floors does the Chrysler Building have?" for 11 and then 23), or
-    equals the problem's final question sentence (normalised) while its value is not the gold: such a Yes node would
-    be false as worded;
-  - steps whose value is not positive or not exact at 2 decimals (the option formatter's precision).
+ - the gold step (the final question in disguise) and any step whose value equals the gold, and every step downstream
+ of such a step (its probe would pin the gold: a parent edge, or an operand equal to such a step's result that
+ parse_problem left unlinked as uncertain), and steps after the gold step;
+ - steps whose sub-question text is shared with another step of a different value (the Socratic annotation reuses a
+ sub-question for a partial result, e.g. "How many floors does the Chrysler Building have?" for 11 and then 23), or
+ equals the problem's final question sentence (normalised) while its value is not the gold: such a Yes node would
+ be false as worded;
+ - steps whose value is not positive or not exact at 2 decimals (the option formatter's precision).
 Every node is re-verified from its own fields (audit_item): its expression is executed again and equals its value,
 every parent's value is an operand of the expression, Yes iff the probe is the value, no probe is the gold.
 
 Splits (problem level; a problem is never in two files):
-  data/student_gsm8k_tf/train.jsonl     GSM8K train problems, all step counts
-  data/student_gsm8k_tf/val.jsonl       the 300 held-out problems of student_gsm8k_soc/val + --n-val-extra (100) drawn
-                                        from the train pool (seeded): about 400
-  data/student_gsm8k_tf_le4/{train,val}.jsonl   the same items with n_steps <= 4 (extrapolation view)
-  data/eval/gsm8k_s{2..8}.jsonl         data/eval/gsm8k_mc_v2.jsonl (QO-v2 options, GSM8K test) cut by step count,
-                                        recomputed from the socratic test notes (checked against the items' depth);
-  data/eval/gsm8k_s5p.jsonl             the same, >= 5 steps pooled (s6-s8 hold 57 / 21 / 9 problems)
+ data/student_gsm8k_tf/train.jsonl GSM8K train problems, all step counts
+ data/student_gsm8k_tf/val.jsonl the 300 held-out problems of student_gsm8k_soc/val + --n-val-extra (100) drawn
+ from the train pool (seeded): about 400
+ data/student_gsm8k_tf_le4/{train,val}.jsonl the same items with n_steps <= 4 (extrapolation view)
+ data/eval/gsm8k_s{2..8}.jsonl data/eval/gsm8k_mc_v2.jsonl (QO-v2 options, GSM8K test) cut by step count,
+ recomputed from the socratic test notes (checked against the items' depth);
+ data/eval/gsm8k_s5p.jsonl the same, >= 5 steps pooled (s6-s8 hold 57 / 21 / 9 problems)
 Dedup: every train / val question vs every GSM8K-test-derived and GSM1k evaluation question (GSM8K test, gsm8k_mc,
 gsm8k_mc_v2, gsm1k_mc, gsm_plus_mc, gsm_symbolic_mc): word 8-grams, an 8-gram shared by >= 5 test problems is
 boilerplate; any other shared 8-gram drops the problem. Train problems sharing such an 8-gram with a val problem are
@@ -49,8 +49,8 @@ Reports (summary.json): parse / drop counts, node stats, leak checks, single-fea
 the GFPQ view, the clean-cut share (treeplan.statement_block), dedup. Token lengths need the `tokenizers` package
 (not in the system python): a second pass with --tokens writes data/student_gsm8k_tf/tokens.json.
 
-  python3 scripts/build_gsm8k_tf.py                                    # pandas + numpy (system python3)
-  python3 scripts/build_gsm8k_tf.py --tokens  # tokenizers (stdlib otherwise)
+ python3 scripts/build_gsm8k_tf.py # pandas + numpy (system python3)
+ python3 scripts/build_gsm8k_tf.py --tokens # tokenizers (stdlib otherwise)
 """
 from __future__ import annotations
 

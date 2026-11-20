@@ -1,10 +1,10 @@
 """Zero-GPU analyses for the review (11-17), from saved predictions only.
 (1) K&K-Deep split into in-range (4-10 inhabitants) and beyond (11-20).
 (2) K&K-Deep by distractor difficulty: per item, the fewest statements any wrong option violates; and, for wrong answers,
-    how many statements the chosen option violates (Tree vs answer-only).
+ how many statements the chosen option violates (Tree vs answer-only).
 (3) BBH by task type: two-option vs more-option tasks, and per task, for AO / TF / permuted / proof generation.
 (4) Temperature scaling: per run, T fitted on its own K&K validation predictions (end of training, NLL), applied to BBH
-    and K&K-Deep; ECE / NLL / Brier before and after."""
+ and K&K-Deep; ECE / NLL / Brier before and after."""
 import collections, json, math, re, sys
 from pathlib import Path
 import numpy as np

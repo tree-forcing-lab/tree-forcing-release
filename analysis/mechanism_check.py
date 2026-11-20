@@ -1,18 +1,18 @@
-"""Independent check of the second author's mechanism materials (PR #13, notes/2026-11-17-mechanism) from the prediction files.
+"""Independent check of the mechanism materials from the prediction files.
 
-(A) Stage 2 hint test (jobs 520-533, seeds 16-18; preds from A_hint/data/stage2_preds.tgz, extracted to
-    SCRATCH/s2/<job>/): accuracy per arm and set, H = true_r1 - plain on clean items (no shown value equals an option)
-    with n >= 4 (the registered primary), D = true_r1 - true_r4 on the items with n >= 5, the fixed-item curve,
-    controls minus plain at r = 1, and Tree Forcing vs answer-only on the hint gain (paired by seed).
+(A) the hint test (seeds 16-18; preds from A_hint/data/stage2_preds.tgz, extracted to
+ SCRATCH/s2/<job>/): accuracy per arm and set, H = true_r1 - plain on clean items (no shown value equals an option)
+ with n >= 4 (the primary), D = true_r1 - true_r4 on the items with n >= 5, the fixed-item curve,
+ controls minus plain at r = 1, and Tree Forcing vs answer-only on the hint gain (paired by seed).
 (B) Serial budget (k-hop): one-pass accuracy on khop_ca_fwd by hop count for answer-only weights evaluated on the
-    k-hop sets (A2Z, jobs 751-755), the 27k-chain arm (D27) and the untrained model (750), from the run outputs (RUNS).
-(C) GSM8K cost of chain training: D27 minus answer-only on gsm8kv2 and on the registered rc2 cell (items with whole-
-    chain serial depth >= 4, the true-hint row with 2 remaining serial steps; the second author's cell definition), with the
-    original answer-only runs (520 / 525 / 530 from the Stage 2 archive, 540 from runs/, 542 from git history) and the
-    re-trained ones (the current runs/ folders: 663 / 664 / 665 / 666, and 540 for seed 19).
+ k-hop sets (A2Z), the 27k-chain arm (D27) and the untrained model (750), from the run outputs (RUNS).
+(C) GSM8K cost of chain training: D27 minus answer-only on gsm8kv2 and on the transfer cell (items with whole-
+ chain serial depth >= 4, the true-hint row with 2 remaining serial steps; the cell definition), with the
+ original answer-only runs (520 / 525 / 530 from the archive, 540 from runs/, 542 from git history) and the
+ re-trained ones (the current runs/ folders: 663 / 664 / 665 / 666, and 540 for seed 19).
 Statistic: scripts/paired_stats.paired_stats (seed-level t and two-level bootstrap with shared item indices;
 "significant" only if both exclude 0).
-  python3 analysis/mechanism_check.py SCRATCH > analysis/mechanism_check.md
+ python3 analysis/mechanism_check.py SCRATCH > analysis/mechanism_check.md
 """
 import collections
 import json
@@ -48,7 +48,7 @@ def stats(MA, MB):
             f"2L [{100*r['two_level'][0]:+.1f}, {100*r['two_level'][1]:+.1f}] {'sig' if r['significant'] else 'n.s.'}")
 
 
-# ---------------------------------------------------------------- (A) Stage 2 hint test
+# ---------------------------------------------------------------- (A) the hint test
 ARMS = {"A2-c1": [520, 525, 530], "A2-c2": [521, 526, 531], "GFPQ-c2": [522, 527, 532], "GFPQR-c2": [523, 528, 533]}
 SETS = (["plain", "full"] + [f"true_r{r}" for r in range(1, 7)] + [f"placebo_r{r}" for r in range(1, 5)] +
         ["other_r1", "other_r2", "wrongres_r1", "wrongres_r2", "wrongres_near_r1", "wrongres_near_r2"])
@@ -58,7 +58,7 @@ for j in C:
     for s in SETS:
         assert set(C[j][s]) == set(meta[s]), (j, s)
 print("# Mechanism check (independent recomputation from preds)\n")
-print("## A. Stage 2 hint test (seeds 16-18)\n")
+print("## A. Hint test (three seeds)\n")
 print("Accuracy (%), seed mean, on each set's own items:\n")
 print("| arm | " + " | ".join(SETS) + " |\n|" + "---|" * (len(SETS) + 1))
 for a, js in ARMS.items():

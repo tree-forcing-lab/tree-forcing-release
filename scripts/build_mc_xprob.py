@@ -1,4 +1,4 @@
-"""Other-problem distractors for the GSM8K and GSM1K multiple-choice test sets (verification-tree pilot): the same
+"""Other-problem distractors for the GSM8K and GSM1K multiple-choice test sets (verification-tree preliminary): the same
 problems, question texts and golds as data/eval/gsm8k_mc_v2.jsonl and data/eval/gsm1k_mc.jsonl, but the 4 wrong
 options are final answers of OTHER problems of the same file, so no option is built from the problem (QO-v2 of
 scripts/build_math_evals.py builds one-step combinations of the stated numbers, partial_*, and perturbations,
@@ -7,9 +7,9 @@ number of the problem only by chance: on GSM8K test 4.3% of them are values of t
 (data/eval/gsm8k_mc_v2_steps.jsonl) and 4.8% numbers written in the problem, against 7.4% and 5.9% of the QO-v2
 distractors.
 
-  data/eval/gsm8k_mc_v2_xprob.jsonl   from data/eval/gsm8k_mc_v2.jsonl (1,317 items)
-  data/eval/gsm1k_mc_xprob.jsonl      from data/eval/gsm1k_mc.jsonl (1,205 items)
-  data/eval/mc_xprob.summary.json     md5s, construction counts and the options-only adversaries
+ data/eval/gsm8k_mc_v2_xprob.jsonl from data/eval/gsm8k_mc_v2.jsonl (1,317 items)
+ data/eval/gsm1k_mc_xprob.jsonl from data/eval/gsm1k_mc.jsonl (1,205 items)
+ data/eval/mc_xprob.summary.json md5s, construction counts and the options-only adversaries
 
 Every field of an item is the original's (item_id, source, group, depth, level, mag, nq, orig_id, variant, labels,
 label_order, gold_probs, type) except prompt (same "Question: <text>" line, new "Options:" block), gold_label,
@@ -20,39 +20,39 @@ the problem whose answer the option is, window_ratio, gold_rank}.
 Construction (every draw from random.Random(f"xprob/<seed>/<item_id>/<try>"); the letter and rank quotas from
 random.Random(f"xprob/<seed>/<file>/...")):
 - candidates: the other items of the file whose gold differs from this gold (as printed); drawn per ITEM (not per
-  distinct value), so a value is drawn as often as it is an answer and the distractors have the golds' own value
-  distribution (roundness, size, frequency); a gold that is an integer only gets integer distractors (all golds of
-  both files are integers);
+ distinct value), so a value is drawn as often as it is an answer and the distractors have the golds' own value
+ distribution (roundness, size, frequency); a gold that is an integer only gets integer distractors (all golds of
+ both files are integers);
 - an exchangeable window on the scale u = ln(x + SHIFT), SHIFT = 5: the window [u(g) - t w, u(g) + (1 - t) w] holds
-  the gold at a uniform position t, width w = ln 2; the 4 distractors are distinct values drawn from the candidates
-  inside it. For large values this is a ratio-2 window (every distractor within 0.5x-2x of the gold); for small
-  values it is nearly linear (g = 3: a window such as 1..6 or 3..11), where a ratio-2 window holds too few answers. With fewer than 4
-  distinct values inside, w grows by ln 2 and t is redrawn, up to the whole range ("else any"). Because the window's
-  position is uniform and not centred on the gold, the 5 values are (up to the discreteness of the answers and the
-  lower end of the range) an exchangeable draw: given the five numbers, each is about equally likely to be the gold.
-  A gold-centred window would not be: the gold would be the one option whose [x/2, 2x] holds all others (the
-  "window rule" in the audit). On the plain log scale (SHIFT 0) small golds stay identifiable (the windows must
-  widen around them): the construction-aware adversary below reads .25 there (.33 on golds < 10) against .21 with
-  SHIFT 5 (3 seeds each; SHIFT 10 reads .20 but puts only 73% of the items within 0.5x-2x, SHIFT 5 83%);
+ the gold at a uniform position t, width w = ln 2; the 4 distractors are distinct values drawn from the candidates
+ inside it. For large values this is a ratio-2 window (every distractor within 0.5x-2x of the gold); for small
+ values it is nearly linear (g = 3: a window such as 1..6 or 3..11), where a ratio-2 window holds too few answers. With fewer than 4
+ distinct values inside, w grows by ln 2 and t is redrawn, up to the whole range ("else any"). Because the window's
+ position is uniform and not centred on the gold, the 5 values are (up to the discreteness of the answers and the
+ lower end of the range) an exchangeable draw: given the five numbers, each is about equally likely to be the gold.
+ A gold-centred window would not be: the gold would be the one option whose [x/2, 2x] holds all others (the
+ "window rule" in the audit). On the plain log scale (SHIFT 0) small golds stay identifiable (the windows must
+ widen around them): the construction-aware adversary below reads.25 there (.33 on golds < 10) against.21 with
+ SHIFT 5 (3 seeds each; SHIFT 10 reads.20 but puts only 73% of the items within 0.5x-2x, SHIFT 5 83%);
 - rank quotas: the gold's rank among the 5 values (0 = smallest) has n/5 slots per rank; an item whose draw lands on
-  a full rank redraws (up to MAX_TRIES; then the last draw is kept and counted as quota_overflow);
+ a full rank redraws (up to MAX_TRIES; then the last draw is kept and counted as quota_overflow);
 - letters: the gold letters are a seeded shuffle of A..E repeated (exactly balanced, +-1); the 4 distractors take the
-  remaining letters in a seeded order.
+ remaining letters in a seeded order.
 Checks (audit_item): the question text and gold unchanged, 5 distinct values, no distractor equal to the gold, every
 distractor the gold of its source item (another item), option_kinds / label_names consistent.
 
-Options-only adversaries (no question text; summary "adversary"; chance .200):
+Options-only adversaries (no question text; summary "adversary"; chance.200):
 - optonly: the features of the scratch adversary optonly.py (log size vs the option mean, nearest log distances,
-  integrality, roundness, digit count, rank and position one-hots, near-cluster and multiple counts), conditional
-  logit (build_math_evals.fit_logit) fitted on the GSM8K training finals (data/student_gsm8k_tf/train.jsonl: QO-v2,
-  inter and slip options); scored on the original and the new files;
+ integrality, roundness, digit count, rank and position one-hots, near-cluster and multiple counts), conditional
+ logit (build_math_evals.fit_logit) fitted on the GSM8K training finals (data/student_gsm8k_tf/train.jsonl: QO-v2,
+ inter and slip options); scored on the original and the new files;
 - optonly_xprob_train: the same model fitted on the training finals rebuilt with this construction (training golds,
-  other training problems' answers; not written to disk), scored on the new files: an adversary that knows the
-  construction;
+ other training problems' answers; not written to disk), scored on the new files: an adversary that knows the
+ construction;
 - crossfit: the same features and build_math_evals.features(rich) fitted 5-fold within each new file;
 - rules: largest / smallest / middle / hub / 1.5x magnitude oracle (build_math_evals.rule_accs) and the window rule.
 
-  python3 scripts/build_mc_xprob.py          # numpy (system python3); a few seconds
+ python3 scripts/build_mc_xprob.py # numpy (system python3); a few seconds
 """
 from __future__ import annotations
 

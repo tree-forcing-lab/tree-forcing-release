@@ -1,15 +1,15 @@
-"""Paper ledger: every number the TMLR paper cites, recomputed with ONE rule and ONE statistic (2026-11-15).
+"""Paper ledger: every number the TMLR paper cites, recomputed with ONE rule and ONE statistic.
 
 Selection (K&K arms): per arm, the eval point (mid epoch or end) with the best seed-mean val accuracy over the arm's
-own seeds, ties to fewer epochs (the rule pre-registered in README_21 / 23 / 25 / 26). Sets evaluated only at the end
+own seeds, ties to fewer epochs. Sets evaluated only at the end
 of training (BBH, FOLIO, MuSR, GSM8K-MC transfer) are read at the end for both arms and labelled so. GSM8K arms are
 fixed epoch counts chosen earlier by valx (best-vs-best, 10-19), read at the end.
 Statistic: seed-level paired t interval (df = k - 1) and a two-level bootstrap (B = 10000, numpy seed 0); "sig." = both
-intervals exclude 0. Items: "per-seed" (default for epoch-selected K&K rows, the estimator of the registered readouts
-b21 / b23_readout.py): each seed's difference on the items both of its runs hold (batch 16's mid-epoch kkdeep preds hold
-500 of the 2,000 items, batch 21 / 23 / 26 hold all 2,000); the bootstrap resamples seeds, then items within each drawn
+intervals exclude 0. Items: "per-seed" (default for epoch-selected K&K rows, the estimator of the readouts
+b21 / b23_readout.py): each seed's difference on the items both of its runs hold (earlier mid-epoch kkdeep preds hold
+500 of the 2,000 items, later runs hold all 2,000); the bootstrap resamples seeds, then items within each drawn
 seed. "common" (scripts/paired_stats.paired_stats): the items held by every run of both arms, shared indices.
-  RUNS=runs_archive/runs python3 analysis/ledger.py > ledger.md"""
+ RUNS=runs_archive/runs python3 analysis/ledger.py > ledger.md"""
 import json
 import os
 import statistics as st
@@ -28,8 +28,7 @@ import paired_stats as P  # noqa: E402
 
 
 # Run folders that a later job with the same name overwrote are read from their FIRST completed run, restored from the
-# results repository's git history (results/restored_runs; 11-18: A2-c1lr3ch GSM8K s15 = job 321, s16-18 = jobs 520 /
-# 525 / 530). Rule: the first completed run of each (configuration, seed) is the one we report.
+# results repository's git history (restored_runs/: the answer-only GSM8K runs of four seeds). Rule: the first completed run of each (configuration, seed) is the one we report.
 RESTORED = Path(os.environ.get("RESTORED", R.parent / "restored_runs"))
 
 
@@ -56,7 +55,7 @@ ARMS = {
     "Tree s16-18": kk("GFPS", "c6lr3chv", (16, 17, 18)),
     "A2 s16-18": kk("A2", "c12lr3chv", (16, 17, 18)),
 }
-# batch 19 reruns of the same configs (tags c6lr3cht / c12lr3cht, seeds 13-15) as extra paired units 113-115
+# Reruns of the same configs (tags c6lr3cht / c12lr3cht, seeds 13-15) as extra paired units 113-115
 ARMS["Tree +b19"] = {**ARMS["Tree"], **{100 + s: n for s, n in kk("GFPS", "c6lr3cht", (13, 14, 15)).items()}}
 ARMS["A2 +b19"] = {**ARMS["A2"], **{100 + s: n for s, n in kk("A2", "c12lr3cht", (13, 14, 15)).items()}}
 BASE_RUN = "base-Qwen3.5-4B"
@@ -158,7 +157,7 @@ HEAD = ("| comparison (A − B) | test set | seeds | epochs A/B | acc A / B | me
 
 
 def main():
-    print("# Paper ledger (recomputed " + "2026-11-15" + "; analysis/ledger.py)\n")
+    print("# Paper ledger (analysis/ledger.py)\n")
     print("## K&K (Qwen3.5-4B), one-pass readout, epochs selected on val\n" + HEAD)
     for a, b in (("Tree", "A2"), ("Tree lr1.5", "A2 lr1.5"), ("Tree KL", "A2 KL"), ("Tree s13-15", "Shuffled"),
                  ("Tree", "A7 (writes proof)"), ("A7 (writes proof)", "A2"), ("Tree", "Proof, tree path (rn)"),
@@ -197,7 +196,7 @@ def main():
         for x in ("gsm8kv2", "gsm8kx"):
             v = [ece(n, x) for n in GSM[arm].values()]
             print(f"| {arm} | {x} | end | {np.mean(v):.1f} ({np.std(v, ddof=1):.1f}) | |")
-    print("\n## Batch 19 reruns pooled (same configs, seeds 13-15 rerun as units 113-115; appendix)\n" + HEAD)
+    print("\n## Reruns pooled (same configs, seeds 13-15 rerun as units 113-115; appendix)\n" + HEAD)
     compare("Tree +b19", "A2 +b19", ["kkdeep"], ARMS)
     compare("Tree +b19", "A2 +b19", ["kkdeep"], ARMS, select=False, label=" (end, 2,000)", items="common")
     print("\n## GSM8K (Qwen3.5-4B), tuned epochs, end of training\n" + HEAD)

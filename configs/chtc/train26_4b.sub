@@ -1,4 +1,4 @@
-# One batch-26 training job (README_26.md), Qwen3.5-4B on K&K (DAIS-style arm): = train5_4b.sub with the code
+# One training job, Qwen3.5-4B on K&K (DAIS-style arm): = train5_4b.sub with the code
 # tarball cotd_code_data_26_4b.tgz, the executable run_train16.sh and the log logs/train26_4b.log.
 include : chtc_settings.inc
 universe = vanilla

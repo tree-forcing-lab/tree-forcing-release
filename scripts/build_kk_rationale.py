@@ -1,34 +1,34 @@
 #!/usr/bin/env python3
-"""Rationale-LM baseline data for K&K (CHTC batch 23; arm A7, Distilling Step-by-Step style, and the no-node control
+"""Rationale-LM baseline data for K&K (arm A7, Distilling Step-by-Step style, and the no-node control
 "rn"): data/student_kk_tf with the `rationale` field filled from the item's OWN verified solver tree, every other byte of
 every row unchanged. The rationale carries exactly the information of the tree nodes, as text to be generated, so A7 /
 rn against the tree arm (GFPS) differ only in the form of the supervision (written proof vs. node questions).
 
-Rendering rule (fixed before any batch-23 result):
-  - nodes in topological order over `depends_on` (parents first; ties keep the node list order);
-  - every node once, in its TRUE form: the node `question` when `truth` is true, else its `opposite` (no negatives,
-    no question / answer pairs);
-  - each true question turned into a declarative sentence by a fixed set of patterns (below); a node that matches no
-    pattern stops the build (no silent fallback);
-  - sentences joined by newlines. build_examples appends "\\n\\nAnswer: <letter>" itself.
-  Patterns (q = the true question):
-    Is N a knight|knave[ exactly when "S" is true]?          -> N is a knight|knave[ exactly when "S" is true].
-    Is the statement by N, "S", true|false?                   -> The statement by N, "S", is true|false.
-    Does N's role require the statement "S" to be true|false? -> N's role requires the statement "S" to be true|false.
-    If C, would BODY?                                          -> If C, BODY'.   with BODY' one of
-        N be a knight|knave                                   -> N would be a knight|knave
-        the statement by N, "S", be true|false                -> the statement by N, "S", would be true|false
-        N's role require the statement "S" to be true|false   -> N's role would require the statement "S" to be ...
-        N's statement contradict the rule that ...            -> N's statement would contradict the rule that ...
+Rendering rule (fixed before any result):
+ - nodes in topological order over `depends_on` (parents first; ties keep the node list order);
+ - every node once, in its TRUE form: the node `question` when `truth` is true, else its `opposite` (no negatives,
+ no question / answer pairs);
+ - each true question turned into a declarative sentence by a fixed set of patterns (below); a node that matches no
+ pattern stops the build (no silent fallback);
+ - sentences joined by newlines. build_examples appends "\\n\\nAnswer: <letter>" itself.
+ Patterns (q = the true question):
+ Is N a knight|knave[ exactly when "S" is true]? -> N is a knight|knave[ exactly when "S" is true].
+ Is the statement by N, "S", true|false? -> The statement by N, "S", is true|false.
+ Does N's role require the statement "S" to be true|false? -> N's role requires the statement "S" to be true|false.
+ If C, would BODY? -> If C, BODY'. with BODY' one of
+ N be a knight|knave -> N would be a knight|knave
+ the statement by N, "S", be true|false -> the statement by N, "S", would be true|false
+ N's role require the statement "S" to be true|false -> N's role would require the statement "S" to be...
+ N's statement contradict the rule that... -> N's statement would contradict the rule that...
 Outputs:
-  data/student_kk_tf_rat/{train,val}.jsonl          rationale filled (A7 and the tree arms read the same rows)
-  data/student_kk_tf_rat_nonodes/{train,val}.jsonl  the same rows with subqs = [] (arm rn: tree path, no nodes)
-  data/student_kk_tf_rat/summary.json               counts, pattern counts, md5s, length stats
+ data/student_kk_tf_rat/{train,val}.jsonl rationale filled (A7 and the tree arms read the same rows)
+ data/student_kk_tf_rat_nonodes/{train,val}.jsonl the same rows with subqs = [] (arm rn: tree path, no nodes)
+ data/student_kk_tf_rat/summary.json counts, pattern counts, md5s, length stats
 Rows are written as json.dumps(row) of the parsed base row with only the changed field replaced; the base rows are
 checked to re-serialise to the base file byte for byte first, so every unchanged field is byte-identical.
 
-  python3 scripts/build_kk_rationale.py
-  CUDA_VISIBLE_DEVICES= ~/.venvs/sev/bin/python scripts/build_kk_rationale.py --token-stats <tokenizer dir>
+ python3 scripts/build_kk_rationale.py
+ CUDA_VISIBLE_DEVICES= ~/.venvs/sev/bin/python scripts/build_kk_rationale.py --token-stats <tokenizer dir>
 The second step reads the built files only and measures each LM example as cotdistill.student.lm_loss does
 (prompt view tail-encoded to lm_max_len // 2, plus the continuation), reporting how many would be cut at 3072 / 4096 /
 5120 tokens.

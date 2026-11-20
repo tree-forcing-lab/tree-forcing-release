@@ -1,15 +1,15 @@
 """Locked diagnostic set for Knights & Knaves (collaborator review, E1): each underlying program (statements and the
 unique solution) is rendered three semantics-preserving ways plus one solver-validated counterfactual.
 
-  R0  training template ("knight"/"knave", "X says: ...")
-  R1  R0 with renamed inhabitants, shuffled statement order and shuffled options
-  R2  held-out renderer never used in training ("truth-teller"/"liar", "X claims ...", "A only if B", "A exactly when B")
-  C   one inhabitant's statement replaced so that the puzzle still has a unique solution, but a different one (R0 template)
+ R0 training template ("knight"/"knave", "X says:...")
+ R1 R0 with renamed inhabitants, shuffled statement order and shuffled options
+ R2 held-out renderer never used in training ("truth-teller"/"liar", "X claims...", "A only if B", "A exactly when B")
+ C one inhabitant's statement replaced so that the puzzle still has a unique solution, but a different one (R0 template)
 
 Programs come from seeds 50000+ (disjoint from training 100+n, kk_heldout 9000+n, kk_deep 30000+n). Each record keeps
 the program id, the renderer and every inhabitant's true role (meta) for paired and conditional analyses.
 
-  python3 scripts/build_diag.py        # -> data/eval/diag_kk.jsonl
+ python3 scripts/build_diag.py # -> data/eval/diag_kk.jsonl
 """
 from __future__ import annotations
 

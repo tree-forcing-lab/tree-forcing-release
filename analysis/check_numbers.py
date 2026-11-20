@@ -1,7 +1,7 @@
 """Check the reproduced numbers against those printed in the paper (analysis/expected_numbers.json).
 Each entry names the reproduced output file and either a table row (comparison, test set; the first matching row of
 the file, whose bold mean is read) or a regex with one group. Tolerance 0.01 points unless the entry gives "tol".
-Exit status 1 if any number differs or is missing.   python3 analysis/check_numbers.py reproduced/"""
+Exit status 1 if any number differs or is missing. python3 analysis/check_numbers.py reproduced/"""
 import json
 import re
 import sys

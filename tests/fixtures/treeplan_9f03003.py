@@ -53,7 +53,7 @@ def node_depths(nodes: list[dict]) -> dict[str, int]:
 # its options under the letters MC_SYMBOLS[:k], read out at "Answer:" over those letters, one-hot target on the answer
 # (label smoothing, if any, comes from the loss as for the final question). The trigger is the "options" key; no node
 # of the existing data carries one, so every default path is unchanged. MC nodes are read by the full-tree arms in the
-# problem / statements / statements+question views (GF, GFP-S, GFPSP, ...) and by evaluate_subq; they never state a
+# problem / statements / statements+question views (GF, GFP-S, GFPSP,...) and by evaluate_subq; they never state a
 # result (_fact_line is None for them) and the local Tree Forcing views refuse them.
 MC_SYMBOLS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"   # fa_public.SYMBOLS (Intern-Decision's)
 
@@ -126,7 +126,7 @@ def full_tree_plan(item: dict, *, cap: int, rng: random.Random, subq_target: str
     42% of matched results were ancestors), replace each parent only by a node of the same answer-component class
     (no such node: the view is not eligible), the nearest in depth (node_depth, on the graph before filtering), then
     with the same stated answer, ties at random (F4), and never list a node as its own parent (F12). Older data keeps
-    the original plan, so registered arms reproduce. subq_filter (subq_keep) restricts the asked nodes only; parents
+    the original plan, so earlier arms reproduce. subq_filter (subq_keep) restricts the asked nodes only; parents
     and the matched pool still come from every node of the item. node_types (None = every node; --tree-node-types)
     likewise keeps only the asked nodes whose "type" is listed (a node without one is dropped), before the cap; depths,
     parents and the matched pool are untouched (a dropped parent is simply not asked). With node_types, stats counts
@@ -265,9 +265,9 @@ def statement_block(item: dict) -> str:
     - numgen (data/student_numgen*): the prompt's first line without the "Question: " label and without the answer
       quantity's question sentence (program.quantities[answer].question, the last sentence), i.e. the frame intro, the
       operation sentences and the noise sentences in prompt order. The options follow on later lines and are dropped.
-    - fa_tier0 (data/student_fa0, failure attribution): the log (header, task, optional reference answer, the steps)
+    - fa_tier0 (data/student_fa0, a step-log source not used in the paper): the log (header, task, optional reference answer, the steps)
       before "\n\nQuestion: ", i.e. without the attribution question and its step / agent options.
-    - fa_public (data/student_fa1, public failure-attribution logs): the log before the step or agent question (exact
+    - fa_public (data/student_fa1, a step-log source not used in the paper): the log before the step or agent question (exact
       text, the last occurrence) and its options; the log may contain "Question:" (tasks of MC benchmarks) but never a
       line opening with "Options:" (fa_public.sanitize).
     - the sources of FINAL_QUESTION: the prompt before its last paragraph, which must be that source's final question

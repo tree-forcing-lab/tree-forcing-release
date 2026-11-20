@@ -5,7 +5,7 @@ Training covers 4-10 inhabitants and kk_heldout 4-12 (50 per size). This set has
 never used in training; group "kkx/..." so they are reported apart). Seeds 30000+n are disjoint from training
 (100+n) and kk_heldout (9000+n).
 
-  python3 scripts/build_kk_deep.py        # -> data/eval/kk_deep.jsonl
+ python3 scripts/build_kk_deep.py # -> data/eval/kk_deep.jsonl
 """
 from __future__ import annotations
 

@@ -4,28 +4,28 @@
 Arm A7 (hpc/train_arm.sbatch: F=teacher, S=none, T=cot, --rationale-lm --lm-max-len 3072) trains each problem's final
 question exactly as A2 does and adds one token-level LM example per row (cotdistill.student.build_examples): the text
 RATIONALE_PREFIX = "{prompt}\\n\\nReasoning:" followed by the scored continuation
-" {rationale.strip()}\\n\\nAnswer: {argmax teacher letter}". The LM example is only built when `rationale` is non-empty,
+" {rationale.strip}\\n\\nAnswer: {argmax teacher letter}". The LM example is only built when `rationale` is non-empty,
 and in data/student_gsm8k_tf it is "" for every row, so A7 on that directory is A2. This script fills it.
 
 Source and matching: item_id "gsm8k-train-<i>" is row i of the GSM8K train split (data/raw/gsm8k/train.parquet, md5
 identical to data/raw/bench_math/gsm8k/main/train-00000-of-00001.parquet, which scripts/build_gsm8k_socratic.py
-enumerates to name the items). The row's question must equal the prompt's "Question: ..." text exactly (checked).
+enumerates to name the items). The row's question must equal the prompt's "Question:..." text exactly (checked).
 
 Rationale = the GSM8K solution with
-  - every calculator note <<expr=value>> removed ("5 - 2 = <<5-2=3>>3" -> "5 - 2 = 3"; GSM8K has no nested notes), and
-  - the closing "#### <answer>" line dropped, because build_examples appends "\\n\\nAnswer: <letter>" itself (a kept
-    "#### 6" would give the model two answer lines, the second one a letter). The value of the dropped line is checked
-    against the gold option text (equal for every row; 68 rows differ only by thousands commas, e.g. "4,000" vs
-    "4000"), so the rationale always ends at the step that computes the gold value.
+ - every calculator note <<expr=value>> removed ("5 - 2 = <<5-2=3>>3" -> "5 - 2 = 3"; GSM8K has no nested notes), and
+ - the closing "#### <answer>" line dropped, because build_examples appends "\\n\\nAnswer: <letter>" itself (a kept
+ "#### 6" would give the model two answer lines, the second one a letter). The value of the dropped line is checked
+ against the gold option text (equal for every row; 68 rows differ only by thousands commas, e.g. "4,000" vs
+ "4000"), so the rationale always ends at the step that computes the gold value.
 Only rows with row_kind "final" get a rationale (all rows of student_gsm8k_tf are finals); every other field is
 byte-identical (checked: the base rows re-serialise to the base files byte for byte, and each output row equals its base
 row with only `rationale` replaced). val.jsonl is filled the same way (its items are GSM8K train problems held out
 from training; the evaluation never reads `rationale`).
 
 Two steps, two environments (pandas lives in the system python, transformers in the training venv):
-  python3 scripts/build_gsm8k_rationale.py                       # build data/student_gsm8k_tf_rat/{train,val}.jsonl
-  CUDA_VISIBLE_DEVICES= ~/.venvs/sev/bin/python scripts/build_gsm8k_rationale.py --token-stats \\
-      results/weights/T1-Qwen3.5-2B-Base-student_v3-s2/model       # add LM token lengths to summary.json
+ python3 scripts/build_gsm8k_rationale.py # build data/student_gsm8k_tf_rat/{train,val}.jsonl
+ CUDA_VISIBLE_DEVICES= ~/.venvs/sev/bin/python scripts/build_gsm8k_rationale.py --token-stats \\
+ results/weights/T1-Qwen3.5-2B-Base-student_v3-s2/model # add LM token lengths to summary.json
 The second step reads the built files only (md5s unchanged) and measures each A7 LM example the way
 cotdistill.student.lm_loss does: len(encode_tail(prompt view, lm_max_len // 2)) + len(continuation tokens), against
 --lm-max-len (default 3072), and counts the continuations lm_loss would cut (start + last 64 tokens).

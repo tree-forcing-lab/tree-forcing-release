@@ -53,7 +53,7 @@ def node_depths(nodes: list[dict]) -> dict[str, int]:
 # its options under the letters MC_SYMBOLS[:k], read out at "Answer:" over those letters, one-hot target on the answer
 # (label smoothing, if any, comes from the loss as for the final question). The trigger is the "options" key; no node
 # of the existing data carries one, so every default path is unchanged. MC nodes are read by the full-tree arms in the
-# problem / statements / statements+question views (GF, GFP-S, GFPSP, ...) and by evaluate_subq; they never state a
+# problem / statements / statements+question views (GF, GFP-S, GFPSP,...) and by evaluate_subq; they never state a
 # result (_fact_line is None for them) and the local Tree Forcing views refuse them.
 MC_SYMBOLS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"   # fa_public.SYMBOLS (Intern-Decision's)
 
@@ -126,7 +126,7 @@ def full_tree_plan(item: dict, *, cap: int, rng: random.Random, subq_target: str
     42% of matched results were ancestors), replace each parent only by a node of the same answer-component class
     (no such node: the view is not eligible), the nearest in depth (node_depth, on the graph before filtering), then
     with the same stated answer, ties at random (F4), and never list a node as its own parent (F12). Older data keeps
-    the original plan, so registered arms reproduce. subq_filter (subq_keep) restricts the asked nodes only; parents
+    the original plan, so earlier arms reproduce. subq_filter (subq_keep) restricts the asked nodes only; parents
     and the matched pool still come from every node of the item. node_types (None = every node; --tree-node-types)
     likewise keeps only the asked nodes whose "type" is listed (a node without one is dropped), before the cap; depths,
     parents and the matched pool are untouched (a dropped parent is simply not asked). With node_types, stats counts
@@ -260,7 +260,7 @@ FINAL_QUESTION = {
     "zebra_tf": r"Question: (?:Which option gives the correct arrangement|What is the (?:name|house color|pet|drink|"
                 r"sport|job|instrument|favorite fruit) of the person who lives in the (?:first|second|third|fourth|"
                 r"fifth|sixth) house)\?",
-    # FOLIO with prover-verified atom nodes (main's scripts/build_folio_tf.py, CHTC batch 27): the judged conclusion is
+    # FOLIO with prover-verified atom nodes (scripts/build_folio_tf.py): the judged conclusion is
     # part of the final question paragraph, so the statement block is the preamble and the "- <premise>" lines only
     "folio_tf": r"Question: Based on the statements, is the following conclusion true, false, or uncertain\? "
                 r"Conclusion: [^\n]+",
@@ -274,9 +274,9 @@ def statement_block(item: dict) -> str:
     - numgen (data/student_numgen*): the prompt's first line without the "Question: " label and without the answer
       quantity's question sentence (program.quantities[answer].question, the last sentence), i.e. the frame intro, the
       operation sentences and the noise sentences in prompt order. The options follow on later lines and are dropped.
-    - fa_tier0 (data/student_fa0, failure attribution): the log (header, task, optional reference answer, the steps)
+    - fa_tier0 (data/student_fa0, a step-log source not used in the paper): the log (header, task, optional reference answer, the steps)
       before "\n\nQuestion: ", i.e. without the attribution question and its step / agent options.
-    - fa_public (data/student_fa1, public failure-attribution logs): the log before the step or agent question (exact
+    - fa_public (data/student_fa1, a step-log source not used in the paper): the log before the step or agent question (exact
       text, the last occurrence) and its options; the log may contain "Question:" (tasks of MC benchmarks) but never a
       line opening with "Options:" (fa_public.sanitize).
     - strategyqa_tf (data/student_strategyqa_tf, StrategyQA with decomposition step nodes): none, the problem is its
@@ -368,7 +368,7 @@ def statement_block(item: dict) -> str:
                      "with --tree-sources)")
 
 
-# Lean F1 pilot (scripts/build_lean_tf.py): "<preamble>\n\n<premises, one per line>\n\n<question>\nOptions:\n<A-E>";
+# Lean F1 preliminary (scripts/build_lean_tf.py): "<preamble>\n\n<premises, one per line>\n\n<question>\nOptions:\n<A-E>";
 # the question names the asked variable and divisor (leangen.QUESTION / leangen.FINAL_RE, checked equal in the tests).
 LEAN_F1 = "lean_f1"
 LEAN_F1_QUESTION = r"Question: What is the remainder when [a-z] is divided by [1-9][0-9]*\?"
@@ -438,7 +438,7 @@ def gsm8k_question_cut(problem: str) -> tuple[str, str] | None:
     return body, ask
 
 
-# QASC with Tree Forcing nodes (scripts/build_qasc_tf.py): "Question: <question>\nOptions:\nA) ...\n...\nH) ...", the
+# QASC with Tree Forcing nodes (scripts/build_qasc_tf.py): "Question: <question>\nOptions:\nA)...\n...\nH)...", the
 # question one line and the whole problem (QASC's two facts are asked as nodes, never shown), so GFPQ
 # (problem_no_options) is the question line and GFP-S (statement_block) has nothing to show, as for arc.
 QASC_TF = "qasc_tf"
@@ -456,7 +456,7 @@ def _qasc_tf_question(item: dict) -> str:
 
 
 # EntailmentBank with Tree Forcing nodes (scripts/build_entailmentbank_tf.py): "Question: <ARC question>\nOptions:
-# \nA) ..\nD) ..", the question one line. As arc_challenge / arc_easy the question is the whole problem (the tree's
+# \nA)..\nD)..", the question one line. As arc_challenge / arc_easy the question is the whole problem (the tree's
 # leaf facts are never shown): no statement block (GFP-S raises), GFPQ (problem_no_options: the "Question: <question>"
 # line) for every item, and the placebo text (student.placebo_text) is the question. entailmentbank_tf.
 ENTAILMENTBANK_TF = "entailmentbank_tf"
@@ -473,8 +473,8 @@ def _entailmentbank_tf_problem(item: dict) -> str:
     return body
 
 
-# MuSiQue with Tree Forcing nodes (scripts/build_musique_tf.py): "<paragraphs>\n\nQuestion: <question>\nOptions:\nA) ..
-# \nE) ..", one paragraph per block ("Title: <title>" line + text line, blocks separated by a blank line), the question
+# MuSiQue with Tree Forcing nodes (scripts/build_musique_tf.py): "<paragraphs>\n\nQuestion: <question>\nOptions:\nA)..
+# \nE)..", one paragraph per block ("Title: <title>" line + text line, blocks separated by a blank line), the question
 # one line. The paragraphs are the statements: statement_block (GFP-S) is the text before the question line, and
 # problem_no_options (GFPQ) is the text before "\nOptions:" through the generic path; placebo_text is the paragraphs.
 MUSIQUE_TF = "musique_tf"

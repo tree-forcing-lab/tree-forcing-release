@@ -16,7 +16,7 @@ Paper: arXiv link to be added. Run outputs (predictions and metrics of every cit
 | `scripts/` | `train_student.py` (training and evaluation), `eval_student.py`, every data builder the paper uses, `paired_stats.py`, `unpack_data.py` |
 | `teacher_cache/solver_kk_v3f/` | The deterministic Knights-and-Knaves solver whose proofs are the reasoning trees |
 | `hpc/` | `train_arm.sbatch` (one job = one training run; maps an arm name to trainer flags) and `single_gpu.patch` (applied to every 4B job, see below) |
-| `configs/env/` | The job env file of each cited run (243 of the 259; the other 16 were submitted from the second author's job sets and are described by `configs/run_args/`) |
+| `configs/env/` | The job env file of each cited run (243 of the 259; the other 16 were submitted from separate job sets and are described by `configs/run_args/`) |
 | `configs/run_args/` | The exact trainer arguments of every cited run (259 files, from each run's `metrics.json`) |
 | `configs/chtc/` | HTCondor submit and DAG templates, the job wrapper and the container definitions |
 | `data/` | The paper's training and evaluation sets that may be redistributed, gzip-compressed, with `MANIFEST.json` (md5 of each uncompressed file, line count, license) |
@@ -77,6 +77,42 @@ bash hpc/train_arm.sbatch                         # writes runs/<run name>/ (met
 `configs/run_args/<run name>.json`. On an HTCondor cluster, `configs/chtc/train28_4b.sub` (4B, one GPU) and
 `configs/chtc/train25_9b.sub` (9B, two GPUs) are the submit templates and `configs/chtc/make_dags_28.sh` builds the
 DAG from a job list. A 4B Tree Forcing run on Knights-and-Knaves takes about 12 GPU hours on an NVIDIA L40S.
+
+## Run names
+
+Run folders, env files and argument files share one name: `<method>-<tag>-<model>-<data>-s<seed>`, for example
+`GFPS-c6lr3chv-Qwen3.5-4B-student_kk_tf-s16`. The k-hop runs of Section 5 have one more field after the method
+(`A2-khopd27-c1lr3ch-…`), which names the chain file and schedule (`mechanism/B_khop/`); in a few of them the model
+field reads `model` (Qwen3.5-4B).
+
+| Method code | Arm in the paper |
+|---|---|
+| `A2` | answer-only training |
+| `GFPS` | Tree Forcing (Knights-and-Knaves, logic grid puzzles, FOLIO) |
+| `GFPSR` | permuted nodes (node answers permuted within each problem) |
+| `GFPQ` | Tree Forcing on GSM8K |
+| `GFPQR` / `GFPQX` | GSM8K permuted nodes / surface placebo |
+| `A7` | proof (rationale) generation |
+| `GFPS-…rn`, `GFPQ-…rl` | proof generation with tree batching (K&K / GSM8K) |
+| `GFPS-…ds` | DAIS-style control |
+| `GFPS-…n3`, `…n8` | three / eight nodes per puzzle |
+| `GFPS-…vf` | verification control |
+| `GFPS-…rd` | read nodes only (only the nodes that read a statement) |
+| `GFPS-…kl`, `…fo`, `…zt` | KL penalty; FOLIO; logic grid puzzles |
+| `base-<model>` | the untrained model |
+
+Tag: `c<epochs>lr<learning rate in units of 1e-6, p = decimal point>` (`c6lr3` = 6 epochs at 3e-6, `lr1p5` = 1.5e-6,
+`lr075` = 7.5e-7), then letters. `ch`, `chv` and `cht` share the training recipe: `v` adds held-out evaluation sets,
+`t` marks a re-run of the same configuration and seeds. The letters after those (`rn`, `ds`, `n3`, …) name the arm as
+in the table.
+
+| Data directory | Task in the paper |
+|---|---|
+| `student_kk_tf` (`_n3`, `_n8`, `_vrf`, `_rat`, `_rat_nonodes`) | Knights-and-Knaves (node subsets, verification control, written proofs) |
+| `student_gsm8k_tf_vt` (`_rat`) | GSM8K (with written rationales) |
+| `student_zebra_cell_tf` | logic grid puzzles |
+| `student_folio_tf` | FOLIO |
+| `student_khop3_*`, `student_khop4_*` | k-hop chain files of Section 5 |
 
 ## Reproducing the paper's numbers
 

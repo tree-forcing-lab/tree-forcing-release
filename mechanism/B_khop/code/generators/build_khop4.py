@@ -1,12 +1,12 @@
-"""Training directories of CARD_khop_v4 (family khop4, parent khop3): byte copies of the khop3 stage-1 directories under
+"""Training directories of the k-hop design (family khop4, parent khop3): byte copies of the khop3 stage-1 directories under
 the khop4 names, so that jobs/build_bundles.sh (it copies data/student_${v#x1}_*) puts them in the x1khop4 bundle, and
-data/eval/khop4/build_report.json. No row is drawn, edited or reordered (card 1.2).
+data/eval/khop4/build_report.json. No row is drawn, edited or reordered (the design 1.2).
 
     python3 scripts/build_khop4.py --khop3-root <E>/src/data --out-root <E>/src/data --report <E>/src/data/eval/khop4
 
 Inputs (all under --khop3-root, the data root of the khop3 build):
 - student_khop3_c27/{train,val}.jsonl and student_khop3_k1x/{train,val}.jsonl: md5s must equal
-  eval/khop3/build_report.json "md5" and the card values (c27 train 92545dd4..., k1x train d7cc9716..., both val
+  eval/khop3/build_report.json "md5" and the design values (c27 train 92545dd4..., k1x train d7cc9716..., both val
   9f55fec5...), row counts 27,000 / 393;
 - eval/khop/train_kh.jsonl (a16b1520...) and eval/khop/train_k1.jsonl (4bb15f66...), 3,000 rows each, equal to
   eval/khop/build_report.json "md5".
@@ -17,7 +17,7 @@ Outputs: <out-root>/student_khop4_c27/{train,val}.jsonl, <out-root>/student_khop
 <report>/build_report.json: card, generator, md5 and row counts of the 4 outputs and the 6 inputs, the two replay
 equalities (train_kh = rows 0..2,999 of the c27 train file byte for byte; train_k1 = rows 0..2,999 of the k1x train file
 byte for byte), the output file sets, inputs unchanged (md5 before = after), d_fail (every failed line) and d_pass.
-main() exits 2 on a failed line.
+main exits 2 on a failed line.
 """
 from __future__ import annotations
 
@@ -92,10 +92,10 @@ def check_inputs(root: Path) -> dict:
         h = md5(p)
         rep_md5 = m3.get(rel) if rel.startswith("student_") else mk.get(rel.split("/")[-1])
         if h != want or rep_md5 != want:
-            raise SystemExit(f"build_khop4: {p} md5 {h} (report {rep_md5}), card {want}")
+            raise SystemExit(f"build_khop4: {p} md5 {h} (report {rep_md5}), expected {want}")
         n = rows(p)
         if n != CARD_ROWS[rel]:
-            raise SystemExit(f"build_khop4: {p} has {n} rows, card {CARD_ROWS[rel]}")
+            raise SystemExit(f"build_khop4: {p} has {n} rows, expected {CARD_ROWS[rel]}")
         got[rel] = h
     return got
 
@@ -136,7 +136,7 @@ def build(root: Path, out_root: Path, report: Path) -> dict:
             out_md5[rel], out_rows[rel] = md5(od / f), rows(od / f)
             if out_md5[rel] != before[f"{SRC[k]}/{f}"]:
                 fail.append(f"{rel} is not a byte copy of {SRC[k]}/{f}")
-    # the replay rows are inside the khop4 train files too (D2 of card 2.5)
+    # the replay rows are inside the khop4 train files too (D2 of the design 2.5)
     for name, (rp, src) in REPLAY.items():
         dst = out_root / DST["c27" if "c27" in src else "k1x"] / "train.jsonl"
         ok = (root / rp).read_bytes() == head_bytes(dst, N_REPLAY)

@@ -1,4 +1,4 @@
-"""Zebra cell questions as a Tree Forcing source (treeplan.FINAL_QUESTION["zebra_tf"], CHTC batch 24): the statement
+"""Zebra cell questions as a Tree Forcing source (treeplan.FINAL_QUESTION["zebra_tf"]): the statement
 cut accepts the one-cell question of zebra.make_cell_item (main's scripts/build_zebra_cell_tf.py) and still the
 full-arrangement question; the GFPS views of a cell item are the puzzle (without the question and its options) plus
 one intermediate question per tree node; other sources are cut as before. CPU only, standard library + the package."""

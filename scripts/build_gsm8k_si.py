@@ -4,7 +4,7 @@ train_student.py --si-stages): the complete chain of atomic operations of each p
 ICoT-SI).
 
 Rows: every row of data/student_gsm8k_tf_ops/{train,val}.jsonl (scripts/build_gsm8k_ops.py), byte for byte the same
-fields (finals, options, gold, the yes/no tree in `subqs`, `value_nodes`, ...), plus ONE new last field `worked_steps`
+fields (finals, options, gold, the yes/no tree in `subqs`, `value_nodes`,...), plus ONE new last field `worked_steps`
 (a list, or null when the chain cannot be written exactly). Subsets data/student_gsm8k_tf_si_f{10,25,50}: the train ids
 of data/student_gsm8k_tf_ops_f{10,25,50} in the same order, the full val (as there).
 
@@ -28,16 +28,16 @@ the operand is: an earlier operation of the same note, or the last operation of 
 certain edges, else the latest earlier line with the operand's value when the problem text does not write that
 number; else null), wrong, wrong_tier, wrong_text, wrong_result_text}.
 The wrong value (SIS, the wrong-content control) is never the line's true value:
-  - an operation with a value node: one of the two wrong options of its "op" rendering (the value node's distractors:
-    operator slips, other operations' values, perturbations, all within 10x of the truth, never the gold), drawn by
-    random.Random("<seed>/<problem_id>/<line id>/sis") (wrong_tier "node");
-  - otherwise (the final operation, trivial operations, blocked steps, ...): the first tier with a candidate among
-    build_gsm8k_ops' tiers (operator: same operands with another operator or the complement of a fractional factor;
-    other: another line's value; perturb: build_gsm8k_ops.near_values), each candidate passing build_gsm8k_ops.value_ok
-    (positive, an integer if the truth is, at most max(2, decimals of the truth) decimals, within 10x, not the gold),
-    drawn by the same generator; a non-positive truth moves by 1 or 2.
-  - an operation whose true value is the gold (the final operation, and any gold-valued one) never gets a wrong value
-    equal to one of the final question's options, so the wrong chain never points at a specific wrong letter.
+ - an operation with a value node: one of the two wrong options of its "op" rendering (the value node's distractors:
+ operator slips, other operations' values, perturbations, all within 10x of the truth, never the gold), drawn by
+ random.Random("<seed>/<problem_id>/<line id>/sis") (wrong_tier "node");
+ - otherwise (the final operation, trivial operations, blocked steps,...): the first tier with a candidate among
+ build_gsm8k_ops' tiers (operator: same operands with another operator or the complement of a fractional factor;
+ other: another line's value; perturb: build_gsm8k_ops.near_values), each candidate passing build_gsm8k_ops.value_ok
+ (positive, an integer if the truth is, at most max(2, decimals of the truth) decimals, within 10x, not the gold),
+ drawn by the same generator; a non-positive truth moves by 1 or 2.
+ - an operation whose true value is the gold (the final operation, and any gold-valued one) never gets a wrong value
+ equal to one of the final question's options, so the wrong chain never points at a specific wrong letter.
 wrong_text writes every computed value of the chain wrongly: the line's result is its wrong value and an operand that
 is an earlier line's result (a_from / b_from) is that line's wrong value (the chain keeps its form: each line reads the
 results written above it; no true intermediate result is left as an operand: audit sis_operand_leaks, 0 by
@@ -48,7 +48,7 @@ value is the gold; each value node of the row is the line with its id (same oper
 differ from the true ones and the gold-valued lines' wrong values are no option; the rows' other fields equal
 data/student_gsm8k_tf_ops'. chain_audit.txt shows gsm8k-train-660 and four more problems (written, wrong).
 
-  python3 scripts/build_gsm8k_si.py      # pandas + numpy (system python3); writes data/student_gsm8k_tf_si*/
+ python3 scripts/build_gsm8k_si.py # pandas + numpy (system python3); writes data/student_gsm8k_tf_si*/
 """
 from __future__ import annotations
 

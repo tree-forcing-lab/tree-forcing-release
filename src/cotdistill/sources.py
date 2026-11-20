@@ -1,12 +1,12 @@
 """Hard training sources turned into typed decision records (same schema as policygen).
 
 - knights_knaves: generated Knights & Knaves puzzles (knights always tell the truth, knaves always
-  lie) with a unique solution; Choice over full role assignments (the solution plus near-miss
-  distractors). Per-person roles are program-verifiable predicates.
+ lie) with a unique solution; Choice over full role assignments (the solution plus near-miss
+ distractors). Per-person roles are program-verifiable predicates.
 - justlogic: JustLogic (MIT) items as True / False / Uncertain choices, with their depth.
 - sharc: ShARC (CC BY-SA 3.0) rule-application utterances (real government policy text, a user scenario and
-  earlier follow-ups) as Yes / No / Irrelevant / More-information choices. Its evidence follow-ups (human
-  question-answer pairs about the conditions) are kept as predicates.
+ earlier follow-ups) as Yes / No / Irrelevant / More-information choices. Its evidence follow-ups (human
+ question-answer pairs about the conditions) are kept as predicates.
 - folio: FOLIO v2 (CC BY-SA 4.0 via tasksource) first-order-logic stories as True / False / Uncertain choices.
 - arc: AI2 ARC (CC BY-SA 4.0) grade-school science multiple choice, Challenge first, options reshuffled.
 """

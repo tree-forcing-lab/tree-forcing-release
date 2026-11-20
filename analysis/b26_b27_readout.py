@@ -1,7 +1,7 @@
-"""Readouts of batch 26 (README_26 §2: K&K DAIS-style arm vs the Tree / A2 control pool) and batch 27 (README_27 §4:
-FOLIO, report-only), both registered before any of their results. Selection: per arm, best seed-mean val epoch, ties
-to fewer. Statistic: ledger.py (per-seed items for K&K mid-epoch rows, as the registered b21 / b23 readouts;
-paired_stats common items otherwise).  python3 analysis/b26_b27_readout.py"""
+"""Readouts of the DAIS-style arm on K&K (against the Tree Forcing / answer-only control pool) and of FOLIO
+(report-only). Selection: per arm, best seed-mean val epoch, ties
+to fewer. Statistic: ledger.py (per-seed items for K&K mid-epoch rows, as the b21 / b23 readouts;
+paired_stats common items otherwise). python3 analysis/b26_b27_readout.py"""
 import collections, json, sys
 from pathlib import Path
 import numpy as np
@@ -10,10 +10,10 @@ import ledger as L
 M = "Qwen3.5-4B"
 L.ARMS["DAIS-style"] = L.kk("GFPS", "c6lr3chds", range(13, 19))
 L.ARMS["DAIS-style s16-18"] = L.kk("GFPS", "c6lr3chds", (16, 17, 18))
-print("# Batch 26: DAIS-style (GFPS + --tree-scaffold 1e9)")
+print("# DAIS-style (GFPS + --tree-scaffold 1e9)")
 for a in ("Tree", "DAIS-style", "A2"):
     e, _ = L.pick(L.ARMS[a]); print(f"  {a}: selected epoch {e}")
-print("\n## PRIMARY (registered): Tree − DAIS-style, kkdeep, 6 seeds; gate mean >= +1.5, >= 5/6 > 0, 2L lower > 0\n" + L.HEAD)
+print("\n## Tree − DAIS-style, kkdeep, 6 seeds\n" + L.HEAD)
 L.compare("Tree", "DAIS-style", ["kkdeep"], L.ARMS)
 print("\n## robustness (report)\n" + L.HEAD)
 L.compare("Tree", "DAIS-style", ["kkdeep"], L.ARMS, items="common")
@@ -32,7 +32,7 @@ e, E = L.pick(L.ARMS["DAIS-style"])
 print(f"\nDAIS-style ECE kkdeep (selected) {np.mean([L.ece(n, 'kkdeep', e, E[s]) for s, n in L.ARMS['DAIS-style'].items()]):.1f}; "
       f"bbh (end) {np.mean([L.ece(n, 'bbh') for n in L.ARMS['DAIS-style'].values()]):.1f}")
 
-print("\n\n# Batch 27: FOLIO (report-only)")
+print("\n\n# FOLIO (report-only)")
 F = {"FOLIO Tree": {s: f"GFPS-c6lr3chfo-{M}-student_folio_tf-s{s}" for s in range(13, 19)},
      "FOLIO A2": {s: f"A2-c12lr3chfo-{M}-student_folio_tf-s{s}" for s in range(13, 19)}}
 for a in F:

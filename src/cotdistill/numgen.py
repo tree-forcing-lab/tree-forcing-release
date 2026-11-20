@@ -7,15 +7,15 @@ A problem is a chain of k operations (k = depth). It starts from a stated count 
 muffins.") and each operation creates one new named quantity from the latest one (so every operation is needed) and,
 for fan-in operations, one earlier quantity or a freshly stated count. Kinds and operations:
 
-  count    add / sub (n more / fewer), mul / div (k times / half, a third, a quarter as many), pct (p% as many),
-           sum2 (as many as two earlier batches combined: fan-in), dozen (a stated "n dozen" batch: unit conversion,
-           first step only); conversions to money (sell / paid / buy at $p each), to containers (pack r to a
-           container) and to minutes (t minutes each); sell2 (two batches sold at their own prices, then put
-           together: fan-in); total (final question only: two batches altogether, fan-in)
-  money    earn frames: spend, bonus, share (split equally among k), spend_each (after share), save (p% into
-           savings), rel (a relative makes k times as much); buy frames: coupon, fee, split, discount (p% off), rel
-  box      sell_box (each container sells / costs $p), give (n containers given away)
-  minutes  setup (n more minutes), reltime (a relative takes k times as long), hours (final question only, / 60)
+ count add / sub (n more / fewer), mul / div (k times / half, a third, a quarter as many), pct (p% as many),
+ sum2 (as many as two earlier batches combined: fan-in), dozen (a stated "n dozen" batch: unit conversion,
+ first step only); conversions to money (sell / paid / buy at $p each), to containers (pack r to a
+ container) and to minutes (t minutes each); sell2 (two batches sold at their own prices, then put
+ together: fan-in); total (final question only: two batches altogether, fan-in)
+ money earn frames: spend, bonus, share (split equally among k), spend_each (after share), save (p% into
+ savings), rel (a relative makes k times as much); buy frames: coupon, fee, split, discount (p% off), rel
+ box sell_box (each container sells / costs $p), give (n containers given away)
+ minutes setup (n more minutes), reltime (a relative takes k times as long), hours (final question only, / 60)
 
 Every value is a positive integer <= 10,000 (divisions exact), operands are 2-99 except prices and container sizes.
 Surface: 47 scenario frames (FRAMES; the 6 HELD_OUT are kept out of training for the OOD file), paraphrase variants per
@@ -23,19 +23,19 @@ sentence, premises shuffled in half the items (explicit references, no quantity 
 sentences in every item (frame facts, generic facts, or another person's batch of the same item).
 
 Options (5, letters shuffled), recipes:
-  qo2    QO-v2 as in plan §3.2: 2 partial results (one binary operation on two stated numbers, or the gold combined
-         with one stated number; uniform over candidates != gold, positive, <= 10x gold), then 2 perturbations
-         (+-d, x2, /2) of an anchor drawn uniformly from {gold, partial 1, partial 2}. A local implementation of the
-         recipe text, not the frozen copy build_math_evals.py registers.
-  inter  up to 2 program intermediates, sometimes 1 partial, the rest perturbations anchored uniformly on the options
-         so far (the gold included at the same rate)
-  slip   up to 2 planted-slip results (one operation swapped, a constant off by one, a step skipped, the wrong fan-in
-         input), the rest perturbations as in inter
-  mix    per item 40% qo2 / 30% inter / 30% slip (plan §3.2.4, the training mixture)
+ qo2 QO-v2 as in plan §3.2: 2 partial results (one binary operation on two stated numbers, or the gold combined
+ with one stated number; uniform over candidates != gold, positive, <= 10x gold), then 2 perturbations
+ (+-d, x2, /2) of an anchor drawn uniformly from {gold, partial 1, partial 2}. A local implementation of the
+ recipe text, not the frozen copy build_math_evals.py registers.
+ inter up to 2 program intermediates, sometimes 1 partial, the rest perturbations anchored uniformly on the options
+ so far (the gold included at the same rate)
+ slip up to 2 planted-slip results (one operation swapped, a constant off by one, a step skipped, the wrong fan-in
+ input), the rest perturbations as in inter
+ mix per item 40% qo2 / 30% inter / 30% slip (plan §3.2.4, the training mixture)
 
 Nodes (types follow gsm8k.md §1.3): subqs are yes/no questions on every intermediate except the final operation and
 any value equal to the gold: N1 "Is <name> equal to x?" (x the value or a slip/perturbation, 50/50), and one of N2
-"Is <name> more than X?" (X = value x r, r in .5/.67/1.5/2) or N3 "Is the last digit of <name> d?" (50/50).
+"Is <name> more than X?" (X = value x r, r in.5/.67/1.5/2) or N3 "Is the last digit of <name> d?" (50/50).
 depends_on links an intermediate's nodes to the N1 nodes of its intermediate parents. Standalone 5-option node rows
 (node_rows): N1 "<story> <question for the intermediate>" with mix-recipe options, and N4 "which of the numbers that
 come up answers the question".

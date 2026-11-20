@@ -1,4 +1,4 @@
-"""scripts/build_kk_subsample.py: fixed per-puzzle node subsets for the batch-28 node-density arms."""
+"""scripts/build_kk_subsample.py: fixed per-puzzle node subsets for the node-density arms."""
 import json
 import sys
 import unittest

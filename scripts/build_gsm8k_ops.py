@@ -1,11 +1,11 @@
 """GSM8K value nodes for Tree Forcing: one node per ATOMIC operation of GSM8K's own calculator notes, asked as a
-three-option value question ("What is 4 × 1.5?  A) 6  B) 5.5  C) 2.5"), with the Socratic sub-question and an
+three-option value question ("What is 4 × 1.5? A) 6 B) 5.5 C) 2.5"), with the Socratic sub-question and an
 operation-selection variant as alternative renderings (arms GFPQV / GFPQVQ / GFPQO / GFPVB / GFPQVM in
 hpc/train_arm.sbatch; student.build_full_tree --node-format value / yesno+value).
 
 Rows: every row of data/student_gsm8k_tf/{train,val}.jsonl (scripts/build_gsm8k_tf.py), byte for byte the same
-fields (finals, options, gold, the yes/no tree in `subqs`, has_tree, ...), plus ONE new field `value_nodes`: the
-value-node list. The yes/no tree stays in `subqs` so the yes/no arms (GFPQ, ...) train exactly as on
+fields (finals, options, gold, the yes/no tree in `subqs`, has_tree,...), plus ONE new field `value_nodes`: the
+value-node list. The yes/no tree stays in `subqs` so the yes/no arms (GFPQ,...) train exactly as on
 data/student_gsm8k_tf and GFPQVM can ask both formats in one problem group; the value arms read `value_nodes` only.
 Subsets data/student_gsm8k_tf_ops_f{10,25,50}: the same problem ids, in the same order, as
 data/student_gsm8k_tf_f{10,25,50}/train.jsonl; their val is the full val (as there).
@@ -24,25 +24,25 @@ two integer literals that multiplies something is one number, as written ("1/2*4
 note on its own stays a division ("<<1/2=.5>>" -> "What is 1 ÷ 2?").
 
 A node (`value_nodes` entry, id s<step>o<k>, k = 1-based index of the operation within its step's note):
-  step, op_index, n_ops, last_of_step, expr (the note), subq (the Socratic sub-question, ask_text), kind bin / pct,
-  a, op (+ − × ÷, or "% of"), b, value (exact strings; pct: a = P, b = X), depends_on (built nodes whose results are an
-  operand: an earlier operation of the same note, or the last operation of a parent step through
-  parse_problem's certain edges), node_depth (operation-level dependency depth over every operation of the problem,
-  built or not), gold_ancestor, gold_step, flags, percent (pct nodes: written_in sentence / problem, form compound
-  (P*.01, P/100, ...) / decimal (a literal equal to P/100)), and `renderings`:
-    op     "What is 4 × 1.5?" / "What is 50% of 4?"
-    qop    "<sub-question> It is 4 × 1.5. What is the value?" for the operation that yields the step's value;
-           "<sub-question> It is 4 × 1.5 + 3. What is 4 × 1.5?" for an earlier operation of a multi-operation note
-           (the note with the operations before it reduced to their values); never for the gold step's earlier
-           operations ("<final question> It is 4 + 6 + 8 + 2. What is 4 + 6?" would state the final answer's
-           computation: the final question in disguise)
-    opsel  operation selection (last operation of a step only): "<sub-question> Which computation gives it?" with three
-           expressions as options
-  each {question, options (3 strings), answer (index), wrong (the kind of each wrong option)}. op and qop share their
-  options and answer (one draw); opsel has its own. qop and opsel exist only where the sub-question is true as worded
-  for the step (not for a step whose sub-question text is shared with another step of a different value or equals the
-  problem's final question while its value is not the gold: build_gsm8k_tf drops such yes/no nodes) and, for opsel,
-  where enough wrong expressions exist.
+ step, op_index, n_ops, last_of_step, expr (the note), subq (the Socratic sub-question, ask_text), kind bin / pct,
+ a, op (+ − × ÷, or "% of"), b, value (exact strings; pct: a = P, b = X), depends_on (built nodes whose results are an
+ operand: an earlier operation of the same note, or the last operation of a parent step through
+ parse_problem's certain edges), node_depth (operation-level dependency depth over every operation of the problem,
+ built or not), gold_ancestor, gold_step, flags, percent (pct nodes: written_in sentence / problem, form compound
+ (P*.01, P/100,...) / decimal (a literal equal to P/100)), and `renderings`:
+ op "What is 4 × 1.5?" / "What is 50% of 4?"
+ qop "<sub-question> It is 4 × 1.5. What is the value?" for the operation that yields the step's value;
+ "<sub-question> It is 4 × 1.5 + 3. What is 4 × 1.5?" for an earlier operation of a multi-operation note
+ (the note with the operations before it reduced to their values); never for the gold step's earlier
+ operations ("<final question> It is 4 + 6 + 8 + 2. What is 4 + 6?" would state the final answer's
+ computation: the final question in disguise)
+ opsel operation selection (last operation of a step only): "<sub-question> Which computation gives it?" with three
+ expressions as options
+ each {question, options (3 strings), answer (index), wrong (the kind of each wrong option)}. op and qop share their
+ options and answer (one draw); opsel has its own. qop and opsel exist only where the sub-question is true as worded
+ for the step (not for a step whose sub-question text is shared with another step of a different value or equals the
+ problem's final question while its value is not the gold: build_gsm8k_tf drops such yes/no nodes) and, for opsel,
+ where enough wrong expressions exist.
 Value options (op, qop): the true value and two wrong values of the same kind (positive, an integer if the truth is
 one, at most max(2, decimals of the truth) decimals, within 10x of the truth, never the problem's final answer, never
 equal to the truth or to each other as printed), one per tier in this order of preference: (1) "operator": the same
@@ -59,21 +59,21 @@ operands with the other: "operator" (the same operands, two other operators) or 
 same operand position replaced by a number of the problem text or an earlier step's value, never the gold), the design
 drawn 50/50 where both exist; "mixed" (one of each) only where neither design exists.
 Not built (counted in summary.json build):
-  - every operation of a step build_gsm8k_tf blocks (a gold-valued step other than the gold step, steps downstream of
-    one, steps with an uncertain edge to one) and of the steps after the gold step; the gold step's operations when the
-    gold step reads a blocked step; the gold step's last operation (it yields the final answer: final_op); the gold
-    step's earlier operations are built (they are partial sums / products, not the answer);
-  - an operation whose value equals the gold (and the later operations of its note that use it);
-  - trivial operations (x × 1, 1 × x, x ÷ 1, x + 0, 0 + x, x − 0, 100% of x); operations with an unsupported operator
-    (//, %, **), a negative or inexact operand, a non-positive value or one with more than MAX_DEC decimals or a
-    non-terminating decimal; operations without two wrong values.
+ - every operation of a step build_gsm8k_tf blocks (a gold-valued step other than the gold step, steps downstream of
+ one, steps with an uncertain edge to one) and of the steps after the gold step; the gold step's operations when the
+ gold step reads a blocked step; the gold step's last operation (it yields the final answer: final_op); the gold
+ step's earlier operations are built (they are partial sums / products, not the answer);
+ - an operation whose value equals the gold (and the later operations of its note that use it);
+ - trivial operations (x × 1, 1 × x, x ÷ 1, x + 0, 0 + x, x − 0, 100% of x); operations with an unsupported operator
+ (//, %, **), a negative or inexact operand, a non-positive value or one with more than MAX_DEC decimals or a
+ non-terminating decimal; operations without two wrong values.
 Audit (audit_item, from the stored fields only): every node's operation re-evaluated exactly (Fraction) equals its
 value; the last operation of every built step equals the exact value of the whole note; question texts, option
 uniqueness, truth at the answer index, no value option equal to the gold, opsel wrong options of a different value;
 depends_on / node_depth consistent; the rows' other fields equal data/student_gsm8k_tf's. node_audit.txt shows 5
 problems (gsm8k-train-660 first) with all their nodes and renderings.
 
-  python3 scripts/build_gsm8k_ops.py      # pandas (system python3); writes data/student_gsm8k_tf_ops*/
+ python3 scripts/build_gsm8k_ops.py # pandas (system python3); writes data/student_gsm8k_tf_ops*/
 """
 from __future__ import annotations
 

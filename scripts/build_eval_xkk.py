@@ -3,7 +3,7 @@ Reasoning", arXiv 2410.23123; HF K-and-K/knights-and-knaves, test split, 100 puz
 multiple-choice evaluation file.
 
 The source answer is free-form, so each puzzle becomes a choice item: the options are full role assignments written
-like our K&K options ("Name: knight, Name: knave, ...", names in the order the puzzle introduces them); the gold option
+like our K&K options ("Name: knight, Name: knave,...", names in the order the puzzle introduces them); the gold option
 is the solution. The structured statements are evaluated by brute force on every assignment: an item is kept only
 when the solution is the unique assignment that contradicts no statement, so every distractor is wrong. Distractors
 follow the kk_heldout rule (src/cotdistill/sources.py, knights_knaves): near misses in the statement sense, sampled
@@ -13,7 +13,7 @@ would make the solution the per-position majority and Hamming medoid of the opti
 The quiz text is kept verbatim except its closing question, which is replaced by the Question line of
 data/eval/kk_heldout.jsonl.
 
-  python3 scripts/build_eval_xkk.py        # -> data/eval/xkk.jsonl
+ python3 scripts/build_eval_xkk.py # -> data/eval/xkk.jsonl
 """
 from __future__ import annotations
 

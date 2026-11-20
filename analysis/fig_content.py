@@ -1,7 +1,7 @@
 """Figure 2: K&K-Deep accuracy of each training variant minus answer-only training, paired by seed at each method's
 selected epoch (bars = mean, dots = seeds), grouped by what the variant changes; * = significant (both intervals
 exclude zero). Reads $OUT/fig_content.json (default analysis/), writes $OUT/content.pdf (default paper/figures/).
-  OUT=reproduced python3 analysis/fig_content.py"""
+ OUT=reproduced python3 analysis/fig_content.py"""
 import json
 import os
 from pathlib import Path

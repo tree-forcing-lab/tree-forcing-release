@@ -1,19 +1,19 @@
-"""k-hop dose training files for CARD_khop_v2 (family khop2, parent khop): train_kd27, train_kd_x3, train_kh_x3 and
-build_report.json, built on top of the CARD_khop_v1 files without changing them.
+"""k-hop dose training files for the k-hop design (family khop2, parent khop): train_kd27, train_kd_x3, train_kh_x3 and
+build_report.json, built on top of the the k-hop design files without changing them.
 
     python3 scripts/build_khop2.py --src <E>/src/data/eval/khop --out <E>/src/data/eval/khop2 \\
         [--tokenizer <Qwen3.5-4B tokenizer dir>] [--gsm-train <gsmvt train.jsonl>]
 
-This script imports scripts/build_khop.py and does not edit it. It does not call build_khop.build(): build_eval() would
+This script imports scripts/build_khop.py and does not edit it. It does not call build_khop.build: build_eval would
 redraw the eval items against the new training keys (so the eval files would change), and the task-major loop of
-build_train() would reorder the stream (so the result would not start with train_kd). Instead (card section 1.2):
+build_train would reorder the stream (so the result would not start with train_kd). Instead (the design section 1.2):
 
 1. Read the 12 parent files from --src. Stop (SystemExit) when the md5 of any file differs from the parent's
    build_report.json.
 2. Forbidden sets: the value keys (row_key: task + sorted chain value tuples, parsed from the prompt; the rule of
    build_khop.build) and the prompt hashes (build_khop.phash) of every row of the nine eval files (blind rows: hash only)
    and of train_kh, train_k1, train_kd.
-3. New rows: random.Random(--seed), task-major over ("ca", "wp", "vb"), j = 3000 .. 3000 + --new-per-task - 1 per task,
+3. New rows: random.Random(--seed), task-major over ("ca", "wp", "vb"), j = 3000.. 3000 + --new-per-task - 1 per task,
    k = 1 + j % 6, order fwd if (j // 6) % 2 == 0 else rev (the build_train rule), item_id "khop-tr-<task>-<j:05d>".
    it = build_khop.gen_item(task, k, rng, stats); the value key is checked first, then slots = build_khop.layout(i, k,
    rng) and the row are made and the prompt hash is checked; a forbidden or already used key or hash redraws the item
@@ -42,7 +42,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_khop as B  # noqa: E402
 
-MAX_REDRAW = 2000                 # card 1.2: at most 2,000 redraws per row
+MAX_REDRAW = 2000                 # at most 2,000 redraws per row
 J0 = 3000                         # first new j per task (train_kd ends at khop-tr-<task>-02999)
 NEW_FILES = ("train_kd27", "train_kd_x3", "train_kh_x3")
 D_STEMS = NEW_FILES + ("train_kd27_new",)
@@ -139,7 +139,7 @@ def copies_ok(lines: list[bytes], parent: list[bytes], repeat: int) -> bool:
 
 
 def new_rows(seed: int, n_per_task: int, forbid_keys: set, forbid_hash: set, cycle0: Counter):
-    """The new training rows (task-major, card 1.2 step 3). Returns (rows, keys, redraws per (task, k), stats)."""
+    """The new training rows (task-major). Returns (rows, keys, redraws per (task, k), stats)."""
     rng = random.Random(seed)
     stats = defaultdict(Counter)
     redraws = Counter()
@@ -286,7 +286,7 @@ def build(src: Path, out: Path, tok=None, seed: int = 3, n_per_task: int = 6000,
 
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--src", default="data/eval/khop", help="the CARD_khop_v1 files and their build_report.json")
+    ap.add_argument("--src", default="data/eval/khop", help="the khop files and their build_report.json")
     ap.add_argument("--out", default="data/eval/khop2")
     ap.add_argument("--seed", type=int, default=3)
     ap.add_argument("--new-per-task", type=int, default=6000)

@@ -1,6 +1,6 @@
 """Unpack the shipped data (data/**/*.jsonl.gz) into the paths the builders, the trainer and the analysis scripts use
 (data/**/*.jsonl), and check every file against data/MANIFEST.json (md5 of the uncompressed file).
-  python3 scripts/unpack_data.py"""
+ python3 scripts/unpack_data.py"""
 import gzip
 import hashlib
 import json

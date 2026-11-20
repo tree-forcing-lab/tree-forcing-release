@@ -1,15 +1,15 @@
 """Train one student arm and evaluate it on held-out sets (final question only).
 
 Example (HPC):
-  python scripts/train_student.py --model ~/cotd/models/Qwen3.5-2B-Base \
-      --train data/student/train.jsonl --eval val=data/student/val.jsonl \
-      --final teacher --subq cot --subq-target cot --out runs/A1S1-seed0 --seed 0
+ python scripts/train_student.py --model ~/cotd/models/Qwen3.5-2B-Base \
+ --train data/student/train.jsonl --eval val=data/student/val.jsonl \
+ --final teacher --subq cot --subq-target cot --out runs/A1S1-seed0 --seed 0
 
 Arms: --final {none,teacher,gold} x --subq {none,cot,random}. Writes metrics.json and preds_<set>.jsonl.
 
-Two GPUs, one job (--fsdp, FSDP2 data parallel; notes/next_round/scale12b/fsdp2.md):
-  python -m torch.distributed.run --standalone --nproc_per_node 2 scripts/train_student.py ... --precision bf16 \
-      --fsdp --fsdp-optim cpu-adamw|8bit-sr [--token-budget 4096]
+Two GPUs, one job:
+ python -m torch.distributed.run --standalone --nproc_per_node 2 scripts/train_student.py... --precision bf16 \
+ --fsdp --fsdp-optim cpu-adamw|8bit-sr [--token-budget 4096]
 Every update holds the same sequences as on one GPU, split across the ranks, gradients summed; rank 0 writes the files.
 """
 from __future__ import annotations
@@ -317,7 +317,7 @@ def main() -> None:
                          "worked step's text; lens (v2.1) = slot j's c states at --slot-layer through the model's own "
                          "final norm + LM head (no second pass, no new parameters), position i predicting token i of "
                          "the step's VALUE ('6'), then '\\n' up to c; tsf = teacher-state slots with forced reading "
-                         "(TSF, notes/latent_comeback_memo_2026-10-21.md section 3: --slot-teacher, --slot-align-*, "
+                         "(TSF: --slot-teacher, --slot-align-*, "
                          "--slot-force-p, --slot-teacher-ce)")
     ap.add_argument("--slot-fill", default="none", choices=["none", "last", "answer"],
                     help="--slot-readout lens: slots after a shorter chain get no target (none), the chain's last value "

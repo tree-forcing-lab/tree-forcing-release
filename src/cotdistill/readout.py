@@ -1,7 +1,7 @@
 """Read label distributions and confidence signals out of token logprobs.
 
 All functions take the `logprobs.content` / `logprobs.reasoning_content` lists returned by
-the API: [{"token", "logprob", "top_logprobs": [{"token", "logprob"}, ...]}, ...].
+the API: [{"token", "logprob", "top_logprobs": [{"token", "logprob"},...]},...].
 """
 from __future__ import annotations
 

@@ -1,9 +1,9 @@
-"""scripts/build_khop4.py (CARD_khop_v4 1.2, 2.5 D1 / D2, section 5) and the two stage-2 protections on the tiny model.
+"""scripts/build_khop4.py and the two stage-2 protections on the tiny model.
 Real-file tests (KHOP4_DATA_ROOT or E/src/data: student_khop3_*, eval/khop, eval/khop3, student_gsm8k_tf_vt):
 - the 4 outputs equal the khop3 inputs byte for byte; train_kh = rows 0..2,999 of student_khop4_c27/train.jsonl and
   train_k1 = rows 0..2,999 of student_khop4_k1x/train.jsonl byte for byte (D2); the report values recomputed from the
   files equal the report; two builds are byte-equal and equal to the files and the report in the data root; the inputs
-  are unchanged (md5 before and after, against the card values); the replay item_ids (khop-tr-*) and the gsmvt train
+  are unchanged (md5 before and after, against the design values); the replay item_ids (khop-tr-*) and the gsmvt train
   item_ids are disjoint (the trainer stops on a duplicate, so R would not start otherwise).
 - refusals before any write: a changed row in each of the 6 inputs, a parent report with another md5, a row count off,
   a non-object report, --out-root / --report / an output dir equal to an input dir, an output dir or report dir that
@@ -199,7 +199,7 @@ class TestRefusals(unittest.TestCase):
         self.refused(want="missing")
 
     def test_row_count(self):
-        # a file with the card md5 cannot be short; the row check is the rows() rule: no newline at the end stops
+        # a file with the design md5 cannot be short; the row check is the rows rule: no newline at the end stops
         p = self.d / "x.jsonl"
         p.write_bytes(b'{"a": 1}\n{"a": 2}')
         with self.assertRaises(SystemExit):

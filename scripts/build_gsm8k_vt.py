@@ -1,14 +1,14 @@
-"""GSM8K verification nodes for Tree Forcing (verification-tree pilot; arms GFPQVT / GFPQVTR in hpc/train_arm.sbatch,
+"""GSM8K verification nodes for Tree Forcing (verification-tree preliminary; arms GFPQVT / GFPQVTR in hpc/train_arm.sbatch,
 student.build_full_tree --node-format value --node-render vt / vtr --tree-view problem).
 
 Why: one-pass deciders estimate the answer and then match the options; when wrong they mostly pick the nearest
 distractor or an intermediate result. A verification node supervises that matching step: it shows the problem WITH
 its options and asks what one option is ("In this problem, what does option C (8) stand for?"), four choices:
-  "The answer to the problem's final question"      the gold option
-  "<Socratic sub-question>"                         an option equal to that solution step's value ("How many ants
-                                                    does Beth see?")
-  "A number written in the problem text"            an option equal to a number written in the problem
-  "None of the quantities in the solution"          anything else that is no quantity of the solution
+ "The answer to the problem's final question" the gold option
+ "<Socratic sub-question>" an option equal to that solution step's value ("How many ants
+ does Beth see?")
+ "A number written in the problem text" an option equal to a number written in the problem
+ "None of the quantities in the solution" anything else that is no quantity of the solution
 The fixed texts are sized to sit inside the sub-questions' length range (sub-questions: 26 / 33 / 40 / 48 / 57
 characters at the 5th / 25th / 50th / 75th / 90th percentile; the fixed texts 36 / 38 / 42), so that the length rank
 of the right choice can be balanced (with "The answer to the question", 26 characters, it was the shortest choice of
@@ -21,28 +21,28 @@ for byte, plus ONE new field `verify_nodes` (last). The yes/no, value-node, SI a
 train on these rows exactly as on their own data.
 
 Descriptions of one problem (its choice pool):
-  - A, N and G (the fixed texts above);
-  - S_j for every solution step j that is not the gold step, whose value is not the gold, whose sub-question text is
-    not shared with a step of another value and is not the problem's final question sentence (the rules under which
-    build_gsm8k_tf keeps a yes/no node true as worded), whose value is positive and printable at 2 decimals, and whose
-    sub-question shows no gold number the problem does not show; identical texts are one description.
+ - A, N and G (the fixed texts above);
+ - S_j for every solution step j that is not the gold step, whose value is not the gold, whose sub-question text is
+ not shared with a step of another value and is not the problem's final question sentence (the rules under which
+ build_gsm8k_tf keeps a yes/no node true as worded), whose value is positive and printable at 2 decimals, and whose
+ sub-question shows no gold number the problem does not show; identical texts are one description.
 What an option value v is (exactly one canonical description, else no node):
-  gold                      v = the gold                                        -> A
-  step                      v = the value of exactly one pool step's description -> S_j (two different: skipped)
-  (skipped)                 v = the value of a step outside the pool              (no true description to offer)
-  given                     v is written in the problem (digits, or a cardinal word: one .. twenty, thirty .. ninety,
-                            hundred, thousand, million, dozen) and is a quantity of the solution (an operand of a
-                            note)                                                -> G
-  (skipped)                 v is written in the problem but the solution never uses it (G and N both true)
-  (skipped)                 v is another quantity of the solution (a partial result inside a multi-operation note, a
-                            constant operand such as 60 or 12)
-  none                      anything else                                        -> N
+ gold v = the gold -> A
+ step v = the value of exactly one pool step's description -> S_j (two different: skipped)
+ (skipped) v = the value of a step outside the pool (no true description to offer)
+ given v is written in the problem (digits, or a cardinal word: one.. twenty, thirty.. ninety,
+ hundred, thousand, million, dozen) and is a quantity of the solution (an operand of a
+ note) -> G
+ (skipped) v is written in the problem but the solution never uses it (G and N both true)
+ (skipped) v is another quantity of the solution (a partial result inside a multi-operation note, a
+ constant operand such as 60 or 12)
+ none anything else -> N
 A description other than the canonical one that is ALSO true of v (the gold or a step value written in the problem:
 G) is never offered in that node, so every node has exactly one true choice.
 Nodes per problem: the gold option, every step and given option, and --none-nodes (default 1) of the none options
 (seeded draw; "all" keeps every option). Why not all five by default: in the training finals 65% of the options are
 "none" (QO-v2 perturbations and one-step combinations of the stated numbers that the solution never computes), so
-with every option asked "None of ..." would be the right choice of 2 nodes in 3 and always-"none" would score 65%;
+with every option asked "None of..." would be the right choice of 2 nodes in 3 and always-"none" would score 65%;
 with one, the four kinds are right in 37 / 37 / 19 / 8% of the nodes (answer / none / step / given; summary
 type_prior), and the shuffled control can move every problem's descriptions among different options.
 Choices (4 per node; a node with fewer than 3 false descriptions in its pool is not built): the canonical description,
@@ -60,7 +60,7 @@ No gold leak beyond the options: the stem is the final question's prompt (proble
 names only the option's letter and value; the choices name sub-questions of the solution, never a computed value.
 
 A node (verify_nodes entry): id v<letter>, type verify, option, value (the option text), vt_kind gold / step / given /
-none, step (1-based, step nodes), option_kind (the final's option_kinds entry: qo2 partial_ab, perturb_gold, ...),
+none, step (1-based, step nodes), option_kind (the final's option_kinds entry: qo2 partial_ab, perturb_gold,...),
 node_depth None, depends_on [], control_agree, renderings {vt, vtr: {question, options (4), answer, kinds (the kind of
 each choice: answer / none / given / step:<j>)}} (vt and vtr share question and options).
 Audit (audit_item, from the stored fields and the parsed solution): the option value is the prompt's option, the
@@ -71,8 +71,8 @@ kind is right when offered), shortest / longest picks, a description-only advers
 choice's kind, length, length rank, position and step position, fitted on train nodes, scored on val), control
 agreement; node_audit.txt shows 5 problems (gsm8k-train-660 first) with all their nodes.
 
-  python3 scripts/build_gsm8k_vt.py                                   # pandas + numpy (system python3)
-  python3 scripts/build_gsm8k_vt.py --tokens  # tokens / epoch (tokenizers)
+ python3 scripts/build_gsm8k_vt.py # pandas + numpy (system python3)
+ python3 scripts/build_gsm8k_vt.py --tokens # tokens / epoch (tokenizers)
 """
 from __future__ import annotations
 

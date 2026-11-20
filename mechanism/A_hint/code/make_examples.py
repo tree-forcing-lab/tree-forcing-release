@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Write data/example_prompts.md: the real prompt of every one of the 18 sets for one item.
 
-    python3 code/make_examples.py          # from the A_hint folder
+ python3 code/make_examples.py # from the A_hint folder
 
 The item is the shortest-question item with n >= 7 worked steps that appears in all 18 sets and whose shown values
 never equal an option (so every r = 1..6 exists for it). The prompts are copied byte for byte from data/hint.

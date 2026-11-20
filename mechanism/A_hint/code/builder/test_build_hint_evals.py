@@ -1,5 +1,5 @@
 """Tests for build_hint_evals.py on the real eval files (the sets are small; a run takes seconds).
-    PYTHONPATH=<repo>/src <venv python> test_build_hint_evals.py <repo dir> <path to build_hint_evals.py>
+ PYTHONPATH=<repo>/src <venv python> test_build_hint_evals.py <repo dir> <path to build_hint_evals.py>
 """
 import hashlib, json, os, subprocess, sys, tempfile
 
@@ -29,7 +29,7 @@ def opts(prompt):
 d1 = tempfile.mkdtemp(); sets = build(d1)
 x = {json.loads(l)["item_id"]: json.loads(l) for l in open(X)}
 steps = {json.loads(l)["item_id"].replace("gsm8k-test-", "gsm8k_v2-test-"): json.loads(l) for l in open(STEPS)}
-# 1. counts equal the card's table
+# 1. counts equal the expected table
 assert {n: len(v) for n, v in sets.items()} == EXPECT, {n: len(v) for n, v in sets.items()}
 plain = {d["item_id"]: d for d in sets["hint_plain"]}
 for name, rows in sets.items():
